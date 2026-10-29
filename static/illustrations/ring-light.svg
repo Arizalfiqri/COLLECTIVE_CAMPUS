@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#FF8A6B"/>
+  <!-- Ring Light 18": lebar ~260px (70% lebar ubin), garis ink 2.5px, mount HP ink -->
+  <!-- Kaki tripod -->
+  <line x1="200" y1="310" x2="200" y2="400" stroke="#141B34" stroke-width="3" stroke-linecap="round"/>
+  <line x1="200" y1="360" x2="110" y2="420" stroke="#141B34" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="200" y1="360" x2="290" y2="420" stroke="#141B34" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Sambungan leher ballhead -->
+  <rect x="188" y="275" width="24" height="35" rx="5" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Ring Light Donut Bulat -->
+  <path d="M 200 80 A 105 105 0 1 0 200 290 A 105 105 0 1 0 200 80 Z
+           M 200 125 A 60 60 0 1 1 200 245 A 60 60 0 1 1 200 125 Z"
+        fill="#FFFFFF" stroke="#141B34" stroke-width="2.5" fill-rule="evenodd"/>
+  <!-- Tiang holder HP -->
+  <line x1="200" y1="245" x2="200" y2="200" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Detail isi ink: smartphone holder clamp di tengah ring light -->
+  <rect x="186" y="160" width="28" height="42" rx="4" fill="#141B34" stroke="none"/>
+</svg>

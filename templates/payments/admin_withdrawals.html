@@ -1,0 +1,407 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Antrean penarikan dana | {{ SITE_NAME }} Admin{% endblock %}
+{% block page_title %}Antrean penarikan dana{% endblock %}
+{% block page_subtitle %}Kelola pencairan dana mahasiswa ke rekening bank atau dompet digital{% endblock %}
+
+{% block content %}
+<div x-data="adminWithdrawalApp()" class="space-y-6">
+    <!-- Bilah Aksi Atas -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <span class="text-xs text-ink-muted">Verifikasi bukti transfer dan pencairan saldo dompet mahasiswa</span>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payments:admin_reconciliation' %}" class="px-3.5 py-1.5 rounded-xl border border-line bg-card hover:bg-paper text-xs font-semibold text-ink transition-colors">
+                Audit rekonsiliasi keuangan &rarr;
+            </a>
+        </div>
+    </div>
+
+
+    <!-- Filter Tab Status -->
+    <div class="flex items-center gap-2 border-b border-line pb-4 mb-6 overflow-x-auto no-scrollbar">
+        <a href="{% url 'payments:admin_withdrawals' %}"
+           class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if not status_filter %}bg-ink text-white{% else %}text-ink-muted hover:text-ink hover:bg-paper{% endif %}">
+            Semua ({{ counts.semua }})
+        </a>
+        <a href="{% url 'payments:admin_withdrawals' %}?status=diminta"
+           class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if status_filter == 'diminta' %}bg-ink text-white{% else %}text-ink-muted hover:text-ink hover:bg-paper{% endif %}">
+            Menunggu verifikasi ({{ counts.diminta }})
+        </a>
+        <a href="{% url 'payments:admin_withdrawals' %}?status=diproses"
+           class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if status_filter == 'diproses' %}bg-ink text-white{% else %}text-ink-muted hover:text-ink hover:bg-paper{% endif %}">
+            Sedang diproses ({{ counts.diproses }})
+        </a>
+        <a href="{% url 'payments:admin_withdrawals' %}?status=selesai"
+           class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if status_filter == 'selesai' %}bg-ink text-white{% else %}text-ink-muted hover:text-ink hover:bg-paper{% endif %}">
+            Selesai dicairkan ({{ counts.selesai }})
+        </a>
+        <a href="{% url 'payments:admin_withdrawals' %}?status=ditolak"
+           class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if status_filter == 'ditolak' %}bg-ink text-white{% else %}text-ink-muted hover:text-ink hover:bg-paper{% endif %}">
+            Ditolak ({{ counts.ditolak }})
+        </a>
+    </div>
+
+    <!-- Tabel Daftar Penarikan -->
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+        <div class="overflow-x-auto -mx-6 sm:mx-0">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-line text-ink-muted font-semibold">
+                        <th class="pb-3 px-3">ID & Tanggal</th>
+                        <th class="pb-3 px-3">Pengguna</th>
+                        <th class="pb-3 px-3">Nominal</th>
+                        <th class="pb-3 px-3">Metode & Rekening</th>
+                        <th class="pb-3 px-3">Status</th>
+                        <th class="pb-3 px-3">Catatan / Ref</th>
+                        <th class="pb-3 px-3 text-right">Tindakan staf</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line/70">
+                    {% for w in withdrawals %}
+                        <tr class="hover:bg-paper/60 transition-colors">
+                            <td class="py-4 px-3 whitespace-nowrap">
+                                <span class="font-mono font-bold text-ink">#WD-{{ w.id }}</span>
+                                <div class="text-[11px] text-ink-muted mt-0.5">{{ w.requested_at|date:"d M Y, H:i" }}</div>
+                            </td>
+
+                            <td class="py-4 px-3 whitespace-nowrap">
+                                <div class="font-semibold text-ink">{{ w.user.full_name|default:w.user.username }}</div>
+                                <div class="text-[11px] text-ink-muted">@{{ w.user.username }}</div>
+                            </td>
+
+                            <td class="py-4 px-3 whitespace-nowrap tabular-nums">
+                                <span class="font-bold text-ink text-sm">
+                                    {{ w.amount|rupiah }}
+                                </span>
+                            </td>
+
+                            <td class="py-4 px-3 whitespace-nowrap">
+                                <div class="font-medium text-ink">{{ w.method }} &bull; a.n. {{ w.account_name }}</div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span id="acc-num-{{ w.id }}" class="font-mono text-ink-muted font-semibold">
+                                        {{ w.masked_account_number }}
+                                    </span>
+                                    <button type="button"
+                                            @click="openRevealModal({{ w.id }})"
+                                            id="btn-reveal-{{ w.id }}"
+                                            class="text-xs text-brand hover:underline font-semibold min-h-[44px] min-w-[44px] inline-flex items-center px-2 py-1">
+                                        Buka nomor
+                                    </button>
+                                </div>
+                            </td>
+
+                            <td class="py-4 px-3 whitespace-nowrap">
+                                {% if w.status == 'diminta' %}
+                                    <span class="bg-amber-tint text-amber-text px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                        Diminta
+                                    </span>
+                                {% elif w.status == 'diproses' %}
+                                    <span class="bg-brand-tint text-brand px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                        Diproses
+                                    </span>
+                                {% elif w.status == 'selesai' %}
+                                    <span class="bg-pine-tint text-pine-dark px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                        Selesai
+                                    </span>
+                                {% elif w.status == 'ditolak' %}
+                                    <span class="bg-brick-tint text-brick px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                        Ditolak
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="py-4 px-3 max-w-[200px]">
+                                {% if w.transfer_reference %}
+                                    <div class="text-[11px] text-pine-dark font-medium">
+                                        Ref: <span class="font-mono">{{ w.transfer_reference }}</span>
+                                    </div>
+                                {% endif %}
+                                {% if w.admin_note %}
+                                    <div class="text-[11px] text-ink-muted truncate" title="{{ w.admin_note }}">
+                                        {{ w.admin_note }}
+                                    </div>
+                                {% endif %}
+                                {% if not w.transfer_reference and not w.admin_note %}
+                                    <span class="text-ink-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="py-4 px-3 text-right whitespace-nowrap">
+                                {% if w.status == 'diminta' %}
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <form method="POST" action="{% url 'payments:admin_withdrawal_process' w.id %}" class="inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="diproses">
+                                            <button type="submit" class="px-2.5 py-1.5 rounded-lg border border-line bg-card hover:bg-paper text-ink text-[11px] font-semibold transition-colors">
+                                                Proses
+                                            </button>
+                                        </form>
+                                        <button type="button"
+                                                @click="openCompleteModal({{ w.id }}, '{{ w.amount|rupiah }}', '{{ w.user.full_name|default:w.user.username }}')"
+                                                class="px-2.5 py-1.5 rounded-lg bg-pine text-white text-[11px] font-semibold hover:bg-pine-dark transition-colors">
+                                            Selesai
+                                        </button>
+                                        <button type="button"
+                                                @click="openRejectModal({{ w.id }}, '{{ w.amount|rupiah }}', '{{ w.user.full_name|default:w.user.username }}')"
+                                                class="px-2.5 py-1.5 rounded-lg border border-brick/40 text-brick text-[11px] font-semibold hover:bg-brick-tint transition-colors">
+                                            Tolak
+                                        </button>
+                                    </div>
+                                {% elif w.status == 'diproses' %}
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <button type="button"
+                                                @click="openCompleteModal({{ w.id }}, '{{ w.amount|rupiah }}', '{{ w.user.full_name|default:w.user.username }}')"
+                                                class="px-2.5 py-1.5 rounded-lg bg-pine text-white text-[11px] font-semibold hover:bg-pine-dark transition-colors">
+                                            Selesai
+                                        </button>
+                                        <button type="button"
+                                                @click="openRejectModal({{ w.id }}, '{{ w.amount|rupiah }}', '{{ w.user.full_name|default:w.user.username }}')"
+                                                class="px-2.5 py-1.5 rounded-lg border border-brick/40 text-brick text-[11px] font-semibold hover:bg-brick-tint transition-colors">
+                                            Tolak
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <span class="text-ink-muted text-[11px]">Telah diarsipkan</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-ink-muted">
+                                Tidak ada permohonan penarikan dana pada kategori ini.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Selesai Transfer -->
+    <div x-show="showCompleteModal"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+         style="display: none;"
+         x-cloak>
+        <div class="bg-card border border-line rounded-2xl max-w-md w-full p-6 shadow-xl" @click.away="showCompleteModal = false">
+            <h3 class="font-heading text-lg font-bold text-ink mb-1">Tandai penarikan selesai</h3>
+            <p class="text-xs text-ink-muted mb-4">
+                Pastikan Anda telah melakukan transfer dana <span class="font-bold text-ink" x-text="activeAmount"></span> kepada <span class="font-semibold text-ink" x-text="activeUserName"></span>.
+            </p>
+
+            <form method="POST" :action="'/admin/penarikan/' + activeId + '/proses/'" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="selesai">
+
+                <div>
+                    <label for="transfer_ref" class="block text-xs font-bold text-ink mb-1">Nomor referensi transfer / mutasi <span class="text-brick">*</span></label>
+                    <input type="text"
+                           id="transfer_ref"
+                           name="transfer_reference"
+                           required
+                           placeholder="Contoh: TRX-20261017-0091"
+                           class="w-full px-3.5 py-2 rounded-xl border border-line bg-card text-ink text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand">
+                </div>
+
+                <div>
+                    <label for="admin_note_complete" class="block text-xs font-bold text-ink mb-1">Catatan staf (opsional)</label>
+                    <textarea id="admin_note_complete"
+                              name="admin_note"
+                              rows="2"
+                              placeholder="Keterangan tambahan transfer"
+                              class="w-full px-3.5 py-2 rounded-xl border border-line bg-card text-ink text-xs focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-line flex items-center justify-end gap-2.5">
+                    <button type="button" @click="showCompleteModal = false" class="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-ink-muted hover:bg-paper">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-pine hover:bg-pine-dark text-white text-xs font-semibold">
+                        Konfirmasi selesai
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Penolakan -->
+    <div x-show="showRejectModal"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+         style="display: none;"
+         x-cloak>
+        <div class="bg-card border border-line rounded-2xl max-w-md w-full p-6 shadow-xl" @click.away="showRejectModal = false">
+            <h3 class="font-heading text-lg font-bold text-ink mb-1">Tolak penarikan dana</h3>
+            <p class="text-xs text-ink-muted mb-4">
+                Saldo sebesar <span class="font-bold text-ink" x-text="activeAmount"></span> akan dikembalikan otomatis ke dompet <span class="font-semibold text-ink" x-text="activeUserName"></span>.
+            </p>
+
+            <form method="POST" :action="'/admin/penarikan/' + activeId + '/proses/'" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="ditolak">
+
+                <div>
+                    <label for="reject_reason" class="block text-xs font-bold text-ink mb-1">Alasan penolakan <span class="text-brick">*</span></label>
+                    <textarea id="reject_reason"
+                              name="admin_note"
+                              required
+                              rows="3"
+                              placeholder="Contoh: Nomor rekening tidak valid / nama tidak sesuai identitas"
+                              class="w-full px-3.5 py-2 rounded-xl border border-line bg-card text-ink text-xs focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-line flex items-center justify-end gap-2.5">
+                    <button type="button" @click="showRejectModal = false" class="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-ink-muted hover:bg-paper">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brick hover:bg-brick/90 text-white text-xs font-semibold transition-colors">
+                        Tolak dan kembalikan saldo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Buka Nomor Rekening (Audit Privasi) -->
+    <div x-show="showRevealModal"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+         x-cloak>
+        <div class="bg-card border border-line rounded-2xl max-w-md w-full p-6 shadow-xl" @click.away="showRevealModal = false">
+            <h3 class="font-heading text-lg font-bold text-ink mb-1">Audit pembukaan nomor rekening</h3>
+            <p class="text-xs text-ink-muted mb-4">
+                Nomor rekening terenkripsi dilindungi undang-undang pelindungan data pribadi. Setiap akses dicatat ke log audit dengan identitas staf, waktu, dan alasan operasional.
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="reveal_reason" class="block text-xs font-bold text-ink mb-1">Alasan operasional akses <span class="text-brick">*</span></label>
+                    <textarea id="reveal_reason"
+                              x-model="revealReason"
+                              rows="3"
+                              placeholder="Contoh: Melakukan transfer manual melalui m-Banking Mandiri"
+                              class="w-full px-3.5 py-2 rounded-xl border border-line bg-card text-ink text-xs focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                    <p class="text-[11px] text-ink-muted mt-1">Wajib minimal 5 karakter.</p>
+                </div>
+
+                <div x-show="revealError" class="p-3 bg-brick-tint border border-brick/30 text-brick text-xs rounded-xl font-medium" x-text="revealError"></div>
+
+                <div class="pt-3 border-t border-line flex items-center justify-end gap-2.5">
+                    <button type="button" @click="showRevealModal = false" class="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-ink-muted hover:bg-paper">
+                        Batal
+                    </button>
+                    <button type="button"
+                            @click="submitReveal()"
+                            :disabled="isSubmittingReveal"
+                            class="px-5 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors disabled:opacity-50">
+                        <span x-text="isSubmittingReveal ? 'Membuka...' : 'Buka & Catat Log'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function adminWithdrawalApp() {
+    return {
+        showCompleteModal: false,
+        showRejectModal: false,
+        showRevealModal: false,
+        activeId: null,
+        activeAmount: '',
+        activeUserName: '',
+        revealId: null,
+        revealReason: '',
+        revealError: '',
+        isSubmittingReveal: false,
+
+        openCompleteModal(id, amount, userName) {
+            this.activeId = id;
+            this.activeAmount = amount;
+            this.activeUserName = userName;
+            this.showCompleteModal = true;
+        },
+
+        openRejectModal(id, amount, userName) {
+            this.activeId = id;
+            this.activeAmount = amount;
+            this.activeUserName = userName;
+            this.showRejectModal = true;
+        },
+
+        openRevealModal(id) {
+            this.revealId = id;
+            this.revealReason = '';
+            this.revealError = '';
+            this.showRevealModal = true;
+        },
+
+        submitReveal() {
+            if (!this.revealReason || this.revealReason.trim().length < 5) {
+                this.revealError = 'Alasan operasional wajib diisi minimal 5 karakter.';
+                return;
+            }
+            this.revealError = '';
+            this.isSubmittingReveal = true;
+
+            const id = this.revealId;
+            const numEl = document.getElementById('acc-num-' + id);
+            const btnEl = document.getElementById('btn-reveal-' + id);
+
+            // Ambil cookie CSRF token Django
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            const csrftoken = getCookie('csrftoken');
+
+            const formData = new URLSearchParams();
+            formData.append('reason', this.revealReason.trim());
+
+            fetch('/admin/penarikan/' + id + '/lihat-rekening/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString()
+            })
+            .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data: data })))
+            .then(({ status, ok, data }) => {
+                this.isSubmittingReveal = false;
+                if (ok && data.status === 'success') {
+                    if (numEl) {
+                        numEl.textContent = data.account_number;
+                        numEl.classList.remove('text-ink-muted');
+                        numEl.classList.add('text-brand', 'font-bold');
+                    }
+                    if (btnEl) {
+                        btnEl.textContent = 'Tercatat di log audit';
+                        btnEl.classList.remove('text-brand', 'hover:underline');
+                        btnEl.classList.add('text-pine-dark', 'font-semibold', 'cursor-default');
+                        btnEl.disabled = true;
+                    }
+                    this.showRevealModal = false;
+                } else {
+                    this.revealError = data.message || 'Gagal membuka nomor rekening.';
+                }
+            })
+            .catch(err => {
+                this.isSubmittingReveal = false;
+                this.revealError = 'Kesalahan jaringan: ' + err.message;
+            });
+        }
+    }
+}
+</script>
+{% endblock %}

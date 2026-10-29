@@ -1,0 +1,112 @@
+{# Komponen Alur Linear 4 Langkah Jual Beli Mahasiswa — Fase 8A Butir 8 & Fase 9 #}
+{# Digunakan di beranda (tab Jual Beli) dan Tentang #}
+
+<!-- Tampilan Desktop (>= lg): 4 Kolom Horizontal dengan Garis 2px Menghubungkan Titik Nomor -->
+<div class="hidden lg:block relative pb-4">
+    <!-- Garis Penghubung Horizontal 2px Tepat di Tengah Titik Nomor (top: 15px) -->
+    <div class="absolute top-[15px] left-[12%] right-[12%] h-[2px] bg-line z-0" aria-hidden="true"></div>
+
+    <div class="grid grid-cols-4 gap-6 relative z-10">
+        <!-- Langkah 1 -->
+        <div class="flex flex-col items-center text-center px-1">
+            <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm mb-3.5 flex-shrink-0">
+                1
+            </div>
+            <h3 class="font-bold text-sm text-ink mb-1.5">Verifikasi dan pasang barang</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Verifikasi KTM untuk keamanan bersama, lalu pasang barang perlengkapan kuliahmu dengan foto dan deskripsi jujur.
+            </p>
+        </div>
+
+        <!-- Langkah 2 -->
+        <div class="flex flex-col items-center text-center px-1">
+            <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm mb-3.5 flex-shrink-0">
+                2
+            </div>
+            <h3 class="font-bold text-sm text-ink mb-1.5">Beli dan bayar lewat platform</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Pembeli memesan dan dana pembayaran diamankan di rekening penampungan platform (escrow), belum diteruskan ke penjual.
+            </p>
+        </div>
+
+        <!-- Langkah 3 -->
+        <div class="flex flex-col items-center text-center px-1">
+            <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm mb-3.5 flex-shrink-0">
+                3
+            </div>
+            <h3 class="font-bold text-sm text-ink mb-1.5">Temu di kampus dan periksa</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Bertemu langsung di titik kumpul kampus yang ramai untuk memeriksa fisik, fungsi, dan kelengkapan barang.
+            </p>
+        </div>
+
+        <!-- Langkah 4 -->
+        <div class="flex flex-col items-center text-center px-1">
+            <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm mb-3.5 flex-shrink-0">
+                4
+            </div>
+            <h3 class="font-bold text-sm text-ink mb-1.5">Konfirmasi dan dana diteruskan ke penjual</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Setelah barang diterima sesuai, pembeli mengonfirmasi dan dana hasil penjualan langsung masuk ke saldo dompet penjual.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Tampilan Mobile / Tablet (< lg): Vertikal dengan Garis di Kiri dan Teks di Kanan Lingkaran -->
+<div class="lg:hidden relative pl-10 space-y-7">
+    <!-- Garis Penghubung Vertikal 2px Menghubungkan Lingkaran 1 sampai 4 -->
+    <div class="absolute left-[15px] top-4 bottom-4 w-[2px] bg-line z-0" aria-hidden="true"></div>
+
+    <!-- Langkah 1 -->
+    <div class="relative flex items-start gap-3.5 z-10">
+        <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm flex-shrink-0">
+            1
+        </div>
+        <div class="pt-0.5">
+            <h3 class="font-bold text-sm text-ink mb-1">Verifikasi dan pasang barang</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Verifikasi KTM untuk keamanan bersama, lalu pasang barang perlengkapan kuliahmu dengan foto dan deskripsi jujur.
+            </p>
+        </div>
+    </div>
+
+    <!-- Langkah 2 -->
+    <div class="relative flex items-start gap-3.5 z-10">
+        <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm flex-shrink-0">
+            2
+        </div>
+        <div class="pt-0.5">
+            <h3 class="font-bold text-sm text-ink mb-1">Beli dan bayar lewat platform</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Pembeli memesan dan dana pembayaran diamankan di rekening penampungan platform (escrow), belum diteruskan ke penjual.
+            </p>
+        </div>
+    </div>
+
+    <!-- Langkah 3 -->
+    <div class="relative flex items-start gap-3.5 z-10">
+        <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm flex-shrink-0">
+            3
+        </div>
+        <div class="pt-0.5">
+            <h3 class="font-bold text-sm text-ink mb-1">Temu di kampus dan periksa</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Bertemu langsung di titik kumpul kampus yang ramai untuk memeriksa fisik, fungsi, dan kelengkapan barang.
+            </p>
+        </div>
+    </div>
+
+    <!-- Langkah 4 -->
+    <div class="relative flex items-start gap-3.5 z-10">
+        <div class="w-8 h-8 rounded-full bg-amber-tint text-amber-text border border-line font-bold text-xs flex items-center justify-center ring-4 ring-paper shadow-sm flex-shrink-0">
+            4
+        </div>
+        <div class="pt-0.5">
+            <h3 class="font-bold text-sm text-ink mb-1">Konfirmasi dan dana diteruskan ke penjual</h3>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Setelah barang diterima sesuai, pembeli mengonfirmasi dan dana hasil penjualan langsung masuk ke saldo dompet penjual.
+            </p>
+        </div>
+    </div>
+</div>

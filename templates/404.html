@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Halaman Tidak Ditemukan (404) | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[600px] mx-auto px-4 pt-4 sm:pt-6 lg:pt-8 pb-16 text-center">
+    <div class="bg-card border border-line rounded-card p-6 sm:p-10 shadow-sm space-y-6">
+        <!-- Panel Kain Tapis Lampung dengan Kapal (Fase 7B-Nusantara 2) -->
+        {% include 'partials/panel_kain.html' with type='kapal' height='h-44 sm:h-52' %}
+
+        <div class="space-y-2">
+            <span class="text-xs font-mono font-bold text-ink-muted">Galat 404</span>
+            <h1 class="text-2xl sm:text-3xl font-bold text-ink tracking-tight">Halaman tidak ditemukan</h1>
+            <p class="text-xs sm:text-sm text-ink-muted leading-relaxed">
+                Tautan yang Anda tuju mungkin sudah kedaluwarsa, barang telah dihapus, atau alamat URL salah ketik.
+            </p>
+        </div>
+        <div class="pt-4 border-t border-line flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="/"
+               class="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-6 py-2.5 rounded-lg transition-colors">
+                Kembali ke Beranda
+            </a>
+            <a href="/barang/"
+               class="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-6 py-2.5 rounded-lg border border-line transition-colors">
+                Jelajahi Katalog Barang
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

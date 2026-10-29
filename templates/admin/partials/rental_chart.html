@@ -1,0 +1,101 @@
+{% load formatters %}
+<div x-data="{ tooltip: null }" class="relative">
+    <!-- Header Kartu Grafik & Pemilih Rentang Waktu -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+            <h2 class="text-base font-bold text-ink flex items-center gap-2">
+                <span>Laporan sewa</span>
+                <span class="text-xs font-normal text-ink-muted">Transaksi selesai per hari</span>
+            </h2>
+            <p class="text-xs text-ink-muted mt-0.5">
+                Total perolehan sewa periode ini: <strong class="text-ink font-semibold">{{ admin_rental_chart.total_period_val_formatted }}</strong>
+            </p>
+        </div>
+
+        <!-- Tab Rentang Waktu (HTMX) -->
+        <div class="inline-flex items-center gap-1 p-1 bg-paper border border-line rounded-xl self-start sm:self-auto" role="tablist" aria-label="Rentang waktu laporan sewa">
+            <button type="button"
+                    hx-get="{% url 'admin_rental_chart_root' %}?days=7"
+                    hx-target="#rental-chart-container"
+                    hx-swap="innerHTML"
+                    role="tab"
+                    aria-selected="{% if admin_rental_chart.days == 7 %}true{% else %}false{% endif %}"
+                    class="px-3.5 py-2.5 min-h-[44px] rounded-lg text-xs transition-colors flex items-center justify-center {% if admin_rental_chart.days == 7 %}bg-ink text-white font-semibold{% else %}text-ink-muted hover:text-ink hover:bg-paper-deep font-medium{% endif %}">
+                7 hari
+            </button>
+            <button type="button"
+                    hx-get="{% url 'admin_rental_chart_root' %}?days=30"
+                    hx-target="#rental-chart-container"
+                    hx-swap="innerHTML"
+                    role="tab"
+                    aria-selected="{% if admin_rental_chart.days == 30 %}true{% else %}false{% endif %}"
+                    class="px-3.5 py-2.5 min-h-[44px] rounded-lg text-xs transition-colors flex items-center justify-center {% if admin_rental_chart.days == 30 %}bg-ink text-white font-semibold{% else %}text-ink-muted hover:text-ink hover:bg-paper-deep font-medium{% endif %}">
+                30 hari
+            </button>
+            <button type="button"
+                    hx-get="{% url 'admin_rental_chart_root' %}?days=90"
+                    hx-target="#rental-chart-container"
+                    hx-swap="innerHTML"
+                    role="tab"
+                    aria-selected="{% if admin_rental_chart.days == 90 %}true{% else %}false{% endif %}"
+                    class="px-3.5 py-2.5 min-h-[44px] rounded-lg text-xs transition-colors flex items-center justify-center {% if admin_rental_chart.days == 90 %}bg-ink text-white font-semibold{% else %}text-ink-muted hover:text-ink hover:bg-paper-deep font-medium{% endif %}">
+                90 hari
+            </button>
+        </div>
+    </div>
+
+    <!-- Area Grafik Garis SVG Server-Rendered -->
+    <div class="relative w-full overflow-hidden bg-white rounded-xl border border-line p-2 sm:p-4">
+        <svg viewBox="0 0 {{ admin_rental_chart.svg_w }} {{ admin_rental_chart.svg_h }}"
+             class="w-full h-48 sm:h-64 overflow-visible"
+             aria-label="Grafik garis nilai transaksi sewa selesai per hari">
+            
+            <!-- Garis Kisi Horizontal -->
+            {% for g in admin_rental_chart.grid_lines %}
+            <g>
+                <line x1="75" y1="{{ g.y }}" x2="736" y2="{{ g.y }}" stroke="#E4DECF" stroke-width="1" stroke-dasharray="3 3" />
+                <text x="68" y="{{ g.text_y }}" text-anchor="end" font-size="10" fill="#566074" font-family="'Plus Jakarta Sans', system-ui, sans-serif">{{ g.label }}</text>
+            </g>
+            {% endfor %}
+
+            <!-- Area Bawah Kurva (Warna Datar Brand Tint, Tanpa Gradien) -->
+            {% if admin_rental_chart.area_points %}
+            <polygon points="{{ admin_rental_chart.area_points }}" fill="#E6ECFB" opacity="0.65" />
+            {% endif %}
+
+            <!-- Garis Nilai Transaksi (Brand #1F45C4, Tanpa Gradien) -->
+            {% if admin_rental_chart.polyline_points %}
+            <polyline points="{{ admin_rental_chart.polyline_points }}"
+                      fill="none"
+                      stroke="#1F45C4"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round" />
+            {% endif %}
+
+            <!-- Label Sumbu X (Tanggal) -->
+            {% for lbl in admin_rental_chart.x_labels %}
+            <text x="{{ lbl.x }}" y="{{ lbl.y }}" text-anchor="middle" font-size="10" fill="#566074" font-family="'Plus Jakarta Sans', system-ui, sans-serif">{{ lbl.text }}</text>
+            {% endfor %}
+
+            <!-- Titik-Titik Data & Area Interaksi Hover Tooltip -->
+            {% for pt in admin_rental_chart.points %}
+            <g class="cursor-pointer">
+                <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="3.5" fill="#FFFFFF" stroke="#1F45C4" stroke-width="2" />
+                <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="12" fill="transparent"
+                        @mouseenter="tooltip = { date: '{{ pt.date }}', val: '{{ pt.val_formatted }}', x: {{ pt.x }}, y: {{ pt.y }} }"
+                        @mouseleave="tooltip = null" />
+            </g>
+            {% endfor %}
+        </svg>
+
+        <!-- Tooltip Mengambang Dinamis Alpine.js -->
+        <div x-show="tooltip"
+             x-cloak
+             class="absolute pointer-events-none bg-ink text-white text-xs px-2.5 py-1.5 rounded-lg shadow-sm border border-line -translate-x-1/2 -translate-y-full transition-all duration-75 z-20"
+             :style="'left: ' + (tooltip?.x / {{ admin_rental_chart.svg_w }} * 100) + '%; top: ' + (tooltip?.y / {{ admin_rental_chart.svg_h }} * 100) + '%; margin-top: -8px;'">
+            <div class="font-bold text-xs" x-text="tooltip?.val"></div>
+            <div class="text-[10px] text-paper-deep opacity-80" x-text="tooltip?.date"></div>
+        </div>
+    </div>
+</div>

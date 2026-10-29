@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 24" preserveAspectRatio="none">
+  <!--
+    Pola geometris abstrak terinspirasi kain tapis Lampung:
+    deretan segitiga zigzag berulang, satu warna datar (brand #1F45C4).
+    Bukan salinan motif adat tertentu.
+  -->
+  <defs>
+    <pattern id="tapis-zigzag" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <!-- Baris segitiga atas -->
+      <polygon points="0,12 6,0 12,12" fill="#1F45C4"/>
+      <polygon points="12,12 18,0 24,12" fill="#1F45C4"/>
+      <!-- Baris segitiga bawah (terbalik) -->
+      <polygon points="0,12 6,24 12,12" fill="#1F45C4"/>
+      <polygon points="12,12 18,24 24,12" fill="#1F45C4"/>
+    </pattern>
+  </defs>
+  <rect width="120" height="24" fill="url(#tapis-zigzag)"/>
+</svg>

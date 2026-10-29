@@ -1,0 +1,94 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrahead %}{{ block.super }}
+<script src="{% url 'admin:jsi18n' %}"></script>
+{{ media }}
+{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+{% endblock %}
+
+{% block page_title %}{% if add %}Tambah {{ opts.verbose_name }}{% else %}Ubah {{ opts.verbose_name }}: {{ original|truncatewords:"6" }}{% endif %}{% endblock %}
+{% block page_subtitle %}Formulir rincian data {{ opts.verbose_name }} sistem{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl">
+
+    <!-- Bilah Aksi Atas Formulir -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <a href="{% url opts|admin_urlname:'changelist' %}"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-brand px-3 py-1.5 rounded-xl border border-line bg-card hover:bg-paper transition-colors self-start">
+            <span>&larr;</span>
+            <span>Kembali ke daftar {{ opts.verbose_name_plural|lower }}</span>
+        </a>
+
+        {% if change and not is_popup %}
+        <div class="flex items-center gap-2">
+            {% block object-tools %}
+            <ul class="flex items-center gap-2">
+                {% block object-tools-items %}
+                {% change_form_object_tools %}
+                {% endblock %}
+            </ul>
+            {% endblock %}
+        </div>
+        {% endif %}
+    </div>
+
+    <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}{% if form_url %}action="{{ form_url }}" {% endif %}method="post" id="{{ opts.model_name }}_form" novalidate class="space-y-6">
+        {% csrf_token %}
+        {% block form_top %}{% endblock %}
+        
+        <div>
+            {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+            {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+            
+            {% if errors %}
+                <div class="p-4 rounded-xl bg-brick-tint border border-brick text-brick text-xs font-semibold mb-6">
+                    Periksa kembali kesalahan pengisian formulir di bawah ini.
+                    {{ adminform.form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- Fieldset yang Ditampilkan sebagai Kartu Putih Bersudut Membulat -->
+            {% block field_sets %}
+            {% for fieldset in adminform %}
+                {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+            {% endfor %}
+            {% endblock %}
+
+            {% block after_field_sets %}{% endblock %}
+
+            <!-- Inlines Formsets -->
+            {% block inline_field_sets %}
+            {% for inline_admin_formset in inline_admin_formsets %}
+                {% include inline_admin_formset.opts.template %}
+            {% endfor %}
+            {% endblock %}
+
+            {% block after_related_objects %}{% endblock %}
+
+            <!-- Baris Tombol Simpan Rapi -->
+            {% block submit_buttons_bottom %}
+                {% submit_row %}
+            {% endblock %}
+
+            {% block admin_change_form_document_ready %}
+                <script id="django-admin-form-add-constants"
+                        src="{% static 'admin/js/change_form.js' %}"
+                        {% if entry_point %}src-entry-point="{{ entry_point }}"{% endif %}
+                        defer>
+                </script>
+            {% endblock %}
+
+            {# JavaScript for prepopulated fields #}
+            {% prepopulated_fields_js %}
+        </div>
+    </form>
+</div>
+{% endblock %}

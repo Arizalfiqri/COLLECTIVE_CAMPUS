@@ -1,0 +1,579 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}{{ item.title }} | Jual Beli {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16"
+     x-data="{
+         activePhoto: 0,
+         buyModalOpen: false,
+         reportModalOpen: false,
+         offerModalOpen: false,
+         photos: [
+             {% for p in item.photos.all %}
+                 '{{ p.image.url }}',
+             {% empty %}
+                 '{{ item.fallback_illustration_url }}',
+             {% endfor %}
+         ]
+     }">
+
+    <!-- Breadcrumb -->
+    <nav class="mb-4 flex items-center gap-2 text-xs text-ink-muted overflow-x-auto whitespace-nowrap">
+        <a href="/" class="hover:text-brand transition-colors">Beranda</a>
+        <span>/</span>
+        <a href="/jual-beli/" class="hover:text-brand transition-colors">Jual beli</a>
+        {% if item.category %}
+            <span>/</span>
+            <a href="/jual-beli/?kategori={{ item.category.slug }}" class="hover:text-brand transition-colors">{{ item.category.name }}</a>
+        {% endif %}
+        <span>/</span>
+        <span class="text-ink font-medium truncate max-w-[200px]">{{ item.title }}</span>
+    </nav>
+
+    <!-- Konten Utama: 2 Kolom -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Kolom Kiri: Galeri Foto (lg:col-span-7) -->
+        <div class="lg:col-span-7 space-y-4">
+            <!-- Foto Utama -->
+            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden {{ item.tile_bg }} border border-line shadow-sm flex items-center justify-center">
+                <template x-if="photos.length > 0">
+                    <img :src="photos[activePhoto]"
+                         alt="{{ item.title }}"
+                         class="w-full h-full object-cover">
+                </template>
+
+                <!-- Label Status di Sudut Foto -->
+                <div class="absolute top-3 left-3 flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-tint text-amber-text border border-line shadow-sm">
+                        Dijual
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-card/95 text-ink border border-line shadow-sm">
+                        {{ item.get_condition_display }}
+                    </span>
+                </div>
+
+                {% if item.status != 'aktif' %}
+                    <div class="absolute top-3 right-3">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-ink/70 text-white shadow-sm">
+                            {{ item.get_status_display }}
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Daftar Thumbnail Foto -->
+            {% if item.photos.count > 1 %}
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {% for p in item.photos.all %}
+                        <button type="button"
+                                @click="activePhoto = {{ forloop.counter0 }}"
+                                :class="activePhoto === {{ forloop.counter0 }} ? 'border-brand ring-2 ring-brand/30' : 'border-line opacity-70 hover:opacity-100'"
+                                class="w-16 h-16 rounded-xl overflow-hidden border bg-paper flex-shrink-0 transition-all">
+                            <img src="{{ p.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                        </button>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Blok Deskripsi Lengkap -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <h2 class="text-base font-bold text-ink flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='file-text' class='w-4 h-4 text-brand' %}
+                    <span>Deskripsi barang</span>
+                </h2>
+                <div class="text-sm text-ink-muted leading-relaxed whitespace-pre-line">
+                    {{ item.description }}
+                </div>
+
+                <!-- Kondisi & Cacat / Minus -->
+                <div class="pt-4 border-t border-line space-y-3">
+                    <h3 class="text-xs font-bold text-ink">
+                        Kondisi fisik dan fungsi
+                    </h3>
+                    <div class="flex items-center gap-2 text-xs text-ink">
+                        <span class="text-ink-muted">Status kondisi:</span>
+                        <span class="font-semibold px-2 py-0.5 rounded bg-paper border border-line">{{ item.get_condition_display }}</span>
+                    </div>
+
+                    {% if item.flaws %}
+                        <div class="p-3.5 rounded-xl bg-paper border border-line space-y-1">
+                            <p class="text-xs font-bold text-brick flex items-center gap-1.5">
+                                {% include 'partials/icon.html' with name='alert-circle' class='w-3.5 h-3.5 flex-shrink-0' %}
+                                <span>Catatan cacat atau minus barang:</span>
+                            </p>
+                            <p class="text-xs text-ink-muted leading-relaxed">
+                                {{ item.flaws }}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Kelengkapan yang Disertakan -->
+                {% if item.included_items %}
+                    <div class="pt-4 border-t border-line space-y-1.5">
+                        <h3 class="text-xs font-bold text-ink">
+                            Kelengkapan yang disertakan
+                        </h3>
+                        <p class="text-xs text-ink-muted leading-relaxed">
+                            {{ item.included_items }}
+                        </p>
+                    </div>
+                {% endif %}
+
+                <!-- Alasan Dijual -->
+                {% if item.reason_for_sale %}
+                    <div class="pt-4 border-t border-line space-y-1.5">
+                        <h3 class="text-xs font-bold text-ink">
+                            Alasan dijual
+                        </h3>
+                        <p class="text-xs text-ink-muted leading-relaxed italic">
+                            &ldquo;{{ item.reason_for_sale }}&rdquo;
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Detail Harga, Penjual & Aksi (lg:col-span-5) -->
+        <div class="lg:col-span-5 space-y-5">
+            <!-- Kartu Harga & Titik Temu -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div>
+                    <span class="text-xs text-ink-muted font-medium">Harga barang</span>
+                    <div class="flex items-baseline gap-2.5 mt-0.5 flex-wrap">
+                        <span class="text-2xl sm:text-3xl font-bold text-ink tabular-nums">
+                            {{ item.price|rupiah }}
+                        </span>
+                        {% if item.savings_percent %}
+                            <span class="text-xs font-bold text-pine-dark bg-pine-tint px-2 py-0.5 rounded-md">
+                                Hemat {{ item.savings_percent }}%
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% if item.original_price %}
+                        <p class="text-xs text-ink-muted mt-1">
+                            Harga baru/asli saat beli: <span class="line-through tabular-nums">{{ item.original_price|rupiah }}</span>
+                        </p>
+                    {% endif %}
+                </div>
+
+                <!-- Judul Utama -->
+                <div class="pt-3 border-t border-line">
+                    <h1 class="font-heading text-lg sm:text-xl font-bold text-ink leading-snug">
+                        {{ item.title }}
+                    </h1>
+                </div>
+
+                <!-- Lokasi Titik Temu -->
+                <div class="pt-3 border-t border-line flex items-start gap-2.5 text-xs text-ink-muted">
+                    <div class="w-7 h-7 rounded-lg bg-paper-deep text-brand flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {% include 'partials/icon.html' with name='map-pin' class='w-4 h-4' %}
+                    </div>
+                    <div>
+                        <span class="text-ink-muted block text-[11px]">Area titik temu / kampus:</span>
+                        <strong class="text-ink text-xs">{{ item.pickup_area }}</strong>
+                    </div>
+                </div>
+
+                <!-- Tombol Aksi -->
+                <div class="pt-4 border-t border-line space-y-2.5">
+                    {% if is_owner %}
+                        <!-- Tampilan Pemilik Barang Sendiri -->
+                        <div class="p-3.5 rounded-xl bg-paper border border-line text-xs text-ink-muted space-y-2">
+                            <p class="font-semibold text-ink">Ini adalah barang jualan Anda.</p>
+                            <p>Anda dapat memperbarui rincian, foto, harga, atau menonaktifkan barang ini.</p>
+                            <a href="{% url 'sales:item_edit' item.slug %}"
+                               class="w-full inline-flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold transition-colors">
+                                {% include 'partials/icon.html' with name='file-text' class='w-4 h-4' %}
+                                <span>Ubah barang jualan</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        {% if item.status == 'aktif' %}
+                            <!-- Tombol Beli Sekarang -->
+                            {% if user.is_authenticated %}
+                                <button type="button"
+                                        @click="buyModalOpen = true"
+                                        class="w-full py-3 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                                    {% include 'partials/icon.html' with name='shopping-bag' class='w-4 h-4' %}
+                                    <span>Beli sekarang</span>
+                                </button>
+                            {% else %}
+                                <a href="/masuk/?next={{ request.path }}"
+                                   class="w-full py-3 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                                    {% include 'partials/icon.html' with name='shopping-bag' class='w-4 h-4' %}
+                                    <span>Masuk untuk beli</span>
+                                </a>
+                            {% endif %}
+                        {% elif item.status == 'dipesan' %}
+                            <div class="p-3 rounded-xl bg-amber-tint border border-amber-text/20 text-xs text-amber-text text-center font-semibold">
+                                Sedang dipesan oleh pembeli lain
+                            </div>
+                        {% elif item.status == 'terjual' %}
+                            <div class="p-3 rounded-xl bg-paper border border-line text-xs text-ink-muted text-center font-semibold">
+                                Barang ini telah terjual
+                            </div>
+                        {% else %}
+                            <div class="p-3 rounded-xl bg-paper border border-line text-xs text-ink-muted text-center font-semibold">
+                                Barang tidak sedang aktif
+                            </div>
+                        {% endif %}
+
+                        <!-- Tombol Tawar Harga (Hanya jika SALE_OFFERS_ENABLED) -->
+                        {% if sale_offers_enabled and item.status == 'aktif' %}
+                            {% if user.is_authenticated %}
+                                <button type="button"
+                                        @click="offerModalOpen = true"
+                                        class="w-full py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors flex items-center justify-center gap-2">
+                                    {% include 'partials/icon.html' with name='tag' class='w-4 h-4 text-brand' %}
+                                    <span>Tawar harga</span>
+                                </button>
+                            {% endif %}
+                        {% endif %}
+
+                        <!-- Tombol Tanya Penjual -->
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'chat:start_sale_conversation' item.slug %}"
+                               class="w-full py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors flex items-center justify-center gap-2">
+                                {% include 'partials/icon.html' with name='message-square' class='w-4 h-4 text-brand' %}
+                                <span>Tanya penjual</span>
+                            </a>
+                        {% else %}
+                            <a href="/masuk/?next={{ request.path }}"
+                               class="w-full py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors flex items-center justify-center gap-2">
+                                {% include 'partials/icon.html' with name='message-square' class='w-4 h-4 text-brand' %}
+                                <span>Masuk untuk tanya penjual</span>
+                            </a>
+                        {% endif %}
+
+                        <!-- Tombol Laporkan Listing -->
+                        {% if user.is_authenticated %}
+                            <div class="pt-2 text-center">
+                                <button type="button"
+                                        @click="reportModalOpen = true"
+                                        class="inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-brick transition-colors">
+                                    {% include 'partials/icon.html' with name='flag' class='w-3.5 h-3.5' %}
+                                    <span>Laporkan listing</span>
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="pt-2 text-center">
+                                <a href="/masuk/?next={{ request.path }}"
+                                   class="inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-brick transition-colors">
+                                    {% include 'partials/icon.html' with name='flag' class='w-3.5 h-3.5' %}
+                                    <span>Laporkan listing</span>
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Kartu Penjual -->
+            <div class="bg-card border border-line rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-amber-tint border border-line text-amber-text font-bold text-base flex items-center justify-center flex-shrink-0">
+                        {{ item.owner.full_name|default:item.owner.username|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-bold text-sm text-ink truncate">
+                                {{ item.owner.full_name|default:item.owner.username }}
+                            </h3>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold {{ seller_chip_class }}">
+                                {{ seller_tier_label }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-ink-muted truncate">
+                            {% if item.owner.student_profile %}
+                                {{ item.owner.student_profile.campus.short_name|default:item.owner.student_profile.campus_name }}
+                            {% else %}
+                                Mahasiswa Kampus
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Statistik Penjual -->
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-line text-xs">
+                    <div class="p-2 rounded-xl bg-paper">
+                        <span class="text-ink-muted text-[11px] block">Rating penjual:</span>
+                        <div class="flex items-center gap-1 font-bold text-ink mt-0.5">
+                            {% include 'partials/icon.html' with name='star' class='w-3.5 h-3.5 text-amber-text fill-current' %}
+                            <span>{% if seller_rating %}{{ seller_rating }} / 5.0{% else %}Baru{% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded-xl bg-paper">
+                        <span class="text-ink-muted text-[11px] block">Barang terjual:</span>
+                        <div class="font-bold text-ink mt-0.5">
+                            {{ sold_count }} barang
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blok Tiga Langkah "Aman Bertransaksi" -->
+            <div class="bg-card border border-line rounded-2xl p-5 shadow-sm space-y-3.5">
+                <div class="flex items-center gap-2 text-ink font-bold text-xs">
+                    {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-pine' %}
+                    <span>Aman bertransaksi di {{ SITE_NAME }}</span>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <!-- Langkah 1 -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-brand-tint text-brand font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                            1
+                        </div>
+                        <div>
+                            <strong class="text-ink block">Bayar lewat platform</strong>
+                            <p class="text-ink-muted leading-relaxed">Dana Anda disimpan aman oleh platform dan belum diteruskan ke penjual.</p>
+                        </div>
+                    </div>
+
+                    <!-- Langkah 2 -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-brand-tint text-brand font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                            2
+                        </div>
+                        <div>
+                            <strong class="text-ink block">Bertemu di kampus</strong>
+                            <p class="text-ink-muted leading-relaxed">Periksa kondisi fisik dan fungsi barang secara langsung di titik temu area kampus yang aman.</p>
+                        </div>
+                    </div>
+
+                    <!-- Langkah 3 -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-brand-tint text-brand font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                            3
+                        </div>
+                        <div>
+                            <strong class="text-ink block">Konfirmasi terima</strong>
+                            <p class="text-ink-muted leading-relaxed">Setelah barang diterima dan sesuai, konfirmasi penerimaan agar dana dicairkan ke saldo penjual.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Pembelian & Persetujuan S&K Pembeli (Fase 8B) -->
+    <div x-show="buyModalOpen"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak>
+
+        <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl space-y-4 max-h-[90vh] overflow-y-auto"
+             @click.away="buyModalOpen = false">
+
+            <div class="flex items-center justify-between pb-3 border-b border-line">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-brand-tint text-brand flex items-center justify-center">
+                        {% include 'partials/icon.html' with name='shopping-bag' class='w-5 h-5' %}
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-base font-bold text-ink">Konfirmasi Pembelian</h3>
+                        <p class="text-[11px] text-ink-muted">Periksa rincian barang dan setujui syarat & ketentuan</p>
+                    </div>
+                </div>
+                <button type="button" @click="buyModalOpen = false" class="text-ink-muted hover:text-ink p-1">
+                    {% include 'partials/icon.html' with name='x' class='w-5 h-5' %}
+                </button>
+            </div>
+
+            <!-- Ringkasan Barang -->
+            <div class="p-3.5 rounded-xl bg-paper border border-line flex items-center gap-3">
+                {% if item.photos.first %}
+                    <img src="{{ item.photos.first.image.url }}" alt="{{ item.title }}" class="w-14 h-14 rounded-lg object-cover border border-line flex-shrink-0">
+                {% else %}
+                    <div class="w-14 h-14 rounded-lg bg-paper-deep border border-line flex items-center justify-center text-ink-muted flex-shrink-0">
+                        {% include 'partials/icon.html' with name='image' class='w-6 h-6' %}
+                    </div>
+                {% endif %}
+                <div class="min-w-0 flex-1">
+                    <h4 class="font-bold text-xs sm:text-sm text-ink truncate">{{ item.title }}</h4>
+                    <p class="text-xs font-bold text-brand mt-0.5 tabular-nums">{{ item.price|rupiah }}</p>
+                    <p class="text-[11px] text-ink-muted truncate">Titik temu: {{ item.pickup_area }}</p>
+                </div>
+            </div>
+
+            <!-- Escrow Info Box -->
+            <div class="p-3 rounded-xl bg-brand-tint border border-brand/20 text-xs text-brand space-y-1">
+                <div class="flex items-center gap-1.5 font-bold">
+                    {% include 'partials/icon.html' with name='shield' class='w-4 h-4' %}
+                    <span>Pembayaran Escrow Terlindungi</span>
+                </div>
+                <p class="text-[11px] leading-relaxed">
+                    Dana Anda diamankan di rekening penampungan platform {{ SITE_NAME }} dan baru diteruskan ke dompet penjual setelah Anda menerima dan memeriksa barang saat serah terima.
+                </p>
+            </div>
+
+            <!-- Syarat & Ketentuan Pembeli -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs font-bold text-ink">
+                    <span>Syarat & Ketentuan Pembeli:</span>
+                    {% if buyer_terms %}
+                        <span class="text-[10px] text-ink-muted font-normal">Versi {{ buyer_terms.version_number }}</span>
+                    {% endif %}
+                </div>
+                <div class="p-3 rounded-xl bg-paper border border-line text-[11px] text-ink-muted space-y-1.5 max-h-36 overflow-y-auto">
+                    <p>1. Barang bekas dijual apa adanya (as-is) sesuai deskripsi, foto, dan cacat yang tercantum pada listing.</p>
+                    <p>2. Pembeli wajib memeriksa langsung kondisi fisik dan fungsi barang saat serah terima di titik temu kampus.</p>
+                    <p>3. Seluruh pembayaran wajib dilakukan lewat platform {{ SITE_NAME }} (Midtrans escrow resmi).</p>
+                    <p>4. Tidak ada pengembalian dana setelah konfirmasi penerimaan barang, kecuali sengketa yang diputuskan oleh admin.</p>
+                    <p>5. Penyelesaian sengketa dilakukan melalui mediasi admin platform secara adil dan final.</p>
+                    <p>6. Platform {{ SITE_NAME }} bertindak sebagai perantara aman transaksi antar mahasiswa.</p>
+                </div>
+            </div>
+
+            <!-- Form Buat Pesanan -->
+            <form method="POST" action="{% url 'sales:item_buy' item.slug %}" class="space-y-3.5 pt-1">
+                {% csrf_token %}
+                <label class="flex items-start gap-2.5 cursor-pointer text-xs text-ink select-none p-3 rounded-xl bg-paper border border-line hover:border-brand transition-colors">
+                    <input type="checkbox" name="terms_accepted" value="1" required
+                           class="mt-0.5 rounded border-line text-brand focus:ring-brand w-4 h-4">
+                    <span class="leading-snug">
+                        Saya menyetujui seluruh <strong>Syarat & Ketentuan Pembeli</strong> di atas dan bersedia melakukan serah terima di area kampus yang disepakati.
+                    </span>
+                </label>
+
+                <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="buyModalOpen = false"
+                            class="w-full sm:w-1/3 py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="w-full sm:w-2/3 py-2.5 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                        {% include 'partials/icon.html' with name='shopping-bag' class='w-4 h-4' %}
+                        <span>Konfirmasi & Buat pesanan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Laporkan Listing -->
+    <div x-show="reportModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+         @keydown.escape.window="reportModalOpen = false">
+        <div class="bg-card border border-line rounded-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+             @click.away="reportModalOpen = false">
+            <div class="flex items-center justify-between pb-3 border-b border-line">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-brick-tint text-brick flex items-center justify-center flex-shrink-0">
+                        {% include 'partials/icon.html' with name='flag' class='w-5 h-5' %}
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-base font-bold text-ink">Laporkan listing barang</h3>
+                        <p class="text-[11px] text-ink-muted">Bantu kami menjaga keamanan transaksi mahasiswa</p>
+                    </div>
+                </div>
+                <button type="button" @click="reportModalOpen = false" class="text-ink-muted hover:text-ink p-1">
+                    {% include 'partials/icon.html' with name='x' class='w-5 h-5' %}
+                </button>
+            </div>
+
+            <!-- Form Lapor -->
+            <form method="POST" action="{% url 'sales:item_report' item.slug %}" class="space-y-4 pt-1">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1.5">
+                        Alasan pelaporan <span class="text-brick">*</span>
+                    </label>
+                    <select name="reason" required
+                            class="w-full bg-card border border-line rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                        <option value="">-- Pilih alasan pelaporan --</option>
+                        {% for r_val, r_lbl in report_reasons %}
+                            <option value="{{ r_val }}">{{ r_lbl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1.5">
+                        Penjelasan atau catatan tambahan
+                    </label>
+                    <textarea name="notes" rows="3"
+                              placeholder="Jelaskan secara singkat apa kendala atau bukti pelanggaran yang ditemukan..."
+                              class="w-full bg-card border border-line rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="reportModalOpen = false"
+                            class="w-full sm:w-1/3 py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="w-full sm:w-2/3 py-2.5 min-h-[44px] rounded-xl bg-brick hover:opacity-90 text-white text-xs font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                        {% include 'partials/icon.html' with name='flag' class='w-4 h-4' %}
+                        <span>Kirim laporan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tawar Harga (Hanya jika SALE_OFFERS_ENABLED) -->
+    {% if sale_offers_enabled %}
+    <div x-show="offerModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+         @keydown.escape.window="offerModalOpen = false">
+        <div class="bg-card border border-line rounded-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+             @click.away="offerModalOpen = false">
+            <div class="flex items-center justify-between pb-3 border-b border-line">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-tint text-amber-text flex items-center justify-center flex-shrink-0">
+                        {% include 'partials/icon.html' with name='tag' class='w-5 h-5' %}
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-base font-bold text-ink">Ajukan tawaran harga</h3>
+                        <p class="text-[11px] text-ink-muted">Harga listing saat ini: <strong class="text-ink">{{ item.price|rupiah }}</strong></p>
+                    </div>
+                </div>
+                <button type="button" @click="offerModalOpen = false" class="text-ink-muted hover:text-ink p-1">
+                    {% include 'partials/icon.html' with name='x' class='w-5 h-5' %}
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'sales:item_offer' item.slug %}" class="space-y-4 pt-1">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1.5">
+                        Harga tawaran Anda (Rp) <span class="text-brick">*</span>
+                    </label>
+                    <input type="number" name="offered_price" required min="1000" max="{{ item.price }}"
+                           placeholder="Contoh: 45000"
+                           class="w-full bg-card border border-line rounded-xl px-3.5 py-2.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                    <p class="text-[11px] text-ink-muted mt-1">
+                        Tawaran harus lebih rendah dari harga listing dan berlaku selama 24 jam.
+                    </p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="offerModalOpen = false"
+                            class="w-full sm:w-1/3 py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="w-full sm:w-2/3 py-2.5 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                        {% include 'partials/icon.html' with name='tag' class='w-4 h-4' %}
+                        <span>Kirim tawaran</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Tarik Dana | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[640px] mx-auto px-4 sm:px-6 pt-6 pb-16">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs text-ink-muted mb-6" aria-label="Breadcrumb">
+        <a href="/dashboard/" class="hover:text-ink transition-colors">Dashboard</a>
+        <span>/</span>
+        <a href="{% url 'payments:wallet' %}" class="hover:text-ink transition-colors">Dompet saya</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">Tarik dana</span>
+    </nav>
+
+    <div class="bg-card border border-line rounded-2xl overflow-hidden shadow-sm">
+        {% include 'partials/kain_border.html' with variant='ink' size='sm' %}
+        <div class="p-6 sm:p-8">
+            <h1 class="font-heading text-2xl font-bold text-ink mb-2">Tarik saldo dompet</h1>
+            <p class="text-xs sm:text-sm text-ink-muted leading-relaxed mb-6">
+                Dana akan ditransfer oleh admin ke rekening bank atau akun dompet digital yang Anda cantumkan di bawah ini.
+            </p>
+
+            <!-- Ringkasan Saldo -->
+            <div class="p-4 rounded-xl bg-paper border border-line flex items-center justify-between mb-6">
+                <div>
+                    <span class="text-xs font-semibold text-ink-muted block">Saldo tersedia</span>
+                    <span class="text-xl font-bold text-ink tabular-nums">{{ balance|rupiah }}</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-semibold text-ink-muted block">Batas minimal</span>
+                    <span class="text-sm font-semibold text-ink tabular-nums">{{ min_withdrawal|rupiah }}</span>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'payments:withdrawal_request' %}" class="space-y-5">
+                {% csrf_token %}
+
+                <!-- Nominal Penarikan -->
+                <div>
+                    <label for="amount" class="block text-xs font-bold text-ink mb-1.5">
+                        Nominal penarikan (Rp) <span class="text-brick">*</span>
+                    </label>
+                    <input type="number"
+                           id="amount"
+                           name="amount"
+                           required
+                           min="{{ min_withdrawal }}"
+                           max="{{ balance }}"
+                           step="1000"
+                           value="{{ amount|default:balance }}"
+                           placeholder="Contoh: 50000"
+                           class="w-full px-4 py-2.5 rounded-xl border border-line bg-card text-ink text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent tabular-nums">
+                    <p class="text-[11px] text-ink-muted mt-1">
+                        Minimal {{ min_withdrawal|rupiah }} dan maksimal {{ balance|rupiah }}.
+                    </p>
+                </div>
+
+                <!-- Metode Pembayaran -->
+                <div>
+                    <label for="method" class="block text-xs font-bold text-ink mb-1.5">
+                        Bank atau dompet digital tujuan <span class="text-brick">*</span>
+                    </label>
+                    <select id="method"
+                            name="method"
+                            required
+                            class="w-full px-4 py-2.5 rounded-xl border border-line bg-card text-ink text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+                        <option value="">Pilih metode pencairan</option>
+                        {% for val, label in methods %}
+                            <option value="{{ val }}" {% if selected_method == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Nama Pemilik Rekening -->
+                <div>
+                    <label for="account_name" class="block text-xs font-bold text-ink mb-1.5">
+                        Nama lengkap pemilik rekening / akun <span class="text-brick">*</span>
+                    </label>
+                    <input type="text"
+                           id="account_name"
+                           name="account_name"
+                           required
+                           value="{{ account_name|default:user.full_name }}"
+                           placeholder="Nama sesuai buku tabungan atau akun dompet digital"
+                           class="w-full px-4 py-2.5 rounded-xl border border-line bg-card text-ink text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+                    <p class="text-[11px] text-ink-muted mt-1">
+                        Pastikan nama sesuai dengan akun penerima agar proses pencairan tidak tertunda.
+                    </p>
+                </div>
+
+                <!-- Nomor Rekening / Nomor Ponsel Dompet Digital -->
+                <div>
+                    <label for="account_number" class="block text-xs font-bold text-ink mb-1.5">
+                        Nomor rekening / nomor dompet digital <span class="text-brick">*</span>
+                    </label>
+                    <input type="text"
+                           id="account_number"
+                           name="account_number"
+                           required
+                           value="{{ account_number|default:'' }}"
+                           placeholder="Contoh: 1234567890 atau 08123456789"
+                           class="w-full px-4 py-2.5 rounded-xl border border-line bg-card text-ink text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+                    
+                    <div class="mt-2 p-3 rounded-lg bg-paper border border-line text-[11px] text-ink-muted flex items-start gap-2">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-pine-dark flex-shrink-0 mt-0.5' %}
+                        <span>
+                            Nomor rekening dienkripsi dengan standar Fernet (AES-128) di database kami dan tidak dicatat ke log server. Hanya staf berwenang yang dapat melihatnya saat memproses transfer.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Konfirmasi Kata Sandi Akun -->
+                <div>
+                    <label for="password" class="block text-xs font-bold text-ink mb-1.5">
+                        Konfirmasi kata sandi akun <span class="text-brick">*</span>
+                    </label>
+                    <input type="password"
+                           id="password"
+                           name="password"
+                           required
+                           autocomplete="current-password"
+                           placeholder="Masukkan kata sandi akun Anda"
+                           class="w-full px-4 py-2.5 rounded-xl border border-line bg-card text-ink text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+                    <p class="text-[11px] text-ink-muted mt-1">
+                        Demi keamanan finansial akun, masukkan kata sandi Anda untuk memverifikasi permintaan penarikan dana ini.
+                    </p>
+                </div>
+
+                <!-- Tombol Aksi -->
+                <div class="pt-4 border-t border-line flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                    <a href="{% url 'payments:wallet' %}" class="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink-muted hover:text-ink hover:bg-paper transition-colors">
+                        Batal
+                    </a>
+                    <button type="submit" class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-sm">
+                        Kirim permintaan penarikan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

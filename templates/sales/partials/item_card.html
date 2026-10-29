@@ -1,0 +1,99 @@
+{% load static %}
+{% load formatters %}
+{# Kartu barang jual beli — Fase 8A Butir 5 #}
+{# Terima variabel: item #}
+<a href="{% url 'sales:item_detail' item.slug %}"
+   class="group block bg-card rounded-card border border-line overflow-hidden hover:border-ink-muted transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+
+    {# Foto 4:3 ratio dengan cadangan datar ubin kategori #}
+    <div class="relative aspect-[4/3] {{ item.tile_bg }} overflow-hidden flex items-center justify-center border-b border-line">
+        {% if item.primary_photo %}
+            <img src="{{ item.primary_photo.image.url }}"
+                 alt="{{ item.title }}"
+                 class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden w-full h-full items-center justify-center">
+                <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+            </div>
+        {% else %}
+            <div class="w-full h-full flex items-center justify-center">
+                <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+            </div>
+        {% endif %}
+
+        {# Badges di atas foto: Label Dijual (kunyit tint) & Chip Kondisi #}
+        <div class="absolute top-2 left-2 flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-tint text-amber-text border border-line shadow-sm">
+                Dijual
+            </span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-card/95 text-ink-muted border border-line shadow-sm">
+                {{ item.get_condition_display }}
+            </span>
+        </div>
+    </div>
+
+    {# Informasi Barang #}
+    <div class="p-4 space-y-2">
+        {# Nama barang (maks 2 baris, 15-16px semibold) #}
+        <h3 class="h-11 text-[15px] sm:text-base font-semibold text-ink line-clamp-2 leading-snug group-hover:text-brand transition-colors">
+            {{ item.title }}
+        </h3>
+
+        {# Harga dan Penghematan Persen #}
+        <div class="flex items-baseline gap-2 flex-wrap">
+            <span class="text-[17px] sm:text-[18px] font-bold text-ink tabular-nums">{{ item.price|rupiah }}</span>
+            {% if item.savings_percent %}
+                <span class="text-[11px] font-semibold text-pine-dark bg-pine-tint px-1.5 py-0.5 rounded">
+                    Hemat {{ item.savings_percent }}%
+                </span>
+                {% if item.original_price %}
+                    <span class="text-[12px] text-ink-muted line-through tabular-nums">
+                        {{ item.original_price|rupiah }}
+                    </span>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {# Area pengambilan / Titik temu #}
+        <div class="flex items-center justify-between text-[13px] text-ink-muted pt-1 border-t border-line">
+            <div class="flex items-center gap-1 min-w-0">
+                {% include 'partials/icon.html' with name='map-pin' class='w-3.5 h-3.5 flex-shrink-0 text-ink-muted' %}
+                <span class="truncate">{{ item.pickup_area }}</span>
+            </div>
+            {% if item.category %}
+                <span class="text-[11px] font-medium text-ink-muted truncate max-w-[100px]">
+                    {{ item.category.name }}
+                </span>
+            {% endif %}
+        </div>
+
+        {# Penjual dan Lencana Tingkat #}
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-line">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                <div class="w-6 h-6 rounded-full bg-amber-tint border border-line flex items-center justify-center text-[11px] font-bold text-amber-text flex-shrink-0">
+                    {{ item.owner.full_name|default:item.owner.username|slice:":1"|upper }}
+                </div>
+                <span class="text-[13px] text-ink-muted truncate font-medium" title="{{ item.owner.full_name|default:item.owner.username }}">
+                    {{ item.owner.full_name|default:item.owner.username }}
+                </span>
+            </div>
+
+            {# Lencana Tingkat Penjual #}
+            <div class="flex-shrink-0">
+                {% if item.seller_tier == 'sangat_tepercaya' %}
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pine-tint text-pine-dark border border-line">
+                        Sangat tepercaya
+                    </span>
+                {% elif item.seller_tier == 'tepercaya' %}
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-tint text-amber-text border border-line">
+                        Tepercaya
+                    </span>
+                {% else %}
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-paper-deep text-ink-muted border border-line">
+                        Penjual baru
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</a>

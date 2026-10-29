@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Barang Jualan Saya | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-line">
+        <div>
+            <h1 class="font-heading text-2xl font-bold text-ink">
+                Kelola barang jualan saya
+            </h1>
+            <p class="text-xs sm:text-sm text-ink-muted mt-0.5">
+                Pantau status listing, perpanjang masa tayang, dan perbarui harga barang jualan Anda.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+            <a href="{% url 'sales:item_create' %}" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors min-h-[44px]">
+                {% include 'partials/icon.html' with name='plus' class='w-4 h-4' %}
+                <span>Pasang barang</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Ringkasan Status Tangga Penjual -->
+    <div class="mt-6 p-4 rounded-xl bg-card border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-tint text-amber-text flex items-center justify-center flex-shrink-0 border border-line font-bold">
+                {% include 'partials/icon.html' with name='shield-check' class='w-5 h-5' %}
+            </div>
+            <div>
+                <p class="text-xs text-ink-muted">Tingkat Penjual Anda saat ini</p>
+                <p class="text-sm font-bold text-ink">{{ seller_tier_label }}</p>
+            </div>
+        </div>
+        <p class="text-xs text-ink-muted">
+            Listing barang aktif otomatis berlaku selama 60 hari dan dapat diperpanjang secara gratis kapan saja.
+        </p>
+    </div>
+
+    <!-- Tab Filter Status (aktif, dipesan, terjual, nonaktif) -->
+    <div class="flex items-center gap-2 mt-6 pb-2 border-b border-line text-xs font-semibold overflow-x-auto no-scrollbar whitespace-nowrap">
+        <a href="/jual/saya/?tab=aktif"
+           class="px-4 py-2 min-h-[44px] inline-flex items-center rounded-lg transition-colors {% if current_tab == 'aktif' %}bg-brand text-white{% else %}bg-card text-ink-muted hover:text-ink border border-line{% endif %}">
+            Aktif ({{ aktif_count }})
+        </a>
+        <a href="/jual/saya/?tab=dipesan"
+           class="px-4 py-2 min-h-[44px] inline-flex items-center rounded-lg transition-colors {% if current_tab == 'dipesan' %}bg-brand text-white{% else %}bg-card text-ink-muted hover:text-ink border border-line{% endif %}">
+            Dipesan ({{ dipesan_count }})
+        </a>
+        <a href="/jual/saya/?tab=terjual"
+           class="px-4 py-2 min-h-[44px] inline-flex items-center rounded-lg transition-colors {% if current_tab == 'terjual' %}bg-brand text-white{% else %}bg-card text-ink-muted hover:text-ink border border-line{% endif %}">
+            Terjual ({{ terjual_count }})
+        </a>
+        <a href="/jual/saya/?tab=nonaktif"
+           class="px-4 py-2 min-h-[44px] inline-flex items-center rounded-lg transition-colors {% if current_tab == 'nonaktif' %}bg-brand text-white{% else %}bg-card text-ink-muted hover:text-ink border border-line{% endif %}">
+            Nonaktif &amp; Kedaluwarsa ({{ nonaktif_count }})
+        </a>
+    </div>
+
+    <!-- Daftar Barang -->
+    <div class="mt-6 space-y-3">
+        {% if items %}
+            {% for item in items %}
+                <div class="bg-card border border-line rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <!-- Sisi Kiri: Foto & Info -->
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-20 h-20 rounded-xl overflow-hidden {{ item.tile_bg }} flex-shrink-0 flex items-center justify-center border border-line">
+                            {% if item.primary_photo %}
+                                <img src="{{ item.primary_photo.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="hidden w-full h-full items-center justify-center">
+                                    <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                </div>
+                            {% else %}
+                                <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                            {% endif %}
+                        </div>
+
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-tint text-amber-text border border-line">
+                                    Dijual
+                                </span>
+                                {% if item.category %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-paper-deep text-ink-muted">
+                                        {{ item.category.name }}
+                                    </span>
+                                {% endif %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-paper border border-line text-ink-muted">
+                                    {{ item.get_condition_display }}
+                                </span>
+                                {% if item.status == 'aktif' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-pine-tint text-pine-dark border border-line">
+                                        Aktif
+                                    </span>
+                                {% elif item.status == 'dipesan' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-brand-tint text-brand border border-line">
+                                        Dipesan
+                                    </span>
+                                {% elif item.status == 'terjual' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-paper-deep text-ink-muted border border-line">
+                                        Terjual
+                                    </span>
+                                {% elif item.status == 'kedaluwarsa' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-brick-tint text-brick border border-brick/30">
+                                        Kedaluwarsa
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-paper-deep text-ink-muted border border-line">
+                                        Nonaktif
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <h3 class="font-bold text-sm sm:text-base text-ink truncate">
+                                <a href="{% url 'sales:item_detail' item.slug %}" class="hover:text-brand transition-colors">
+                                    {{ item.title }}
+                                </a>
+                            </h3>
+
+                            <div class="flex items-center gap-2 text-xs mt-1">
+                                <span class="font-semibold text-brand">{{ item.price|rupiah }}</span>
+                                {% if item.savings_percent %}
+                                    <span class="text-[11px] font-semibold text-pine-dark bg-pine-tint px-1.5 py-0.5 rounded">
+                                        Hemat {{ item.savings_percent }}%
+                                    </span>
+                                {% endif %}
+                                <span class="text-ink-muted">&bull;</span>
+                                <span class="text-ink-muted truncate">{{ item.pickup_area }}</span>
+                            </div>
+
+                            <!-- Info Kedaluwarsa 60 Hari -->
+                            <p class="text-[11px] text-ink-muted mt-1 flex items-center gap-1">
+                                {% include 'partials/icon.html' with name='clock' class='w-3 h-3 text-ink-muted flex-shrink-0' %}
+                                {% if item.is_expired or item.status == 'kedaluwarsa' %}
+                                    <span class="text-brick font-medium">Kedaluwarsa sejak {{ item.expires_at|date:"d M Y" }}. Klik tombol perpanjang untuk mengaktifkan kembali.</span>
+                                {% else %}
+                                    <span>Masa tayang hingga {{ item.expires_at|date:"d M Y" }} (sisa {{ item.expires_at|timeuntil }})</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Sisi Kanan: Tombol Aksi -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-line">
+                        <a href="{% url 'sales:item_edit' item.slug %}"
+                           class="px-3.5 py-2 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-xs font-semibold text-ink inline-flex items-center justify-center gap-1.5 transition-colors">
+                            {% include 'partials/icon.html' with name='file-text' class='w-3.5 h-3.5' %}
+                            <span>Ubah</span>
+                        </a>
+
+                        <!-- Tombol Perpanjang (60 hari) -->
+                        <form method="post" action="{% url 'sales:item_extend' item.slug %}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="px-3.5 py-2 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-xs font-semibold text-pine inline-flex items-center justify-center gap-1.5 transition-colors"
+                                    title="Perpanjang masa tayang 60 hari">
+                                {% include 'partials/icon.html' with name='refresh-cw' class='w-3.5 h-3.5' %}
+                                <span>Perpanjang</span>
+                            </button>
+                        </form>
+
+                        <!-- Tombol Toggle Status -->
+                        {% if item.status != 'terjual' %}
+                            <form method="post" action="{% url 'sales:item_toggle_status' item.slug %}">
+                                {% csrf_token %}
+                                {% if item.status == 'aktif' %}
+                                    <button type="submit"
+                                            class="px-3.5 py-2 min-h-[44px] rounded-xl border border-line bg-card hover:bg-brick-tint text-xs font-semibold text-brick inline-flex items-center justify-center gap-1.5 transition-colors">
+                                        <span>Nonaktifkan</span>
+                                    </button>
+                                {% else %}
+                                    <button type="submit"
+                                            class="px-3.5 py-2 min-h-[44px] rounded-xl border border-line bg-card hover:bg-pine-tint text-xs font-semibold text-pine inline-flex items-center justify-center gap-1.5 transition-colors">
+                                        <span>Aktifkan</span>
+                                    </button>
+                                {% endif %}
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <!-- Keadaan Kosong -->
+            <div class="bg-card border border-line rounded-2xl p-8 sm:p-12 text-center shadow-sm">
+                <div class="w-14 h-14 rounded-2xl bg-amber-tint text-amber-text border border-line flex items-center justify-center mx-auto mb-3">
+                    {% include 'partials/icon.html' with name='tag' class='w-6 h-6' %}
+                </div>
+                <h3 class="font-bold text-base text-ink mb-1">
+                    Belum ada barang jualan pada tab ini
+                </h3>
+                <p class="text-xs sm:text-sm text-ink-muted max-w-md mx-auto mb-5">
+                    {% if current_tab == 'aktif' %}
+                        Anda belum memiliki barang jualan yang sedang aktif. Mulai pasang barang kuliah Anda sekarang.
+                    {% elif current_tab == 'dipesan' %}
+                        Belum ada barang yang sedang dipesan oleh pembeli.
+                    {% elif current_tab == 'terjual' %}
+                        Belum ada barang yang telah berstatus terjual.
+                    {% else %}
+                        Tidak ada barang jualan yang berstatus nonaktif atau kedaluwarsa.
+                    {% endif %}
+                </p>
+                <a href="{% url 'sales:item_create' %}" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors min-h-[44px]">
+                    {% include 'partials/icon.html' with name='plus' class='w-4 h-4' %}
+                    <span>Pasang barang jualan sekarang</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

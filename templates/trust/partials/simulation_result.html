@@ -1,0 +1,91 @@
+{# Partial HTMX Hasil Simulasi Skor Kepercayaan — AGENT.md 5A #}
+<div id="simulation-output" class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-5 transition-all">
+    <div class="flex items-center justify-between border-b border-line pb-4">
+        <div>
+            <span class="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Hasil simulasi skor</span>
+            <h3 class="font-heading text-lg font-bold text-ink">Prediksi Skor &amp; Tingkat Risiko</h3>
+        </div>
+        <span class="text-[11px] bg-paper-deep text-ink-muted font-medium px-2.5 py-1 rounded border border-line" title="Dihitung oleh model yang dilatih pada data sintetis">
+            Data sintetis
+        </span>
+    </div>
+
+    {# Cincin Skor & Label #}
+    <div class="flex items-center gap-5">
+        <div class="relative flex-shrink-0 w-20 h-20">
+            <svg viewBox="0 0 36 36" class="w-20 h-20 -rotate-90">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#E4DECF" stroke-width="3"/>
+                <circle cx="18" cy="18" r="15.5" fill="none"
+                        stroke="{% if sim.token_color == 'pine' %}#0E7C5A{% elif sim.token_color == 'amber-text' %}#9A5B00{% elif sim.token_color == 'brick' %}#B42318{% else %}#566074{% endif %}"
+                        stroke-width="3.5"
+                        stroke-dasharray="{{ sim.score }}, 100"
+                        stroke-linecap="round"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-2xl font-bold text-ink tabular-nums leading-none">{{ sim.score }}</span>
+                <span class="text-[10px] text-ink-muted mt-0.5">/ 100</span>
+            </div>
+        </div>
+
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="text-base font-bold
+                    {% if sim.token_color == 'pine' %}text-pine-dark
+                    {% elif sim.token_color == 'amber-text' %}text-amber-text
+                    {% elif sim.token_color == 'brick' %}text-brick
+                    {% else %}text-ink-muted{% endif %}">
+                    {{ sim.label }}
+                </span>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded
+                    {% if sim.token_color == 'pine' %}bg-pine-tint text-pine-dark
+                    {% elif sim.token_color == 'amber-text' %}bg-amber-tint text-amber-text
+                    {% elif sim.token_color == 'brick' %}bg-brick-tint text-brick
+                    {% else %}bg-paper-deep text-ink-muted{% endif %}">
+                    {% if sim.is_new_user %}Cold-start{% elif sim.score >= 70 %}Risiko rendah{% elif sim.score >= 40 %}Risiko sedang{% else %}Risiko tinggi{% endif %}
+                </span>
+            </div>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                Probabilitas risiko transaksi bermasalah: <strong class="text-ink font-semibold tabular-nums">{{ sim.risk_probability }}</strong> (skor dihitung dari <code class="text-[11px] bg-paper px-1 py-0.5 rounded border border-line">round((1 - p) * 100)</code>)
+            </p>
+            <p class="text-[11px] text-ink-muted">
+                Versi model: <span class="font-mono">{{ sim.model_version }}</span>
+            </p>
+        </div>
+    </div>
+
+    {# 3 Faktor Penjelas Utama #}
+    <div class="bg-paper rounded-xl p-4 border border-line space-y-2.5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-ink">3 Faktor penjelas utama (explainability):</span>
+            <span class="text-[10px] text-ink-muted">Kontribusi bobot model</span>
+        </div>
+        <ul class="space-y-2">
+            {% for factor in sim.top_factors %}
+                <li class="flex items-start gap-2 text-xs text-ink">
+                    <span class="w-4 h-4 rounded-full bg-brand-tint text-brand text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {{ forloop.counter }}
+                    </span>
+                    <span class="leading-relaxed">{{ factor }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {# Dampak terhadap Tingkat Penyewa (Tangga Kepercayaan SPEC v2) #}
+    <div class="pt-2 border-t border-line text-xs text-ink-muted flex flex-wrap items-center justify-between gap-2">
+        <span>
+            Imbalan hak sewa:
+            <strong class="text-ink">
+                {% if sim.is_new_user %}
+                    Penyewa baru (maks. barang Rp750.000)
+                {% elif sim.score >= 75 and inputs.jumlah_sewa_selesai >= 6 %}
+                    Penyewa sangat tepercaya (maks. barang Rp3.000.000)
+                {% elif sim.score >= 60 and inputs.jumlah_sewa_selesai >= 3 %}
+                    Penyewa tepercaya (maks. barang Rp1.500.000)
+                {% else %}
+                    Penyewa baru (perlu tambah sewa sukses tanpa sengketa)
+                {% endif %}
+            </strong>
+        </span>
+    </div>
+</div>

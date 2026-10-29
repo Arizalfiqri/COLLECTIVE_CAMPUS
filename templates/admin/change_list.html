@@ -1,0 +1,136 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {{ media.css }}
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  {{ media.js }}
+  <script src="{% static 'admin/js/filters.js' %}" defer></script>
+{% endblock %}
+
+{% block page_title %}{{ cl.opts.verbose_name_plural|capfirst }}{% endblock %}
+{% block page_subtitle %}Daftar data {{ cl.opts.verbose_name_plural|lower }} yang tercatat di platform{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div id="changelist" class="space-y-5" x-data="{ filterOpen: false }">
+
+    <!-- Bilah Alat Atas (Pencarian, Filter, dan Tombol Tambah) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        
+        <!-- Pencarian & Pemicu Panel Filter -->
+        <div class="flex flex-wrap items-center gap-3 flex-1">
+            {% block search %}{% search_form cl %}{% endblock %}
+
+            {% if cl.has_filters %}
+            <button type="button"
+                    @click="filterOpen = !filterOpen"
+                    :class="filterOpen ? 'bg-ink text-white' : 'bg-card border-line text-ink hover:bg-paper'"
+                    class="px-3.5 py-2 min-h-[44px] rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-brand shadow-sm"
+                    aria-label="Buka atau tutup panel filter">
+                {% include 'partials/icon.html' with name="layers" class="w-4 h-4" %}
+                <span>Tapis data</span>
+                {% if cl.has_active_filters %}
+                <span class="w-2 h-2 rounded-full bg-brand"></span>
+                {% endif %}
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Tombol Aksi Tambah Objek -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+            {% block object-tools %}
+            {% if has_add_permission %}
+            <a href="{% url cl.opts|admin_urlname:'add' %}"
+               class="px-4 py-2 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-sm">
+                <span>+</span>
+                <span>Tambah {{ cl.opts.verbose_name|lower }}</span>
+            </a>
+            {% endif %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Panel Filter yang Dapat Dilipat (Collapsible Panel) -->
+    {% if cl.has_filters %}
+    <div x-show="filterOpen"
+         x-cloak
+         x-transition:enter="ease-out duration-150"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="ease-in duration-100"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         class="bg-card border border-line rounded-2xl p-5 shadow-sm">
+        
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-line">
+            <span class="text-xs font-bold text-ink">Pilihan penyaringan data</span>
+            {% if cl.has_active_filters %}
+            <a href="{{ cl.clear_all_filters_qs }}" class="text-xs font-semibold text-brick hover:underline">
+                Hapus semua saringan
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
+            {% for spec in cl.filter_specs %}
+                <div class="space-y-1.5">
+                    <span class="font-bold text-ink-muted text-[11px] block">{{ spec.title }}</span>
+                    <ul class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for choice in spec.choices %}
+                        <li>
+                            <a href="{{ choice.query_string }}"
+                               class="block px-2.5 py-1 rounded-lg transition-colors {% if choice.selected %}bg-brand text-white font-semibold{% else %}text-ink hover:bg-paper{% endif %}">
+                                {{ choice.display }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Kartu Putih Berisi Tabel yang Bisa Digulir Horizontal (Tidak Memotong Kolom) -->
+    <div class="bg-card border border-line rounded-2xl shadow-sm overflow-hidden">
+        <form id="changelist-form" method="post"{% if cl.formset and cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %} novalidate>
+            {% csrf_token %}
+            {% if cl.formset %}
+                <div>{{ cl.formset.management_form }}</div>
+            {% endif %}
+
+            <!-- Bilah Aksi Massal Django Admin -->
+            {% if action_form and actions_on_top and cl.show_admin_actions %}
+            <div class="p-3.5 border-b border-line bg-paper/60 flex flex-wrap items-center gap-3 text-xs">
+                {% admin_actions %}
+            </div>
+            {% endif %}
+
+            <!-- Kontainer Pengguliran Horizontal Aman -->
+            <div class="table-responsive overflow-x-auto w-full">
+                {% block result_list %}
+                    {% result_list cl %}
+                {% endblock %}
+            </div>
+
+            {% if action_form and actions_on_bottom and cl.show_admin_actions %}
+            <div class="p-3.5 border-t border-line bg-paper/60 flex flex-wrap items-center gap-3 text-xs">
+                {% admin_actions %}
+            </div>
+            {% endif %}
+
+            <!-- Paginasi Bersih -->
+            {% block pagination %}
+                {% pagination cl %}
+            {% endblock %}
+        </form>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Syarat dan Ketentuan | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[840px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    <!-- Header -->
+    <div class="mb-6 border-b border-line pb-4">
+        <h1 class="text-2xl sm:text-3xl font-bold text-ink mt-1 tracking-tight">Syarat dan ketentuan layanan</h1>
+        <p class="text-xs sm:text-sm text-ink-muted mt-2">
+            Terakhir diperbarui: Oktober 2026. Berlaku bagi seluruh mahasiswa terdaftar di {{ SITE_NAME }}.
+        </p>
+    </div>
+
+    <!-- Konten Dokumen -->
+    <div class="space-y-8 text-xs sm:text-sm text-ink leading-relaxed">
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">1. Ketentuan umum dan keanggotaan</h2>
+            <p>
+                {{ SITE_NAME }} adalah platform perantara teknologi yang memfasilitasi transaksi sewa dan jual beli barang kebutuhan kuliah antarmahasiswa secara aman.
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li>Pengguna wajib berstatus mahasiswa aktif pada perguruan tinggi yang terdaftar di Indonesia.</li>
+                <li>Setiap akun wajib melalui proses verifikasi Kartu Tanda Mahasiswa (KTM) yang sah sebelum dapat memasang barang atau mengajukan transaksi sewa maupun jual beli.</li>
+                <li>Satu identitas mahasiswa (NIM dan NIK/KTM) hanya boleh diasosiasikan dengan satu akun pengguna.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">2. Pemasangan dan batasan barang</h2>
+            <p>
+                Pemilik barang bertanggung jawab penuh atas keabsahan kepemilikan dan kelayakan fungsi barang yang disewakan atau dijual:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li>Barang yang dipasang dibatasi pada barang penunjang perkuliahan dan aktivitas mahasiswa (kamera, proyektor, multimeter, alat ukur laboratorium, laptop penunjang tugas, kostum/jas/toga wisuda, dan perlengkapan lapangan).</li>
+                <li>Dilarang keras menyewakan barang terlarang, barang milik inventaris laboratorium kampus tanpa izin resmi instansi, zat kimia berbahaya, senjata, obat-obatan, atau barang yang melanggar hukum RI.</li>
+                <li>Estimasi nilai barang sewa dibatasi maksimal Rp3.000.000 per unit demi mitigasi risiko bersama antarmahasiswa.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">3. Mekanisme escrow dan perjanjian digital S&amp;K</h2>
+            <p>
+                Untuk melindungi kedua belah pihak secara berimbang:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li>Biaya sewa dan iuran Dana Gotong Royong wajib dibayarkan oleh penyewa ke penahanan pembayaran aman (escrow) platform sebelum barang diserahkan.</li>
+                <li>Penyewaan mahasiswa berjalan dengan perlindungan hukum berkeadilan, di mana penyewa mengikatkan diri secara hukum melalui Syarat &amp; Ketentuan (S&amp;K) Digital resmi serta surat perjanjian digital yang terekam dengan jejak audit kriptografis.</li>
+                <li>Dana sewa akan diteruskan kepada pemilik setelah penyewa mengembalikan barang dan pemilik mengonfirmasi penerimaan kembali tanpa sengketa.</li>
+                <li>Apabila terjadi keterlambatan atau kerusakan yang terbukti, sistem menerbitkan tagihan tambahan resmi yang wajib diselesaikan oleh penyewa.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">4. Dokumentasi serah terima dan pembuktian fisik</h2>
+            <p>
+                Pertemuan serah terima dan pengembalian wajib dilakukan di titik temu area publik kampus yang ramai dan terpantau:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li>Kedua belah pihak wajib mengambil foto kondisi fisik barang secara langsung saat serah terima awal dan saat pengembalian.</li>
+                <li>Foto dokumentasi serah terima menjadi bukti digital objektif utama apabila timbul sengketa terkait lecet, retak, atau kerusakan fisik barang.</li>
+                <li>Percakapan dan kesepakatan transaksi wajib dilakukan melalui ruang obrolan internal sistem agar terekam dalam pembukuan resmi sengketa.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">5. Dana Gotong Royong dan penyelesaian sengketa</h2>
+            <p>
+                Iuran Dana Gotong Royong (5% dari biaya sewa, minimal Rp3.000) adalah mekanisme proteksi kolektif mahasiswa untuk menanggung risiko kerusakan minor wajar yang tidak disengaja selama pemakaian normal.
+            </p>
+            <p class="text-ink-muted">
+                Apabila timbul selisih kondisi atau kerusakan berat di luar batas wajar, administrator platform bertindak sebagai mediator netral berlandaskan foto bukti serah terima dan riwayat percakapan.
+            </p>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">6. Ketentuan jual beli (thrift mahasiswa)</h2>
+            <p>
+                Platform memfasilitasi transaksi jual beli barang bekas layak pakai (thrift) antarmahasiswa kampus:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li><strong>Kewajiban Penjual:</strong> Penjual menjamin barang yang dijual adalah milik sah pribadi, memberikan foto dan deskripsi yang jujur, serta wajib mencantumkan seluruh cacat/minus bila kondisi barang cukup atau ada cacat.</li>
+                <li><strong>Batas Harga Tangga Penjual:</strong> Nilai barang yang dijual dibatasi berdasarkan tingkat kepercayaan penjual (Penjual baru: maks. Rp1.000.000, Penjual tepercaya: maks. Rp3.000.000, Penjual sangat tepercaya: maks. Rp8.000.000).</li>
+                <li><strong>Barang Terlarang:</strong> Dilarang keras menjual obat keras/resep, minuman beralkohol, rokok dan vape/rokok elektrik, senjata tajam atau senjata api, hewan, makanan olahan/basah, barang bajakan/palsu atau curian, serta akun digital.</li>
+                <li><strong>Penahanan Dana Aman:</strong> Dana pembelian ditahan oleh platform dan baru diteruskan ke penjual setelah pembeli bertemu dan mengonfirmasi penerimaan barang dalam kondisi sesuai deskripsi.</li>
+            </ul>
+        </section>
+    </div>
+
+    <!-- Catatan Hukum -->
+    <div class="mt-12 p-4 rounded-xl bg-paper border border-line text-xs text-ink-muted leading-relaxed">
+        <strong>Pemberitahuan Kepatuhan:</strong> Syarat dan ketentuan ini disusun untuk menjamin transaksi adil antarmahasiswa. Untuk pertanyaan hukum atau bantuan sengketa, hubungi tim pengelola kami di <a href="/kontak/" class="text-brand font-semibold underline">Halaman Kontak</a>.
+    </div>
+</div>
+{% endblock %}

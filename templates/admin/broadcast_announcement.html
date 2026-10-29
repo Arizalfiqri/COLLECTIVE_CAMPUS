@@ -1,0 +1,76 @@
+{% extends "admin/base_site.html" %}
+{% load i18n l10n %}
+
+{% block title %}Pengumuman massal | {{ SITE_NAME }} Admin{% endblock %}
+{% block page_title %}Pengumuman massal{% endblock %}
+{% block page_subtitle %}Siarkan notifikasi resmi ke seluruh akun pengguna aktif {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl space-y-6">
+
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center gap-3 mb-4 pb-4 border-b border-line">
+            <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand flex items-center justify-center flex-shrink-0">
+                {% include 'partials/icon.html' with name="megaphone" class="w-5 h-5" %}
+            </div>
+            <div>
+                <h2 class="text-base font-bold text-ink">Kirim Pengumuman Massal Platform</h2>
+                <p class="text-xs text-ink-muted mt-0.5">
+                    Notifikasi akan muncul pada lonceng notifikasi <strong class="text-ink font-semibold">{{ active_count }} pengguna aktif</strong>.
+                </p>
+            </div>
+        </div>
+
+        <form action="" method="post" class="space-y-5">
+            {% csrf_token %}
+
+            <div>
+                <label for="id_title" class="block text-xs font-semibold text-ink mb-1.5">
+                    Judul pengumuman (opsional):
+                </label>
+                <input type="text"
+                       id="id_title"
+                       name="title"
+                       placeholder="Contoh: Pemeliharaan sistem atau pembaruan fitur"
+                       class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-line bg-white text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand" />
+            </div>
+
+            <div>
+                <label for="id_message" class="block text-xs font-semibold text-ink mb-1.5">
+                    Isi pesan pengumuman <span class="text-brick font-bold">* (wajib)</span>:
+                </label>
+                <textarea id="id_message"
+                          name="message"
+                          rows="4"
+                          required
+                          placeholder="Tuliskan isi pesan pengumuman resmi untuk mahasiswa..."
+                          class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-line bg-white text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+            </div>
+
+            <div>
+                <label for="id_url" class="block text-xs font-semibold text-ink mb-1.5">
+                    URL tautan tujuan (opsional):
+                </label>
+                <input type="text"
+                       id="id_url"
+                       name="url"
+                       placeholder="Contoh: /syarat-ketentuan/ atau /bantuan/"
+                       class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-line bg-white text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand" />
+                <span class="block text-[11px] text-ink-muted mt-1">Pengguna akan diarahkan ke alamat ini jika mengklik notifikasi.</span>
+            </div>
+
+            <div class="flex items-center gap-3 pt-3 border-t border-line">
+                <button type="submit"
+                        class="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand shadow-sm">
+                    Kirim pengumuman sekarang
+                </button>
+                <a href="{% url 'admin:index' %}"
+                   class="px-4 py-2.5 rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold transition-colors">
+                    Batal
+                </a>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

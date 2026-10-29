@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tentang {{ SITE_NAME }} | Gotong Royong, Versi Kampus{% endblock %}
+
+{% block content %}
+<!-- ===== HERO TENTANG (FASE 7F & 7I) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+        <div class="md:col-span-7 space-y-4">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-ink leading-tight tracking-tight">
+                Tentang <span class="text-brand">{{ SITE_NAME }}</span>
+            </h1>
+            <p class="text-[15px] sm:text-lg text-ink-muted leading-relaxed">
+                Ekosistem sewa-menyewa dan jual beli perlengkapan kuliah antarmahasiswa berbasis verifikasi identitas resmi dan pembayaran aman terproteksi.
+            </p>
+        </div>
+        <div class="hidden md:block md:col-span-5">
+            <!-- Panel Kain Tapis Lampung di Sisi Kanan Judul pada Desktop (Fase 7B-Nusantara 2) -->
+            {% include 'partials/panel_kain.html' with type='siger' height='h-40 lg:h-44' %}
+        </div>
+    </div>
+</section>
+
+<!-- ===== MASALAH: SEWA & JUAL BELI (Tab Sakelar Interaktif — Butir 3) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16" x-data="{ probTab: 'sewa' }">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4 sm:mb-5 lg:mb-6">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink">Masalah yang kami lihat</h2>
+            <p class="text-[15px] text-ink-muted mt-1">Tantangan nyata mahasiswa kampus dalam sewa-menyewa dan jual beli barang</p>
+        </div>
+
+        <!-- Sakelar Tab Masalah Sewa | Jual Beli -->
+        <div class="inline-flex items-center p-1 rounded-xl bg-paper-deep border border-line self-start sm:self-auto">
+            <button type="button"
+                    @click="probTab = 'sewa'"
+                    :class="probTab === 'sewa' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                    class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                {% include 'partials/icon.html' with name='calendar' class='w-3.5 h-3.5' %}
+                <span>Masalah sewa</span>
+            </button>
+            <button type="button"
+                    @click="probTab = 'jual'"
+                    :class="probTab === 'jual' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                    class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                {% include 'partials/icon.html' with name='tag' class='w-3.5 h-3.5' %}
+                <span>Masalah jual beli</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TAB 1: MASALAH SEWA -->
+    <div x-show="probTab === 'sewa'" class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div class="space-y-4">
+            <div class="space-y-3.5 text-[15px] text-ink-muted leading-relaxed">
+                <p>
+                    Mahasiswa sering butuh barang untuk kegiatan yang berlangsung singkat: kamera untuk tugas akhir, toga untuk wisuda, proyektor untuk presentasi, atau tenda untuk kegiatan lapangan.
+                </p>
+                <p>
+                    Membeli barang ini mahal dan tidak selalu masuk akal. Di sisi lain, banyak mahasiswa yang memiliki barang serupa dan jarang memakainya. Masalahnya bukan ketersediaan, melainkan kepercayaan: bagaimana meminjamkan barang ke orang yang belum dikenal tanpa rasa khawatir?
+                </p>
+                <p>
+                    Transaksi sewa antarteman sering bergantung pada chat pribadi, transfer langsung, dan janji lisan. Tidak ada bukti kondisi barang, tidak ada perjanjian tertulis resmi, dan konflik diselesaikan dengan drama di grup.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-card border border-line rounded-card p-6 sm:p-8 space-y-5">
+            <h3 class="font-bold text-base sm:text-lg text-ink flex items-center gap-2">
+                {% include 'partials/icon.html' with name='alert-triangle' class='w-5 h-5 text-amber-text' %}
+                Yang sering terjadi pada sewa
+            </h3>
+            <ul class="space-y-3.5 text-[15px] text-ink-muted">
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">1</span>
+                    <span class="leading-relaxed">Barang dipinjam lalu dikembalikan terlambat atau rusak tanpa ganti rugi</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">2</span>
+                    <span class="leading-relaxed">Tidak ada dokumentasi foto kondisi fisik sebelum dan sesudah pemakaian</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">3</span>
+                    <span class="leading-relaxed">Transfer langsung tanpa perlindungan sistem penahanan pembayaran oleh platform</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">4</span>
+                    <span class="leading-relaxed">Pemilik ragu menyewakan barang ke mahasiswa lain karena belum saling kenal</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- TAB 2: MASALAH JUAL BELI (Barang Menumpuk, Penipuan Grup Chat, Harga Tidak Wajar — Butir 3) -->
+    <div x-show="probTab === 'jual'" x-cloak class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div class="space-y-4">
+            <div class="space-y-3.5 text-[15px] text-ink-muted leading-relaxed">
+                <p>
+                    Setiap pergantian semester atau kelulusan wisuda, barang bekas perkuliahan dan perabot kamar kos kerap menumpuk tanpa kepastian pemanfaatan kembali.
+                </p>
+                <p>
+                    Buku kuliah, modul praktikum, pakaian wisuda, kalkulator saintifik, dan perabot kos yang masih sangat layak akhirnya tersimpan berdebu atau terpaksa dibuang karena tidak ada sarana penjualan terpusat yang aman di lingkungan kampus.
+                </p>
+                <p>
+                    Transaksi via grup chat media sosial sangat berisiko: marak indikasi penipuan bukti transfer palsu, pembatalan janji temu sepihak, akun anonim tanpa verifikasi mahasiswa, serta penentuan harga second-hand yang tidak wajar dan tidak transparan.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-card border border-line rounded-card p-6 sm:p-8 space-y-5">
+            <h3 class="font-bold text-base sm:text-lg text-ink flex items-center gap-2">
+                {% include 'partials/icon.html' with name='alert-triangle' class='w-5 h-5 text-amber-text' %}
+                Yang sering terjadi pada jual beli
+            </h3>
+            <ul class="space-y-3.5 text-[15px] text-ink-muted">
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">1</span>
+                    <span class="leading-relaxed">Barang bekas menumpuk di kamar kos hingga lulus dan berakhir terbuang sia-sia</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">2</span>
+                    <span class="leading-relaxed">Transaksi via grup chat berisiko penipuan bukti transfer palsu dan akun anonim</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">3</span>
+                    <span class="leading-relaxed">Penetapan harga tidak wajar tanpa standar kondisi fisik yang objektif dan jujur</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">4</span>
+                    <span class="leading-relaxed">Kesepakatan jadwal temu COD sering dibatalkan sepihak tanpa kejelasan</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CARA KERJA: 2 TAB SEWA & JUAL BELI (Komponen Dua Tab Seperti Beranda — Butir 3) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16" x-data="{ stepTab: 'sewa' }">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4 sm:mb-5 lg:mb-6">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink">Cara kerja {{ SITE_NAME }}</h2>
+            <p class="text-[15px] text-ink-muted mt-1">Alur transaksi transparan dan terproteksi untuk sewa dan jual beli</p>
+        </div>
+
+        <!-- Sakelar Tab Sewa | Jual Beli -->
+        <div class="inline-flex items-center p-1 rounded-xl bg-paper-deep border border-line self-start sm:self-auto">
+            <button type="button"
+                    @click="stepTab = 'sewa'"
+                    :class="stepTab === 'sewa' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                    class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                {% include 'partials/icon.html' with name='calendar' class='w-3.5 h-3.5' %}
+                <span>Sewa barang</span>
+            </button>
+            <button type="button"
+                    @click="stepTab = 'jual'"
+                    :class="stepTab === 'jual' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                    class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                {% include 'partials/icon.html' with name='tag' class='w-3.5 h-3.5' %}
+                <span>Jual beli</span>
+            </button>
+        </div>
+    </div>
+
+    <div x-show="stepTab === 'sewa'">
+        {% include 'partials/steps.html' %}
+    </div>
+    <div x-show="stepTab === 'jual'" x-cloak>
+        {% include 'partials/steps_sales.html' %}
+    </div>
+</section>
+
+<!-- ===== SEMANGAT GOTONG ROYONG (FASE 7F & 7I) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div class="space-y-4">
+            <div class="mb-4 sm:mb-5 lg:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-ink">Gotong royong, versi kampus</h2>
+            </div>
+            <div class="space-y-3.5 text-[15px] text-ink-muted leading-relaxed">
+                <p>
+                    {{ SITE_NAME }} dibangun dengan prinsip sederhana: mahasiswa bisa saling bantu tanpa harus saling kenal secara pribadi. Identitas terverifikasi dan pembayaran yang ditahan platform sampai barang kembali atau diterima menggantikan modal kepercayaan yang biasanya hanya dimiliki teman dekat.
+                </p>
+                {% if is_budaya_confirmed %}
+                <p>
+                    Semangat ini sejalan dengan nilai sakai sambayan dalam budaya Lampung: saling tolong dan berbagi beban.
+                </p>
+                {% endif %}
+                <p>
+                    Setiap transaksi sewa menyumbang sebagian kecil ke Dana Gotong Royong, dana cadangan bersama bila barang tidak dikembalikan oleh penyewa. Ini bukan asuransi komersial, melainkan iuran kolektif sesama pengguna platform.
+                </p>
+                <p>
+                    Barang yang menganggur menjadi penghasilan, barang bekas menemukan pemilik baru yang membutuhkan. Ekosistem ini menguntungkan kedua pihak dan meminimalkan pemborosan di lingkungan kampus.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-brand rounded-card p-6 sm:p-8 text-white space-y-5">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='users' class='w-5 h-5 text-saffron' %}
+                    Dana Gotong Royong
+                </h3>
+                <img src="/static/img/siger.svg" alt="" class="h-5 w-auto object-contain flex-shrink-0" aria-hidden="true" />
+            </div>
+            <div class="space-y-3 text-[15px] text-white/90 leading-relaxed">
+                <p>
+                    Iuran kecil dari setiap transaksi sewa (5% dari biaya sewa, min. Rp3.000) dikumpulkan dalam satu dana bersama.
+                </p>
+                <p>
+                    Bila terjadi barang tidak dikembalikan oleh penyewa, dana ini dapat dialokasikan untuk kompensasi kepada pemilik (hingga 50% nilai taksiran barang).
+                </p>
+                <p>
+                    Pengelolaan dana dicatat di buku besar platform dan bisa diperiksa lewat fitur transparansi transaksi.
+                </p>
+            </div>
+            <div class="pt-3 border-t border-white/20 text-xs text-white/70">
+                Transparansi: alokasi dana gotong royong dikelola melalui buku besar internal platform untuk perlindungan bersama.
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== TIGA PILAR PERLINDUNGAN (Mencakup Sewa & Jual Beli — Butir 3) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div>
+        <div class="mb-4 sm:mb-5 lg:mb-6">
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink">Tiga pilar perlindungan</h2>
+            <p class="text-[15px] text-ink-muted mt-1">Prinsip keamanan yang berlaku untuk transaksi sewa maupun jual beli</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <!-- Pilar 1: Identitas Terverifikasi -->
+            <div class="bg-card border border-line rounded-card p-6 space-y-2.5">
+                <div class="flex items-center gap-2.5 mb-1">
+                    {% include 'partials/icon.html' with name='shield-check' class='w-5 h-5 text-pine' %}
+                    <h3 class="font-bold text-base text-ink">Identitas terverifikasi</h3>
+                </div>
+                <p class="text-[15px] text-ink-muted leading-relaxed">
+                    Setiap pengguna (pemilik, penyewa, penjual, dan pembeli) wajib memverifikasi KTM aktif. Demi privasi, foto fisik KTM otomatis dihapus permanen dari penyimpanan privat setelah verifikasi disetujui (sesuai fungsi <code class="text-xs bg-paper px-1 py-0.5 rounded font-mono text-ink">delete_image_file()</code> di <code class="text-xs bg-paper px-1 py-0.5 rounded font-mono text-ink">apps/verification/models.py</code>), sedangkan nama lengkap dan NIM tetap disimpan untuk audit trail dan integritas akun.
+                </p>
+            </div>
+
+            <!-- Pilar 2: Pembayaran Ditahan dan Perjanjian Digital -->
+            <div class="bg-card border border-line rounded-card p-6 space-y-2.5">
+                <div class="flex items-center gap-2.5 mb-1">
+                    {% include 'partials/icon.html' with name='file-text' class='w-5 h-5 text-amber-text' %}
+                    <h3 class="font-bold text-base text-ink">Pembayaran ditahan dan perjanjian digital</h3>
+                </div>
+                <p class="text-[15px] text-ink-muted leading-relaxed">
+                    Transaksi sewa dan pesanan jual beli dilindungi surat perjanjian digital resmi dengan jejak audit (hash SHA-256 dan alamat IP). Dana pembayaran ditahan oleh platform sampai barang kembali atau diterima sesuai kesepakatan.
+                </p>
+            </div>
+
+            <!-- Pilar 3: Bukti dan Mediasi Antarkampus -->
+            <div class="bg-card border border-line rounded-card p-6 space-y-2.5">
+                <div class="flex items-center gap-2.5 mb-1">
+                    {% include 'partials/icon.html' with name='camera' class='w-5 h-5 text-brand' %}
+                    <h3 class="font-bold text-base text-ink">Bukti dan mediasi</h3>
+                </div>
+                <p class="text-[15px] text-ink-muted leading-relaxed">
+                    Pertemuan dilakukan di area kampus resmi yang ramai dan aman antarkampus. Dokumentasi foto kondisi fisik barang saat serah terima menjadi bukti objektif dan dasar mediasi adil platform jika terjadi sengketa atau klaim kerusakan antarkampus.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA (Menyebutkan Sewa dan Jual Beli — Butir 3) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="bg-brand rounded-card p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
+        <div class="space-y-2 max-w-2xl text-white">
+            <h3 class="text-xl sm:text-2xl font-bold text-white">
+                Siap bertransaksi aman di kampus?
+            </h3>
+            <p class="text-[15px] text-white/90 leading-relaxed">
+                Verifikasi KTM Anda sekarang, mulai sewakan perlengkapan kuliah, jual barang bekasmu, atau temukan barang yang kamu butuhkan dari sesama mahasiswa terverifikasi.
+            </p>
+        </div>
+        <div class="flex-shrink-0 flex flex-wrap gap-3">
+            <a href="/barang/"
+               class="inline-flex items-center gap-2 bg-saffron hover:brightness-95 text-ink text-sm font-bold px-4 py-2.5 rounded-lg transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                <span>Jelajahi sewa</span>
+                {% include 'partials/icon.html' with name='arrow-right' class='w-4 h-4 text-ink' %}
+            </a>
+            <a href="/jual-beli/"
+               class="inline-flex items-center gap-2 bg-white hover:bg-paper text-brand text-sm font-bold px-4 py-2.5 rounded-lg transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                <span>Jelajahi jual beli</span>
+                {% include 'partials/icon.html' with name='arrow-right' class='w-4 h-4 text-brand' %}
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Keterangan Inspirasi Ornamen (Fase 7B-Nusantara 2) -->
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16 text-center">
+    <p class="text-xs text-ink-muted/70">
+        Ornamen terinspirasi kain tapis dan siger Lampung, digambar ulang secara geometris.
+    </p>
+</div>
+{% endblock %}

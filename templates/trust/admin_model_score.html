@@ -1,0 +1,742 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+
+{% block title %}Evaluasi model skor kepercayaan | {{ SITE_NAME }} Admin{% endblock %}
+{% block page_title %}Transparansi Metodologi Skor Kepercayaan{% endblock %}
+{% block page_subtitle %}Transparansi metodologi arsitektur pemodelan, evaluasi risiko, dan continuous learning{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    {# HEADER & PERNYATAAN TRANSPARANSI #}
+    <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-3">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-brand bg-brand-tint px-2.5 py-1 rounded-full">
+                Panel staf &bull; Evaluasi model ML
+            </span>
+            <span class="text-xs font-medium text-ink-muted bg-paper-deep px-2.5 py-1 rounded-full border border-line" title="Model dilatih menggunakan dataset sintetis">
+                Data sintetis terkalibrasi
+            </span>
+        </div>
+        <p class="text-sm text-ink-muted leading-relaxed">
+            {{ SITE_NAME }} menerapkan model machine learning untuk mengestimasi risiko transaksi secara objektif tanpa bias atribut sensitif. Seluruh arsitektur pemodelan, perbandingan baseline, kurva evaluasi, dan formula penjelasan dilaporkan secara terbuka di halaman ini.
+        </p>
+    </div>
+
+    {# SEKSI CONTINUOUS LEARNING & MANAJEMEN MODEL DATA NYATA (FASE 7C) #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-brand-tint text-brand mb-1">
+                    Continuous Learning Pipeline (Fase 7C)
+                </div>
+                <h2 class="text-xl font-heading font-bold text-ink">Manajemen Model &amp; Data Transaksi Nyata</h2>
+                <p class="text-xs sm:text-sm text-ink-muted mt-1">Pemantauan data sewa berlabel, guardrail retraining, dan kontrol versi model artefak</p>
+            </div>
+            {% if active_version %}
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-pine-tint border border-pine/20 rounded-xl text-xs font-semibold text-pine">
+                <span class="w-2 h-2 rounded-full bg-pine"></span>
+                <span>Versi aktif: {{ active_version.version }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Peringatan Transparan & Etika UU PDP #}
+        <div class="p-4 rounded-xl bg-paper border border-line text-xs space-y-1">
+            <span class="font-bold text-ink uppercase tracking-wider block text-[10px]">Pemberitahuan Transparansi &amp; Etika Keputusan</span>
+            <p class="text-ink-muted leading-relaxed">
+                <strong class="text-ink">Pemisahan Sumber Data:</strong> Sistem secara ketat membedakan data sintetis awal (baseline) dengan data riil yang terkumpul dari live stream transaksi mahasiswa. Model machine learning ini murni berfungsi sebagai <strong class="text-ink">asisten penilai risiko pendukung</strong> dan BUKAN penentu mutlak pembatalan atau penolakan transaksi sewa. Seluruh data transaksi dilindungi dan diproses sesuai prinsip persetujuan UU Perlindungan Data Pribadi (UU PDP).
+            </p>
+        </div>
+
+        {# Kartu Metrik Data Latih Nyata #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-2">
+                <div class="flex items-center justify-between text-xs text-ink-muted">
+                    <span>Data Nyata Terlabel (Live)</span>
+                    <span class="font-mono text-ink font-semibold">{{ live_count }}/{{ min_real }}</span>
+                </div>
+                <div class="text-2xl font-bold font-heading text-ink tabular-nums">
+                    {{ live_count }} <span class="text-xs font-normal text-ink-muted">contoh</span>
+                </div>
+                <div class="w-full bg-line rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-brand h-1.5 rounded-full" data-progress="{{ progress_real_pct }}" style="width: 0%;"></div>
+                </div>
+                <p class="text-[11px] text-ink-muted">
+                    Progress batas aman: {{ progress_real_pct }}% (minimal {{ min_real }} data nyata)
+                </p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-2">
+                <div class="flex items-center justify-between text-xs text-ink-muted">
+                    <span>Kasus Bermasalah (Live)</span>
+                    <span class="font-mono text-ink font-semibold">{{ problem_live }}/{{ min_positives }}</span>
+                </div>
+                <div class="text-2xl font-bold font-heading text-ink tabular-nums">
+                    {{ problem_live }} <span class="text-xs font-normal text-ink-muted">kasus</span>
+                </div>
+                <div class="w-full bg-line rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-amber-text h-1.5 rounded-full" data-progress="{{ progress_pos_pct }}" style="width: 0%;"></div>
+                </div>
+                <p class="text-[11px] text-ink-muted">
+                    Minimal {{ min_positives }} kasus positif sebelum retraining otomatis
+                </p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-2">
+                <div class="text-xs text-ink-muted">Data Historis Backfill</div>
+                <div class="text-2xl font-bold font-heading text-ink tabular-nums">
+                    {{ backfill_count }} <span class="text-xs font-normal text-ink-muted">contoh</span>
+                </div>
+                <div class="text-[11px] text-ink-muted leading-relaxed">
+                    {{ problem_backfill }} kasus bermasalah terlabel dari transaksi lampau. Dikecualikan dari retraining bawaan untuk mencegah data leakage.
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-2">
+                <div class="text-xs text-ink-muted">Sewa Berjalan (Live Stream)</div>
+                <div class="text-2xl font-bold font-heading text-ink tabular-nums">
+                    {{ unlabeled_live }} <span class="text-xs font-normal text-ink-muted">aktif</span>
+                </div>
+                <div class="text-[11px] text-ink-muted leading-relaxed">
+                    Snapshot fitur telah dicatat saat pengajuan dan siap dilabeli otomatis saat sewa mencapai terminal state.
+                </div>
+            </div>
+        </div>
+        <script>
+            document.querySelectorAll('[data-progress]').forEach(function(el) {
+                el.style.width = (el.getAttribute('data-progress') || '0') + '%';
+            });
+        </script>
+
+        {# Riwayat Versi Model & Aksi Rollback #}
+        <div class="space-y-3 pt-2">
+            <h3 class="font-bold text-sm text-ink">Riwayat Versi Artefak Model</h3>
+            <div class="overflow-x-auto border border-line rounded-xl">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead class="bg-paper text-ink font-bold border-b border-line">
+                        <tr>
+                            <th class="p-3">Versi Model</th>
+                            <th class="p-3">Waktu Pelatihan</th>
+                            <th class="p-3">Data Nyata</th>
+                            <th class="p-3">PR-AUC</th>
+                            <th class="p-3">Brier Score</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line bg-card">
+                        {% for ver in model_versions %}
+                        <tr class="{% if ver.is_active %}bg-pine-tint/30{% endif %}">
+                            <td class="p-3 font-semibold text-ink">
+                                <div>{{ ver.version }}</div>
+                                {% if ver.notes %}
+                                <div class="text-[10px] text-ink-muted mt-0.5 truncate max-w-xs" title="{{ ver.notes }}">{{ ver.notes }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="p-3 text-ink-muted font-mono whitespace-nowrap">{{ ver.trained_at|date:"d M Y H:i" }}</td>
+                            <td class="p-3 text-ink font-mono tabular-nums">{{ ver.n_real }} data</td>
+                            <td class="p-3 text-ink font-mono tabular-nums">
+                                {% if ver.metrics.candidate.pr_auc %}
+                                    {{ ver.metrics.candidate.pr_auc|floatformat:4 }}
+                                {% elif ver.metrics.pr_auc %}
+                                    {{ ver.metrics.pr_auc|floatformat:4 }}
+                                {% else %}
+                                    0.5139
+                                {% endif %}
+                            </td>
+                            <td class="p-3 text-ink font-mono tabular-nums">
+                                {% if ver.metrics.candidate.brier_score %}
+                                    {{ ver.metrics.candidate.brier_score|floatformat:4 }}
+                                {% elif ver.metrics.brier_score %}
+                                    {{ ver.metrics.brier_score|floatformat:4 }}
+                                {% else %}
+                                    0.1001
+                                {% endif %}
+                            </td>
+                            <td class="p-3">
+                                {% if ver.is_active %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pine-tint text-pine">
+                                    Aktif
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-paper text-ink-muted border border-line">
+                                    Arsip
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="p-3 text-right">
+                                {% if not ver.is_active %}
+                                <form method="post" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin mengembalikan model aktif ke versi {{ ver.version }}?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="rollback">
+                                    <input type="hidden" name="version" value="{{ ver.version }}">
+                                    <button type="submit" class="px-2.5 py-1 text-[11px] font-semibold text-ink bg-paper hover:bg-card border border-line rounded-lg transition-colors">
+                                        Rollback
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-[11px] text-ink-muted italic">Sedang berjalan</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="p-4 text-center text-xs text-ink-muted">Belum ada riwayat model versi database. Model aktif menggunakan artefak dasar v1.0.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Formulir Pemicu Retraining (Khusus Staf) #}
+        <div class="p-5 rounded-xl bg-paper border border-line space-y-4">
+            <div>
+                <h3 class="font-bold text-sm text-ink">Jalankan Evaluasi &amp; Retraining Model</h3>
+                <p class="text-xs text-ink-muted mt-0.5">
+                    Sistem akan membagi data 80/20 time-based, melatih kandidat Logistic Regression terkalibrasi, dan hanya mempromosikan model jika PR-AUC naik &ge; +0.01 serta Brier score tidak memburuk.
+                </p>
+            </div>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="retrain">
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-ink">Catatan Audit Pelatihan (Wajib diisi):</label>
+                    <input type="text" name="notes" placeholder="Contoh: Evaluasi berkala siklus data sewa semester genap" class="w-full text-xs px-3 py-2 rounded-lg bg-card border border-line text-ink focus:border-brand focus:ring-0">
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4 text-xs text-ink">
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="include_backfill" value="1" class="rounded border-line text-brand focus:ring-0">
+                        <span>Sertakan data backfill lama</span>
+                    </label>
+
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="force" value="1" class="rounded border-line text-brand focus:ring-0">
+                        <span>Abaikan ambang minimal data (Force retrain untuk pengujian / demo)</span>
+                    </label>
+                </div>
+
+                <div>
+                    <button type="submit" class="px-4 py-2 bg-brand text-card text-xs font-bold rounded-xl hover:bg-brand/90 transition-colors shadow-sm" onclick="return confirm('Mulai evaluasi continuous learning model ML?');">
+                        Jalankan evaluasi / retraining sekarang
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {# SEKSI 1: CARA KERJA & TANGGA KEPERCAYAAN #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4">
+            <h2 class="text-xl font-heading font-bold text-ink">1. Cara Kerja &amp; Konversi Skor</h2>
+            <p class="text-xs sm:text-sm text-ink-muted mt-1">Estimasi risiko sewa bermasalah dan konversinya menjadi skala 0–100</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="p-5 rounded-xl bg-paper border border-line space-y-2">
+                <span class="text-xs font-bold text-brand uppercase tracking-wider block">Target Prediksi</span>
+                <h3 class="font-bold text-sm text-ink">Risiko Transaksi Bermasalah</h3>
+                <p class="text-xs text-ink-muted leading-relaxed">
+                    Model memperkirakan probabilitas <strong class="text-ink">p</strong> bahwa pengguna mengalami masalah pada sewa berikutnya (keterlambatan &gt; 1 hari, potongan kerusakan barang, atau sengketa).
+                </p>
+            </div>
+
+            <div class="p-5 rounded-xl bg-paper border border-line space-y-2">
+                <span class="text-xs font-bold text-brand uppercase tracking-wider block">Formula Skor</span>
+                <h3 class="font-bold text-sm text-ink">Skor 0 s.d. 100</h3>
+                <p class="text-xs text-ink-muted leading-relaxed">
+                    Skor kepercayaan dihitung langsung dari probabilitas terkalibrasi:
+                    <code class="block mt-1 font-mono text-xs bg-card px-2 py-1 rounded border border-line text-ink font-bold">Skor = round((1 - p) × 100)</code>
+                    Makin rendah risiko, makin tinggi skor kepercayaan pengguna.
+                </p>
+            </div>
+
+            <div class="p-5 rounded-xl bg-paper border border-line space-y-2">
+                <span class="text-xs font-bold text-brand uppercase tracking-wider block">Aturan Pengguna Baru</span>
+                <h3 class="font-bold text-sm text-ink">Cold-Start Rule (&lt; 3 Sewa)</h3>
+                <p class="text-xs text-ink-muted leading-relaxed">
+                    Pengguna dengan kurang dari 3 transaksi selesai diberi skor tetap <strong class="text-ink">60</strong> dengan label <em class="text-ink font-semibold">"Pengguna baru"</em>. Model statistik tidak dipaksakan pada pengguna tanpa riwayat transaksi.
+                </p>
+            </div>
+        </div>
+
+        {# Tangga Kepercayaan SPEC v2 #}
+        <div class="mt-4 pt-4 border-t border-line space-y-3">
+            <h4 class="font-bold text-sm text-ink">Dampak Skor terhadap Hak Sewa (Tangga Kepercayaan SPEC v2 A.1):</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border border-line rounded-lg overflow-hidden">
+                    <thead class="bg-paper text-ink font-bold border-b border-line">
+                        <tr>
+                            <th class="p-3">Tingkat penyewa</th>
+                            <th class="p-3">Syarat transaksi</th>
+                            <th class="p-3">Maksimal nilai barang</th>
+                            <th class="p-3">Deposit minimum</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line bg-card">
+                        <tr>
+                            <td class="p-3 font-semibold text-ink">Penyewa baru</td>
+                            <td class="p-3 text-ink-muted">Kurang dari 3 sewa selesai</td>
+                            <td class="p-3 text-ink font-mono tabular-nums">Rp750.000</td>
+                            <td class="p-3 text-ink-muted">15% dari nilai barang</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-semibold text-pine-dark">Penyewa tepercaya</td>
+                            <td class="p-3 text-ink-muted">3–5 sewa selesai tanpa sengketa (dan skor &ge; 60)</td>
+                            <td class="p-3 text-ink font-mono tabular-nums">Rp1.500.000</td>
+                            <td class="p-3 text-pine-dark font-medium">10% dari nilai barang</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-semibold text-pine-dark">Penyewa sangat tepercaya</td>
+                            <td class="p-3 text-ink-muted">&ge; 6 sewa selesai tanpa sengketa (dan skor &ge; 75)</td>
+                            <td class="p-3 text-ink font-mono tabular-nums">Rp3.000.000</td>
+                            <td class="p-3 text-pine-dark font-medium">10% dari nilai barang</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    {# SEKSI 2: FITUR YANG DIPAKAI VS SENGAJA DIHAPUS (ETIKA & UU PDP) #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4">
+            <h2 class="text-xl font-heading font-bold text-ink">2. Fitur Transaksi &amp; Perlindungan Privasi</h2>
+            <p class="text-xs sm:text-sm text-ink-muted mt-1">Prinsip minimisasi data sesuai UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {# Fitur yang Dipakai #}
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-pine"></span>
+                    <h3 class="font-bold text-sm text-ink">8 Fitur Riwayat Perilaku (Dipakai)</h3>
+                </div>
+                <p class="text-xs text-ink-muted">
+                    Fitur murni mencerminkan rekam jejak penyewaan objektif sebelum transaksi yang dinilai:
+                </p>
+                <div class="space-y-2">
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">1. jumlah_sewa_selesai:</strong> Total transaksi sewa selesai berhasil.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">2. jumlah_sebagai_pemilik:</strong> Keaktifan pengguna sebagai penyedia barang.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">3. rasio_tepat_waktu:</strong> Persentase pengembalian tanpa keterlambatan.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">4. rata_rata_rating_diterima:</strong> Rata-rata bintang ulasan dari rekan mahasiswa.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">5. jumlah_sengketa:</strong> Frekuensi perselisihan klaim kerusakan/hilang.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">6. rasio_sengketa:</strong> Proporsi sengketa terhadap total transaksi.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">7. rasio_pembatalan:</strong> Pembatalan sepihak setelah disetujui pemilik.
+                    </div>
+                    <div class="p-2.5 bg-paper rounded-lg border border-line text-xs">
+                        <strong class="text-ink">8. umur_akun_hari:</strong> Rentang hari sejak akun mahasiswa terdaftar.
+                    </div>
+                </div>
+            </div>
+
+            {# Fitur yang Sengaja Dihapus / Dilarang #}
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brick"></span>
+                    <h3 class="font-bold text-sm text-ink">Atribut yang Sengaja DITOLAK (Dilarang)</h3>
+                </div>
+                <p class="text-xs text-ink-muted">
+                    Atribut sensitif dan demografis secara ketat tidak disertakan untuk menjamin keadilan algoritma:
+                </p>
+                <div class="space-y-2">
+                    <div class="p-2.5 bg-brick-tint/40 rounded-lg border border-brick/30 text-xs text-ink">
+                        <strong class="text-brick block">Status KTM (Dihapus dari Model):</strong>
+                        Hampir konstan karena semua pengguna aktif yang menyewa wajib terverifikasi KTM, sehingga tidak memberi nilai informasi statistik (zero variance).
+                    </div>
+                    <div class="p-2.5 bg-brick-tint/40 rounded-lg border border-brick/30 text-xs text-ink">
+                        <strong class="text-brick block">Jenis Kelamin / Gender (Dilarang):</strong>
+                        Mencegah diskriminasi algoritma berdasarkan identitas gender.
+                    </div>
+                    <div class="p-2.5 bg-brick-tint/40 rounded-lg border border-brick/30 text-xs text-ink">
+                        <strong class="text-brick block">Kampus / Universitas (Dilarang):</strong>
+                        Menghindari bias institusional atau pemberian keuntungan algoritma bagi kampus besar/tertentu.
+                    </div>
+                    <div class="p-2.5 bg-brick-tint/40 rounded-lg border border-brick/30 text-xs text-ink">
+                        <strong class="text-brick block">Program Studi / Jurusan (Dilarang):</strong>
+                        Tidak relevan dengan keandalan sewa dan rentan stereotip akademik.
+                    </div>
+                    <div class="p-2.5 bg-brick-tint/40 rounded-lg border border-brick/30 text-xs text-ink">
+                        <strong class="text-brick block">Asal Daerah / Geografi (Dilarang):</strong>
+                        Menjaga integritas privasi dan kepatuhan terhadap prinsip antidiskriminasi regional.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# SEKSI 3: PERNYATAAN DATA SINTETIS & HASH REPRODUKSIBILITAS #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+        <div class="border-b border-line pb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="text-xl font-heading font-bold text-ink">3. Metodologi Data Sintetis &amp; Kejujuran Pelaporan</h2>
+                <p class="text-xs sm:text-sm text-ink-muted mt-1">Pembangkitan terkontrol untuk simulasi akademik sebelum ketersediaan data riil</p>
+            </div>
+            <span class="bg-pine-tint text-pine-dark font-mono text-[11px] px-2.5 py-1 rounded border border-pine/30">
+                Seed: 42 &bull; n = 4.000 baris
+            </span>
+        </div>
+
+        <div class="space-y-3 text-xs sm:text-sm text-ink-muted leading-relaxed">
+            <p>
+                <strong class="text-ink">Pernyataan Etika:</strong> Karena {{ SITE_NAME }} merupakan platform baru, belum tersedia dataset riil transaksi mahasiswa berskala besar. Demi kejujuran metodologis, model ini dilatih pada <strong class="text-ink">data sintetis terkalibrasi</strong> dan metrik yang dilaporkan bukan klaim akurasi produksi lapangan.
+            </p>
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-2 text-xs">
+                <span class="font-bold text-ink block">Mekanisme Pembangkitan Data (<code class="text-brand font-mono">ml/generate_synthetic_data.py</code>):</span>
+                <ul class="list-disc list-inside space-y-1 text-ink-muted">
+                    <li><strong class="text-ink">Variabel Laten Keandalan:</strong> Setiap entitas disimulasikan memiliki tingkat keandalan laten <code class="font-mono text-ink">z ~ N(0, 1)</code> yang memengaruhi probabilitas ketepatan waktu, rating, dan sengketa secara simultan.</li>
+                    <li><strong class="text-ink">Prevalensi Realistis (~15.4%):</strong> Kelas positif (transaksi bermasalah) dibangkitkan sekitar 15.4% dengan tumpang tindih alami (noise logistik) agar kelas tidak terpisah sempurna (tidak ada trivial separation).</li>
+                    <li><strong class="text-ink">Pencegahan Target Leakage:</strong> Seluruh fitur murni dihitung dari riwayat masa lalu sebelum tanggal transaksi yang dievaluasi.</li>
+                </ul>
+            </div>
+            <div class="p-3 bg-paper-deep rounded-lg border border-line flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                <span class="text-ink font-bold">SHA-256 Dataset:</span>
+                <span class="text-brand truncate max-w-full select-all">{{ metrics.data_sha256|default:"6c071490ca381cfc9413b6a7971e7ed61e9c300ebb6fb3f93affdbe9fc535e5d" }}</span>
+            </div>
+        </div>
+    </section>
+
+    {# SEKSI 4: SIMULASI INTERAKTIF SKOR KEPERCAYAAN (HTMX) #}
+    <section class="bg-paper rounded-2xl p-6 sm:p-8 border border-line space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-brand uppercase tracking-wider">Simulator Model ML (Staf)</span>
+                <span class="text-[10px] bg-card px-2 py-0.5 rounded border border-line font-mono text-ink">HTMX Real-time</span>
+            </div>
+            <h2 class="text-xl font-heading font-bold text-ink">Simulasi Skor Kepercayaan</h2>
+            <p class="text-xs sm:text-sm text-ink-muted mt-1">
+                Geser parameter riwayat sewa di bawah ini untuk melihat prediksi skor dan kalimat penjelasan faktor secara langsung.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {# Formulir Slider Fitur (lg:col-span-7) #}
+            <div class="lg:col-span-7 space-y-4 bg-card p-6 rounded-2xl border border-line">
+                <form id="simulation-form"
+                      hx-get="/admin/model-skor/simulasi/"
+                      hx-target="#simulation-output"
+                      hx-swap="outerHTML"
+                      hx-trigger="input delay:200ms, change"
+                      class="space-y-4 text-xs">
+
+                    {# Slider 1: Jumlah Sewa Selesai #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_sewa">Jumlah Sewa Selesai (transaksi)</label>
+                            <span id="val_sewa" class="font-mono text-brand font-bold">{{ initial_inputs.jumlah_sewa_selesai }}</span>
+                        </div>
+                        <input type="range" id="f_sewa" name="jumlah_sewa_selesai" min="0" max="40" value="{{ initial_inputs.jumlah_sewa_selesai }}"
+                               class="w-full accent-brand cursor-pointer"
+                               oninput="document.getElementById('val_sewa').innerText = this.value">
+                        <span class="text-[10px] text-ink-muted block">&lt; 3 transaksi otomatis menjadi Pengguna Baru (skor 60)</span>
+                    </div>
+
+                    {# Slider 2: Jumlah sebagai Pemilik #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_pemilik">Jumlah Sewa sebagai Pemilik Barang</label>
+                            <span id="val_pemilik" class="font-mono text-brand font-bold">{{ initial_inputs.jumlah_sebagai_pemilik }}</span>
+                        </div>
+                        <input type="range" id="f_pemilik" name="jumlah_sebagai_pemilik" min="0" max="25" value="{{ initial_inputs.jumlah_sebagai_pemilik }}"
+                               class="w-full accent-brand cursor-pointer"
+                               oninput="document.getElementById('val_pemilik').innerText = this.value">
+                    </div>
+
+                    {# Slider 3: Rasio Tepat Waktu #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_tepat">Rasio Pengembalian Tepat Waktu (%)</label>
+                            <span id="val_tepat" class="font-mono text-brand font-bold">95%</span>
+                        </div>
+                        <input type="range" id="f_tepat" name="rasio_tepat_waktu" min="20" max="100" value="95"
+                               class="w-full accent-brand cursor-pointer"
+                               oninput="document.getElementById('val_tepat').innerText = this.value + '%'">
+                    </div>
+
+                    {# Slider 4: Rata-rata Rating Diterima #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_rating">Rata-rata Rating Ulasan Diterima (1.0 - 5.0)</label>
+                            <span id="val_rating" class="font-mono text-brand font-bold">{{ initial_inputs.rata_rata_rating_diterima }}</span>
+                        </div>
+                        <input type="range" id="f_rating" name="rata_rata_rating_diterima" min="2.0" max="5.0" step="0.1" value="{{ initial_inputs.rata_rata_rating_diterima }}"
+                               class="w-full accent-brand cursor-pointer"
+                               oninput="document.getElementById('val_rating').innerText = parseFloat(this.value).toFixed(1)">
+                    </div>
+
+                    {# Slider 5: Jumlah Sengketa #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_sengketa">Jumlah Sengketa yang Pernah Terjadi</label>
+                            <span id="val_sengketa" class="font-mono text-brick font-bold">{{ initial_inputs.jumlah_sengketa }}</span>
+                        </div>
+                        <input type="range" id="f_sengketa" name="jumlah_sengketa" min="0" max="5" value="{{ initial_inputs.jumlah_sengketa }}"
+                               class="w-full accent-brick cursor-pointer"
+                               oninput="document.getElementById('val_sengketa').innerText = this.value">
+                    </div>
+
+                    {# Slider 6: Rasio Pembatalan #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_batal">Rasio Pembatalan Sewa (%)</label>
+                            <span id="val_batal" class="font-mono text-ink-muted font-bold">5%</span>
+                        </div>
+                        <input type="range" id="f_batal" name="rasio_pembatalan" min="0" max="40" value="5"
+                               class="w-full accent-brand cursor-pointer"
+                               oninput="document.getElementById('val_batal').innerText = this.value + '%'">
+                    </div>
+
+                    {# Slider 7: Umur Akun #}
+                    <div class="space-y-1">
+                        <div class="flex justify-between font-semibold text-ink">
+                            <label for="f_umur">Umur Akun Mahasiswa (hari)</label>
+                            <span id="val_umur" class="font-mono text-brand font-bold">{{ initial_inputs.umur_akun_hari }} hari</span>
+                        </div>
+                        <input type="range" id="f_umur" name="umur_akun_hari" min="15" max="500" value="{{ initial_inputs.umur_akun_hari }}"
+                               class="w-full accent-brand cursor-pointer"
+                               oninput="document.getElementById('val_umur').innerText = this.value + ' hari'">
+                    </div>
+                </form>
+            </div>
+
+            {# Hasil Simulasi Output (lg:col-span-5) #}
+            <div class="lg:col-span-5">
+                {% include 'trust/partials/simulation_result.html' with sim=initial_simulation inputs=initial_inputs %}
+            </div>
+        </div>
+    </section>
+
+    {# SEKSI 5: TABEL PERBANDINGAN MODEL & METRIK EVALUASI #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="text-xl font-heading font-bold text-ink">4. Evaluasi Komparatif Model vs Baseline</h2>
+                <p class="text-xs sm:text-sm text-ink-muted mt-1">Evaluasi pada test set independen (n = 800 sampel, 20% split terstratifikasi)</p>
+            </div>
+            <span class="text-xs font-semibold text-pine-dark bg-pine-tint px-2.5 py-1 rounded">
+                Model Terpilih: Regresi Logistik Terkalibrasi
+            </span>
+        </div>
+
+        {# Tabel Metrik #}
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left border border-line rounded-lg overflow-hidden">
+                <thead class="bg-paper text-ink font-bold border-b border-line">
+                    <tr>
+                        <th class="p-3">Model</th>
+                        <th class="p-3">ROC-AUC</th>
+                        <th class="p-3">PR-AUC</th>
+                        <th class="p-3">Presisi</th>
+                        <th class="p-3">Recall</th>
+                        <th class="p-3">F1-Score</th>
+                        <th class="p-3">Brier Score</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line bg-card">
+                    {# Dummy #}
+                    <tr>
+                        <td class="p-3 font-medium text-ink-muted">Dummy Classifier (kelas mayoritas)</td>
+                        <td class="p-3 font-mono tabular-nums">0.5000</td>
+                        <td class="p-3 font-mono tabular-nums">0.1538</td>
+                        <td class="p-3 font-mono tabular-nums">0.0000</td>
+                        <td class="p-3 font-mono tabular-nums">0.0000</td>
+                        <td class="p-3 font-mono tabular-nums">0.0000</td>
+                        <td class="p-3 font-mono tabular-nums">0.1301</td>
+                    </tr>
+                    {# Rule Baseline #}
+                    <tr>
+                        <td class="p-3 font-medium text-amber-text">Baseline Aturan (tepat waktu &lt; 0.70)</td>
+                        <td class="p-3 font-mono tabular-nums">0.7951</td>
+                        <td class="p-3 font-mono tabular-nums">0.4197</td>
+                        <td class="p-3 font-mono tabular-nums">0.2783</td>
+                        <td class="p-3 font-mono tabular-nums">0.7805</td>
+                        <td class="p-3 font-mono tabular-nums">0.4103</td>
+                        <td class="p-3 font-mono tabular-nums">0.1349</td>
+                    </tr>
+                    {# Logistic Regression Uncalibrated #}
+                    <tr>
+                        <td class="p-3 font-medium text-ink">Regresi Logistik (tanpa kalibrasi, ambang 0.50)</td>
+                        <td class="p-3 font-mono tabular-nums">0.8293</td>
+                        <td class="p-3 font-mono tabular-nums">0.5152</td>
+                        <td class="p-3 font-mono tabular-nums">0.3705</td>
+                        <td class="p-3 font-mono tabular-nums">0.7561</td>
+                        <td class="p-3 font-mono tabular-nums">0.4973</td>
+                        <td class="p-3 font-mono tabular-nums text-brick">0.1641</td>
+                    </tr>
+                    {# Gradient Boosting #}
+                    <tr>
+                        <td class="p-3 font-medium text-ink">Gradient Boosting Classifier (ambang 0.50)</td>
+                        <td class="p-3 font-mono tabular-nums">0.8135</td>
+                        <td class="p-3 font-mono tabular-nums">0.4494</td>
+                        <td class="p-3 font-mono tabular-nums">0.5161</td>
+                        <td class="p-3 font-mono tabular-nums">0.2602</td>
+                        <td class="p-3 font-mono tabular-nums">0.3459</td>
+                        <td class="p-3 font-mono tabular-nums">0.1071</td>
+                    </tr>
+                    {# Calibrated LR (Terpilih) #}
+                    <tr class="bg-brand-tint/30 font-bold border-l-4 border-l-brand">
+                        <td class="p-3 text-brand">Regresi Logistik Terkalibrasi (Ambang Terpilih 0.209)</td>
+                        <td class="p-3 font-mono tabular-nums text-brand">0.8292</td>
+                        <td class="p-3 font-mono tabular-nums text-brand">0.5139</td>
+                        <td class="p-3 font-mono tabular-nums">0.4301</td>
+                        <td class="p-3 font-mono tabular-nums">0.6504</td>
+                        <td class="p-3 font-mono tabular-nums">0.5178</td>
+                        <td class="p-3 font-mono tabular-nums text-pine-dark">0.1001</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {# Rasional Pemilihan & Kalibrasi #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-2 text-xs">
+                <span class="font-bold text-ink block">Alasan Pemilihan Regresi Logistik Terkalibrasi:</span>
+                <p class="text-ink-muted leading-relaxed">
+                    1. <strong class="text-ink">Kinerja Lebih Tinggi:</strong> Pada 5-fold CV train, Regresi Logistik mencapai ROC-AUC 0.8478 dan PR-AUC 0.5107, mengungguli Gradient Boosting (ROC-AUC 0.8348 dan PR-AUC 0.4845).
+                </p>
+                <p class="text-ink-muted leading-relaxed">
+                    2. <strong class="text-ink">Interpretabilitas Transparan:</strong> Koefisien linier memungkinkan pemetaan matematis langsung ke 3 faktor penjelas personal, memenuhi syarat audit etika dan UU PDP.
+                </p>
+            </div>
+
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-2 text-xs">
+                <span class="font-bold text-ink block">Kalibrasi Probabilitas (Platt Scaling):</span>
+                <p class="text-ink-muted leading-relaxed">
+                    Penggunaan <code class="font-mono text-ink">CalibratedClassifierCV(method='sigmoid')</code> berhasil menurunkan Brier score dari <strong class="text-brick">0.1641</strong> menjadi <strong class="text-pine-dark">0.1001</strong> (<strong class="text-pine-dark">penurunan error 39.0%</strong>), memastikan estimasi probabilitas mencerminkan risiko empiris yang sebenarnya.
+                </p>
+                <p class="text-ink-muted leading-relaxed">
+                    <strong class="text-ink">Ambang Keputusan (Threshold 0.209):</strong> Dipilih pada validasi agar recall risiko mencapai minimal 0.70 (0.7018 di validasi), mengutamakan pencegahan kerugian barang mahasiswa di atas efisiensi presisi murni.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    {# SEKSI 6: 5 GRAFIK VISUALISASI EVALUASI MODEL #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4">
+            <h2 class="text-xl font-heading font-bold text-ink">5. Visualisasi Evaluasi Model Machine Learning</h2>
+            <p class="text-xs sm:text-sm text-ink-muted mt-1">Grafik kurva performa, kalibrasi keandalan, matriks kebingungan, dan pentingnya fitur</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {# Grafik 1: Kurva ROC #}
+            <div class="bg-paper p-4 rounded-xl border border-line space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-xs text-ink">Kurva ROC (Karakteristik Operasi Penerima)</h3>
+                    <span class="text-[10px] text-ink-muted">ROC-AUC = 0.8292</span>
+                </div>
+                <div class="aspect-[4/3] bg-card rounded-lg overflow-hidden border border-line">
+                    <img src="/static/ml/roc_curve.png" alt="Kurva ROC Model Skor Kepercayaan" class="w-full h-auto object-contain">
+                </div>
+                <p class="text-[11px] text-ink-muted">
+                    Membandingkan trade-off TPR dan FPR antarmodel. Titik merah menunjukkan titik keputusan terpilih.
+                </p>
+            </div>
+
+            {# Grafik 2: Kurva Presisi-Recall #}
+            <div class="bg-paper p-4 rounded-xl border border-line space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-xs text-ink">Kurva Presisi-Recall (PR Curve)</h3>
+                    <span class="text-[10px] text-ink-muted">PR-AUC = 0.5139</span>
+                </div>
+                <div class="aspect-[4/3] bg-card rounded-lg overflow-hidden border border-line">
+                    <img src="/static/ml/pr_curve.png" alt="Kurva Presisi Recall Model Skor Kepercayaan" class="w-full h-auto object-contain">
+                </div>
+                <p class="text-[11px] text-ink-muted">
+                    Metrik terpenting pada data tidak seimbang (prevalensi 15.4%). Garis putus-putus mewakili baseline acak.
+                </p>
+            </div>
+
+            {# Grafik 3: Matriks Kebingungan #}
+            <div class="bg-paper p-4 rounded-xl border border-line space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-xs text-ink">Matriks Kebingungan (Confusion Matrix)</h3>
+                    <span class="text-[10px] text-ink-muted">Ambang 0.209</span>
+                </div>
+                <div class="aspect-[4/3] bg-card rounded-lg overflow-hidden border border-line">
+                    <img src="/static/ml/confusion_matrix.png" alt="Matriks Kebingungan Model Skor Kepercayaan" class="w-full h-auto object-contain">
+                </div>
+                <p class="text-[11px] text-ink-muted">
+                    Distribusi deteksi: 571 Benar Aman (TN), 80 Benar Terdeteksi (TP), 43 Terlewat (FN), dan 106 Peringatan Ekstra (FP).
+                </p>
+            </div>
+
+            {# Grafik 4: Kurva Kalibrasi #}
+            <div class="bg-paper p-4 rounded-xl border border-line space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-xs text-ink">Kurva Kalibrasi (Reliability Diagram)</h3>
+                    <span class="text-[10px] text-pine-dark font-semibold">Brier = 0.1001</span>
+                </div>
+                <div class="aspect-[4/3] bg-card rounded-lg overflow-hidden border border-line">
+                    <img src="/static/ml/calibration_curve.png" alt="Kurva Kalibrasi Probabilitas Risiko" class="w-full h-auto object-contain">
+                </div>
+                <p class="text-[11px] text-ink-muted">
+                    Garis hijau mendekati diagonal sempurna setelah kalibrasi Platt Scaling, menjamin akurasi probabilitas nominal.
+                </p>
+            </div>
+        </div>
+
+        {# Grafik 5: Pentingnya Fitur (Penuh Lebar) #}
+        <div class="bg-paper p-5 rounded-xl border border-line space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-xs sm:text-sm text-ink">Pentingnya Fitur &amp; Koefisien Terstandar</h3>
+                    <p class="text-[11px] text-ink-muted">Permutation importance pada data uji (kiri) dan arah bobot linear terstandar (kanan)</p>
+                </div>
+            </div>
+            <div class="bg-card rounded-lg overflow-hidden border border-line p-2">
+                <img src="/static/ml/feature_importance.png" alt="Permutation Importance dan Koefisien Model" class="w-full h-auto object-contain">
+            </div>
+            <p class="text-xs text-ink-muted leading-relaxed">
+                <strong class="text-ink">Insight Utama:</strong> Fitur <em class="text-ink">rasio_tepat_waktu</em> dan <em class="text-ink">rata_rata_rating_diterima</em> adalah pendorong terbesar kepercayaan (menurunkan risiko). Sebaliknya, frekuensi sengketa dan pembatalan meningkatkan risiko bermasalah.
+            </p>
+        </div>
+    </section>
+
+    {# SEKSI 7: KETERBATASAN & RENCANA DATA NYATA #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+        <div class="border-b border-line pb-4">
+            <h2 class="text-xl font-heading font-bold text-ink">6. Keterbatasan &amp; Rencana Transisi Data Nyata</h2>
+            <p class="text-xs sm:text-sm text-ink-muted mt-1">Peta jalan evolusi model dari purwarupa ke implementasi produksi</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-ink-muted leading-relaxed">
+            <div class="space-y-2 p-4 bg-paper rounded-xl border border-line">
+                <h3 class="font-bold text-ink text-sm">Keterbatasan Model Saat Ini:</h3>
+                <ul class="list-disc list-inside space-y-1.5">
+                    <li><strong class="text-ink">Domain Shift Sintetis:</strong> Data sintetis belum menangkap dinamika musiman (misal: lonjakan sewa masa wisuda vs ujian akhir).</li>
+                    <li><strong class="text-ink">Sensitivitas Ambang:</strong> Ambang keputusan mengorbankan presisi (43%) demi recall (65–70%) untuk melindungi aset bernilai tinggi pemilik.</li>
+                    <li><strong class="text-ink">Cold-start Heuristik:</strong> Pengguna baru dibatasi batas nilai taksiran barang (maks. Rp750.000) dan peninjauan profil sampai 3 transaksi selesai.</li>
+                </ul>
+            </div>
+
+            <div class="space-y-2 p-4 bg-paper rounded-xl border border-line">
+                <h3 class="font-bold text-ink text-sm">Rencana Transisi Data Riil (UU PDP):</h3>
+                <ul class="list-disc list-inside space-y-1.5">
+                    <li><strong class="text-ink">Informed Consent:</strong> Pengumpulan data riwayat hanya dilakukan dengan persetujuan eksplisit pengguna saat pendaftaran akun.</li>
+                    <li><strong class="text-ink">Pelatihan Ulang Terjadwal:</strong> Model akan dilatih ulang setiap 1.000 transaksi nyata selesai menggunakan pipeline otomatis MLOps.</li>
+                    <li><strong class="text-ink">Intervensi Manusia (Admin Override):</strong> Admin berwenang meninjau dan menimpa skor yang tidak adil akibat anomali teknis disertai catatan audit wajib.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

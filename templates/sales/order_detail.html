@@ -1,0 +1,780 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Pesanan {{ order.code }} | {{ SITE_NAME }}{% endblock %}
+
+{% block extra_head %}
+{% if order.status == 'menunggu_pembayaran' and is_buyer %}
+    {% if midtrans_is_production %}
+        <script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ midtrans_client_key }}"></script>
+    {% else %}
+        <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ midtrans_client_key }}"></script>
+    {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 sm:px-6 pt-6 pb-16"
+     x-data="{
+        cancelModalOpen: false,
+        meetupModalOpen: false,
+        handoverModalOpen: false,
+        confirmModalOpen: false,
+        disputeModalOpen: false,
+        paying: false,
+        syncing: false,
+        snapToken: '{{ snap_token|default:'' }}',
+        orderId: '{{ order.code }}',
+        syncPayment() {
+            if (this.syncing) return;
+            this.syncing = true;
+            fetch('{% url 'payments:sale_order_sync_payment' order.code %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                window.location.reload();
+            })
+            .catch(() => {
+                window.location.reload();
+            });
+        },
+        payWithSnap() {
+            if (this.paying) return;
+            this.paying = true;
+            fetch('{% url 'payments:sale_order_pay' order.code %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.paying = false;
+                if (data.status === 'success' && data.snap_token) {
+                    this.snapToken = data.snap_token;
+                    window.snap.pay(data.snap_token, {
+                        onSuccess: (result) => {
+                            this.syncPayment();
+                        },
+                        onPending: (result) => {
+                            this.syncPayment();
+                        },
+                        onError: (result) => {
+                            alert('Pembayaran gagal atau dibatalkan.');
+                        },
+                        onClose: () => {
+                            this.syncPayment();
+                        }
+                    });
+                } else {
+                    alert(data.message || 'Gagal memproses token pembayaran.');
+                }
+            })
+            .catch(err => {
+                this.paying = false;
+                alert('Terjadi kesalahan jaringan.');
+            });
+        }
+     }">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs text-ink-muted mb-6" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-brand transition-colors">Beranda</a>
+        <span>/</span>
+        <a href="/dashboard/" class="hover:text-brand transition-colors">Dashboard</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">Pesanan {{ order.code }}</span>
+    </nav>
+
+    <!-- Header Transaksi Pesanan -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-line">
+        <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <h1 class="font-heading text-xl sm:text-2xl font-bold text-ink">
+                    Pesanan {{ order.code }}
+                </h1>
+                <!-- Badge Status -->
+                {% if order.status == 'menunggu_pembayaran' %}
+                    <span class="inline-flex items-center gap-1 bg-amber-tint text-amber-text px-2.5 py-1 rounded-full text-xs font-bold border border-amber-text/20">
+                        {% include 'partials/icon.html' with name='clock' class='w-3.5 h-3.5 text-amber-text' %}
+                        <span>Menunggu pembayaran</span>
+                    </span>
+                {% elif order.status == 'dibayar' %}
+                    <span class="inline-flex items-center gap-1 bg-brand-tint text-brand px-2.5 py-1 rounded-full text-xs font-bold border border-brand/20">
+                        {% include 'partials/icon.html' with name='shield' class='w-3.5 h-3.5 text-brand' %}
+                        <span>Sudah dibayar (Escrow platform)</span>
+                    </span>
+                {% elif order.status == 'diserahkan' %}
+                    <span class="inline-flex items-center gap-1 bg-brand-tint text-brand px-2.5 py-1 rounded-full text-xs font-bold border border-brand/20">
+                        {% include 'partials/icon.html' with name='package' class='w-3.5 h-3.5 text-brand' %}
+                        <span>Sudah diserahkan (Masa pemeriksaan)</span>
+                    </span>
+                {% elif order.status == 'selesai' %}
+                    <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-1 rounded-full text-xs font-bold border border-pine/30">
+                        {% include 'partials/icon.html' with name='check-circle' class='w-3.5 h-3.5 text-pine-dark' %}
+                        <span>Selesai</span>
+                    </span>
+                {% elif order.status == 'dibatalkan' %}
+                    <span class="inline-flex items-center gap-1 bg-brick-tint text-brick px-2.5 py-1 rounded-full text-xs font-bold border border-brick/30">
+                        {% include 'partials/icon.html' with name='x-circle' class='w-3.5 h-3.5 text-brick' %}
+                        <span>Dibatalkan</span>
+                    </span>
+                {% elif order.status == 'kedaluwarsa' %}
+                    <span class="inline-flex items-center gap-1 bg-paper-deep text-ink-muted px-2.5 py-1 rounded-full text-xs font-bold border border-line">
+                        {% include 'partials/icon.html' with name='clock' class='w-3.5 h-3.5 text-ink-muted' %}
+                        <span>Kedaluwarsa</span>
+                    </span>
+                {% elif order.status == 'sengketa' %}
+                    <span class="inline-flex items-center gap-1 bg-brick-tint text-brick px-2.5 py-1 rounded-full text-xs font-bold border border-brick/30">
+                        {% include 'partials/icon.html' with name='alert-triangle' class='w-3.5 h-3.5 text-brick' %}
+                        <span>Dalam sengketa</span>
+                    </span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-ink-muted mt-1">
+                Dibuat pada {{ order.created_at|date:"d M Y, H:i" }} WIB
+                {% if is_buyer %}
+                    &bull; Peran Anda: <strong>Pembeli</strong>
+                {% elif is_seller %}
+                    &bull; Peran Anda: <strong>Penjual</strong>
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Tombol Aksi Cepat / Cetak Perjanjian -->
+        <div class="flex items-center gap-2">
+            <a href="{% url 'sales:order_agreement' order.code %}" target="_blank"
+               class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold transition-colors">
+                {% include 'partials/icon.html' with name='file-text' class='w-4 h-4 text-brand' %}
+                <span>Cetak perjanjian</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Garis Waktu Status (Timeline) -->
+    <div class="my-6 bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm">
+        <h2 class="text-xs font-bold text-ink mb-4">Tahapan pesanan</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+            <!-- 1. Dipesan -->
+            <div class="p-3 rounded-xl border {% if order.created_at %}bg-paper border-brand text-brand{% else %}bg-paper border-line text-ink-muted{% endif %}">
+                <div class="font-bold flex items-center justify-center gap-1.5 mb-1">
+                    <span class="w-5 h-5 rounded-full bg-brand text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                    <span>Dipesan</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">{{ order.created_at|date:"d M H:i" }}</span>
+            </div>
+
+            <!-- 2. Dibayar -->
+            <div class="p-3 rounded-xl border {% if order.paid_at %}bg-paper border-brand text-brand{% else %}bg-paper border-line text-ink-muted{% endif %}">
+                <div class="font-bold flex items-center justify-center gap-1.5 mb-1">
+                    <span class="w-5 h-5 rounded-full {% if order.paid_at %}bg-brand text-white{% else %}bg-paper-deep text-ink-muted{% endif %} text-[10px] flex items-center justify-center font-bold">2</span>
+                    <span>Dibayar</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">
+                    {% if order.paid_at %}{{ order.paid_at|date:"d M H:i" }}{% else %}Menunggu bayar{% endif %}
+                </span>
+            </div>
+
+            <!-- 3. Diserahkan -->
+            <div class="p-3 rounded-xl border {% if order.handed_over_at %}bg-paper border-brand text-brand{% else %}bg-paper border-line text-ink-muted{% endif %}">
+                <div class="font-bold flex items-center justify-center gap-1.5 mb-1">
+                    <span class="w-5 h-5 rounded-full {% if order.handed_over_at %}bg-brand text-white{% else %}bg-paper-deep text-ink-muted{% endif %} text-[10px] flex items-center justify-center font-bold">3</span>
+                    <span>Diserahkan</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">
+                    {% if order.handed_over_at %}{{ order.handed_over_at|date:"d M H:i" }}{% else %}Menunggu temu{% endif %}
+                </span>
+            </div>
+
+            <!-- 4. Selesai -->
+            <div class="p-3 rounded-xl border {% if order.status == 'selesai' %}bg-paper border-pine text-pine{% else %}bg-paper border-line text-ink-muted{% endif %}">
+                <div class="font-bold flex items-center justify-center gap-1.5 mb-1">
+                    <span class="w-5 h-5 rounded-full {% if order.status == 'selesai' %}bg-pine-dark text-white{% else %}bg-paper-deep text-ink-muted{% endif %} text-[10px] flex items-center justify-center font-bold">4</span>
+                    <span>Selesai</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">
+                    {% if order.completed_at %}{{ order.completed_at|date:"d M H:i" }}{% else %}Menunggu konfirmasi{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Konten Utama 2 Kolom -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Kolom Kiri: Rincian Barang & Kartu Aksi Peran (lg:col-span-7) -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <!-- Kartu Aksi Peran Sesuai Status -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='alert-circle' class='w-4 h-4 text-brand' %}
+                    <span>Tindakan Anda Selanjutnya</span>
+                </h2>
+
+                {% if is_buyer %}
+                    <!-- AKSI PEMBELI -->
+                    {% if order.status == 'menunggu_pembayaran' %}
+                        <div class="p-4 rounded-xl bg-amber-tint border border-amber-text/20 text-xs text-amber-text space-y-2">
+                            <p class="font-bold text-sm">Selesaikan Pembayaran</p>
+                            <p>Batas waktu pembayaran pesanan Anda: <strong>{{ order.reserved_until|date:"d M Y, H:i" }} WIB</strong>. Barang tetap dipesan khusus untuk Anda hingga batas waktu tersebut.</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+                            <button type="button" @click="payWithSnap()" :disabled="paying"
+                                    class="w-full sm:flex-1 py-3 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                                {% include 'partials/icon.html' with name='credit-card' class='w-4 h-4' %}
+                                <span x-text="paying ? 'Menyiapkan pembayaran...' : 'Bayar sekarang via Midtrans'">Bayar sekarang via Midtrans</span>
+                            </button>
+                            <button type="button" @click="syncPayment()" :disabled="syncing"
+                                    class="w-full sm:w-auto px-4 py-3 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors flex items-center justify-center gap-1.5"
+                                    title="Cek verifikasi status pembayaran ke Midtrans">
+                                {% include 'partials/icon.html' with name='refresh-cw' class='w-3.5 h-3.5 text-brand' %}
+                                <span x-text="syncing ? 'Mengecek...' : 'Cek Status Pembayaran'">Cek Status Pembayaran</span>
+                            </button>
+                            <button type="button" @click="cancelModalOpen = true"
+                                    class="w-full sm:w-auto px-4 py-3 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink-muted hover:text-ink text-xs font-semibold text-center transition-colors">
+                                Batalkan pesanan
+                            </button>
+                        </div>
+
+                    {% elif order.status == 'dibayar' %}
+                        <div class="p-4 rounded-xl bg-brand-tint border border-brand/20 text-xs text-brand space-y-2">
+                            <p class="font-bold text-sm">Pembayaran Aman di Escrow Platform</p>
+                            <p>Penjual telah menerima notifikasi pembayaran. Silakan berkomunikasi lewat chat dan sepakati waktu serta titik temu di kampus untuk serah terima fisik barang.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2.5 pt-2">
+                            <a href="{% url 'chat:start_sale_conversation' order.item.slug %}"
+                               class="py-2.5 px-4 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5">
+                                {% include 'partials/icon.html' with name='message-square' class='w-4 h-4' %}
+                                <span>Buka chat penjual</span>
+                            </a>
+                            <button type="button" @click="meetupModalOpen = true"
+                                    class="py-2.5 px-4 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold transition-colors inline-flex items-center gap-1.5">
+                                {% include 'partials/icon.html' with name='map-pin' class='w-4 h-4 text-brand' %}
+                                <span>Atur jadwal & titik temu</span>
+                            </button>
+                        </div>
+
+                    {% elif order.status == 'diserahkan' %}
+                        <div class="p-4 rounded-xl bg-brand-tint border border-brand/20 text-xs text-ink space-y-2">
+                            <p class="font-bold text-sm">Barang Telah Diserahkan Penjual</p>
+                            <p>Penjual telah menyerahkan barang pada <strong>{{ order.handed_over_at|date:"d M Y, H:i" }} WIB</strong>. Anda memiliki masa pemeriksaan <strong>48 jam</strong>. Segera periksa kondisi dan fungsi barang.</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+                            <button type="button" @click="confirmModalOpen = true"
+                                    class="w-full sm:flex-1 py-3 min-h-[44px] rounded-xl bg-pine-dark hover:bg-pine text-white text-xs font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                                {% include 'partials/icon.html' with name='check-circle' class='w-4 h-4' %}
+                                <span>Diterima sesuai deskripsi</span>
+                            </button>
+                            <button type="button" @click="disputeModalOpen = true"
+                                    class="w-full sm:w-auto px-4 py-3 min-h-[44px] rounded-xl border border-brick/30 bg-brick-tint text-brick hover:bg-brick-tint text-xs font-bold text-center transition-colors flex items-center justify-center gap-1.5">
+                                {% include 'partials/icon.html' with name='alert-triangle' class='w-4 h-4' %}
+                                <span>Laporkan masalah</span>
+                            </button>
+                        </div>
+
+                    {% elif order.status == 'selesai' %}
+                        <div class="p-4 rounded-xl bg-pine-tint border border-pine/30 text-xs text-pine-dark space-y-1">
+                            <p class="font-bold text-sm">Transaksi Selesai</p>
+                            <p>Terima kasih! Pesanan telah selesai dan dana telah diteruskan ke dompet penjual.</p>
+                        </div>
+
+                    {% elif order.status == 'sengketa' %}
+                        <div class="p-4 rounded-xl bg-brick-tint border border-brick/30 text-xs text-brick space-y-1.5">
+                            <p class="font-bold text-sm">Pesanan Dalam Mediasi Sengketa</p>
+                            <p>Masalah pada pesanan ini sedang ditinjau oleh staf admin kampus. Dana pembayaran tetap aman ditahan di escrow hingga admin menerbitkan keputusan final.</p>
+                        </div>
+
+                    {% elif order.status == 'dibatalkan' or order.status == 'kedaluwarsa' %}
+                        <div class="p-4 rounded-xl bg-paper border border-line text-xs text-ink-muted space-y-1">
+                            <p class="font-bold text-sm text-ink">Pesanan Telah {{ order.get_status_display }}</p>
+                            {% if order.cancel_reason %}
+                                <p>Alasan: {{ order.cancel_reason }}</p>
+                            {% endif %}
+                            {% if order.paid_at %}
+                                <p class="text-pine-dark font-medium">Dana telah dikembalikan 100% ke saldo dompet {{ SITE_NAME }} Anda.</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                {% elif is_seller %}
+                    <!-- AKSI PENJUAL -->
+                    {% if order.status == 'menunggu_pembayaran' %}
+                        <div class="p-4 rounded-xl bg-amber-tint border border-amber-text/20 text-xs text-amber-text space-y-1.5">
+                            <p class="font-bold text-sm">Menunggu Pembeli Menyelesaikan Pembayaran</p>
+                            <p>Barang Anda telah dipesan khusus dan akan ditahan hingga <strong>{{ order.reserved_until|date:"d M Y, H:i" }} WIB</strong>. Jika pembeli tidak membayar, barang otomatis aktif kembali.</p>
+                        </div>
+
+                    {% elif order.status == 'dibayar' %}
+                        <div class="p-4 rounded-xl bg-brand-tint border border-brand/20 text-xs text-brand space-y-2">
+                            <p class="font-bold text-sm">Pembeli Telah Membayar ke Escrow</p>
+                            <p>Dana aman ditahan oleh platform. Silakan komunikasikan titik temu di kampus dengan pembeli, lalu tekan tombol konfirmasi setelah barang fisik diserahkan.</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+                            <button type="button" @click="handoverModalOpen = true"
+                                    class="w-full sm:flex-1 py-3 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold text-center shadow-sm transition-colors flex items-center justify-center gap-2">
+                                {% include 'partials/icon.html' with name='package' class='w-4 h-4' %}
+                                <span>Barang sudah diserahkan</span>
+                            </button>
+                            <button type="button" @click="meetupModalOpen = true"
+                                    class="w-full sm:w-auto px-4 py-3 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors">
+                                Atur jadwal temu
+                            </button>
+                            <button type="button" @click="cancelModalOpen = true"
+                                    class="w-full sm:w-auto px-4 py-3 min-h-[44px] rounded-xl border border-brick/30 bg-brick-tint text-brick hover:bg-brick-tint text-xs font-semibold text-center transition-colors">
+                                Batalkan & refund pembeli
+                            </button>
+                        </div>
+
+                    {% elif order.status == 'diserahkan' %}
+                        <div class="p-4 rounded-xl bg-brand-tint border border-brand/20 text-xs text-ink space-y-1.5">
+                            <p class="font-bold text-sm">Menunggu Konfirmasi Penerimaan Pembeli</p>
+                            <p>Pembeli memiliki masa pemeriksaan 48 jam. Jika pembeli tidak menyampaikan sanggahan, pesanan akan <strong>otomatis diselesaikan</strong> dan dana dicairkan ke saldo dompet Anda.</p>
+                        </div>
+
+                    {% elif order.status == 'selesai' %}
+                        <div class="p-4 rounded-xl bg-pine-tint border border-pine/30 text-xs text-pine-dark space-y-1.5">
+                            <p class="font-bold text-sm">Pesanan Selesai & Dana Dicairkan</p>
+                            <p>Dana bersih penjualan sebesar <strong>{{ order.net_to_seller|rupiah }}</strong> telah masuk ke saldo dompet {{ SITE_NAME }} Anda.</p>
+                        </div>
+
+                    {% elif order.status == 'sengketa' %}
+                        <div class="p-4 rounded-xl bg-brick-tint border border-brick/30 text-xs text-brick space-y-1.5">
+                            <p class="font-bold text-sm">Pesanan Dalam Mediasi Sengketa</p>
+                            <p>Pembeli telah melaporkan masalah fisik atau fungsi barang. Tim admin kami sedang memeriksa bukti dan segera menghubungi kedua pihak.</p>
+                        </div>
+
+                    {% elif order.status == 'dibatalkan' or order.status == 'kedaluwarsa' %}
+                        <div class="p-4 rounded-xl bg-paper border border-line text-xs text-ink-muted space-y-1">
+                            <p class="font-bold text-sm text-ink">Pesanan Telah {{ order.get_status_display }}</p>
+                            {% if order.cancel_reason %}
+                                <p>Alasan: {{ order.cancel_reason }}</p>
+                            {% endif %}
+                            <p>Barang jualan Anda telah dikembalikan statusnya agar dapat dibeli mahasiswa lain.</p>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {% if order.status == 'selesai' %}
+            <!-- KARTU ULASAN TRANSAKSI DUA ARAH (Fase 8C Butir 2) -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                        {% include 'partials/icon.html' with name='star' class='w-4 h-4 text-amber-text' %}
+                        <span>Ulasan transaksi</span>
+                    </h2>
+                    <span class="text-[11px] text-ink-muted">Ulasan dua arah sekali kirim</span>
+                </div>
+
+                <!-- Bagian 1: Ulasan yang diberikan oleh pengguna login -->
+                {% if user_review %}
+                    <div class="p-4 rounded-xl bg-paper border border-line text-xs space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-ink">Ulasan Anda untuk {% if is_buyer %}penjual{% else %}pembeli{% endif %}</span>
+                            <div class="flex items-center gap-1 font-bold text-amber-text">
+                                {% for _ in "12345"|make_list %}
+                                    {% if forloop.counter <= user_review.rating %}
+                                        <span class="text-amber-text">★</span>
+                                    {% else %}
+                                        <span class="text-ink-muted opacity-40">★</span>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="text-ink font-semibold ml-1">{{ user_review.rating }}/5</span>
+                            </div>
+                        </div>
+                        {% if user_review.comment %}
+                            <p class="text-ink leading-relaxed">"{{ user_review.comment }}"</p>
+                        {% else %}
+                            <p class="text-ink-muted italic">(Tanpa komentar teks)</p>
+                        {% endif %}
+                        <p class="text-[10px] text-ink-muted">Dikirim pada {{ user_review.created_at|date:"d M Y, H:i" }} WIB</p>
+                    </div>
+                {% else %}
+                    <!-- Formulir Beri Ulasan -->
+                    <form method="POST" action="{% url 'sales:order_review' order.code %}" class="space-y-3 p-4 rounded-xl bg-paper border border-line text-xs">
+                        {% csrf_token %}
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-ink">Beri ulasan untuk {% if is_buyer %}{{ order.seller.full_name|default:order.seller.username }} (penjual){% else %}{{ order.buyer.full_name|default:order.buyer.username }} (pembeli){% endif %}</span>
+                            <span class="text-[11px] text-ink-muted">Rating 1-5 bintang</span>
+                        </div>
+                        <div>
+                            <label class="block text-ink-muted font-medium mb-1.5">Pilih rating kepuasan transaksi:</label>
+                            <select name="rating" required class="w-full max-w-xs px-3 py-2 text-xs rounded-xl border border-line bg-card text-ink">
+                                <option value="5" selected>5 ★ (Sangat puas)</option>
+                                <option value="4">4 ★ (Puas)</option>
+                                <option value="3">3 ★ (Cukup)</option>
+                                <option value="2">2 ★ (Kurang puas)</option>
+                                <option value="1">1 ★ (Tidak puas)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-ink-muted font-medium">Komentar pengalaman transaksi:</label>
+                                <span class="text-[10px] text-ink-muted">Maks. 300 karakter</span>
+                            </div>
+                            <textarea name="comment" maxlength="300" rows="2" placeholder="Bagikan pengalaman transaksi Anda dengan rekan mahasiswa ini..." class="w-full px-3 py-2 text-xs rounded-xl border border-line bg-card focus:outline-none focus:ring-1 focus:ring-brand"></textarea>
+                        </div>
+                        <div class="pt-1">
+                            <button type="submit" class="w-full sm:w-auto px-5 py-2.5 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold transition-colors">
+                                Kirim ulasan
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+
+                <!-- Bagian 2: Ulasan dari pihak lawan bila sudah ada -->
+                {% if counterpart_review %}
+                    <div class="p-4 rounded-xl bg-paper border border-line text-xs space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-ink">Ulasan dari {% if is_buyer %}penjual ({{ order.seller.full_name|default:order.seller.username }}){% else %}pembeli ({{ order.buyer.full_name|default:order.buyer.username }}){% endif %}</span>
+                            <div class="flex items-center gap-1 font-bold text-amber-text">
+                                {% for _ in "12345"|make_list %}
+                                    {% if forloop.counter <= counterpart_review.rating %}
+                                        <span class="text-amber-text">★</span>
+                                    {% else %}
+                                        <span class="text-ink-muted opacity-40">★</span>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="text-ink font-semibold ml-1">{{ counterpart_review.rating }}/5</span>
+                            </div>
+                        </div>
+                        {% if counterpart_review.comment %}
+                            <p class="text-ink leading-relaxed">"{{ counterpart_review.comment }}"</p>
+                        {% else %}
+                            <p class="text-ink-muted italic">(Tanpa komentar teks)</p>
+                        {% endif %}
+                        <p class="text-[10px] text-ink-muted">Diterima pada {{ counterpart_review.created_at|date:"d M Y, H:i" }} WIB</p>
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Kartu Snapshot Barang Saat Dipesan -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                        {% include 'partials/icon.html' with name='package' class='w-4 h-4 text-brand' %}
+                        <span>Rincian Barang (Snapshot Resmi)</span>
+                    </h2>
+                    <a href="{% url 'sales:item_detail' order.item.slug %}" class="text-xs text-brand hover:underline">
+                        Lihat halaman listing &rarr;
+                    </a>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    {% if order.item.photos.first %}
+                        <img src="{{ order.item.photos.first.image.url }}" alt="{{ order.listing_snapshot.title|default:order.item.title }}"
+                             class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-line flex-shrink-0">
+                    {% else %}
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-paper-deep border border-line flex items-center justify-center text-ink-muted flex-shrink-0">
+                            {% include 'partials/icon.html' with name='image' class='w-8 h-8' %}
+                        </div>
+                    {% endif %}
+
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <h3 class="font-heading text-sm sm:text-base font-bold text-ink leading-snug">
+                            {{ order.listing_snapshot.title|default:order.item.title }}
+                        </h3>
+                        <p class="text-xs text-ink-muted">
+                            Kondisi: <span class="font-semibold text-ink">{{ order.listing_snapshot.condition|default:order.item.condition }}</span>
+                        </p>
+                        {% if order.listing_snapshot.defect_description %}
+                            <div class="p-2 rounded-lg bg-amber-tint border border-amber-text/20 text-[11px] text-amber-text">
+                                <strong>Catatan cacat:</strong> {{ order.listing_snapshot.defect_description }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-line text-xs text-ink-muted space-y-1">
+                    <p class="line-clamp-3 leading-relaxed">
+                        {{ order.listing_snapshot.description|default:order.item.description }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Kartu Kontak Lawan Transaksi -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
+                <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='user' class='w-4 h-4 text-brand' %}
+                    <span>Kontak {% if is_buyer %}Penjual{% else %}Pembeli{% endif %}</span>
+                </h2>
+
+                {% if order.status in 'dibayar,diserahkan,selesai,sengketa' %}
+                    <div class="p-4 rounded-xl bg-paper border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div class="space-y-1">
+                            <p class="font-bold text-sm text-ink">
+                                {% if is_buyer %}
+                                    {{ order.seller.full_name|default:order.seller.username }}
+                                {% else %}
+                                    {{ order.buyer.full_name|default:order.buyer.username }}
+                                {% endif %}
+                            </p>
+                            <p class="text-ink-muted">
+                                {% if is_buyer and order.seller.student_profile %}
+                                    {{ order.seller.student_profile.campus.name }} &bull; {{ order.seller.student_profile.major }}
+                                {% elif is_seller and order.buyer.student_profile %}
+                                    {{ order.buyer.student_profile.campus.name }} &bull; {{ order.buyer.student_profile.major }}
+                                {% endif %}
+                            </p>
+                            <p class="text-ink font-mono">
+                                No. Telp: {% if is_buyer %}{{ order.seller.student_profile.phone_number|default:'-' }}{% else %}{{ order.buyer.student_profile.phone_number|default:'-' }}{% endif %}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'chat:start_sale_conversation' order.item.slug %}"
+                               class="py-2.5 px-4 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold transition-colors inline-flex items-center gap-1.5">
+                                {% include 'partials/icon.html' with name='message-square' class='w-4 h-4' %}
+                                <span>Buka Chat</span>
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="p-3.5 rounded-xl bg-paper border border-line text-xs text-ink-muted flex items-start gap-2.5">
+                        {% include 'partials/icon.html' with name='lock' class='w-4 h-4 text-ink-muted flex-shrink-0 mt-0.5' %}
+                        <p>Kontak langsung dan nomor telepon lawan transaksi akan terbuka otomatis setelah pembayaran diverifikasi oleh platform demi keamanan bersama.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Kuitansi Biaya, Jadwal Temu, Perjanjian (lg:col-span-5) -->
+        <div class="lg:col-span-5 space-y-6">
+
+            <!-- Ringkasan Biaya Bergaya Kuitansi Resmi -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div class="border-b border-line pb-3">
+                    <span class="text-xs font-bold text-ink-muted">Kuitansi pembayaran</span>
+                    <h2 class="font-heading text-lg font-bold text-ink mt-0.5">Rincian transaksi</h2>
+                </div>
+
+                <div class="space-y-2.5 text-xs">
+                    <div class="flex items-center justify-between text-ink-muted">
+                        <span>Harga barang</span>
+                        <span class="font-medium text-ink tabular-nums">{{ order.price_snapshot|rupiah }}</span>
+                    </div>
+
+                    <div class="flex items-center justify-between text-ink-muted">
+                        <span>Biaya layanan pembeli</span>
+                        <span class="font-medium text-pine-dark">Gratis (Rp 0)</span>
+                    </div>
+
+                    <div class="pt-3 border-t border-line flex items-baseline justify-between">
+                        <span class="font-bold text-ink">Total bayar pembeli</span>
+                        <span class="font-bold text-lg text-ink tabular-nums">{{ order.price_snapshot|rupiah }}</span>
+                    </div>
+
+                    {% if is_seller or user.is_staff %}
+                        <!-- Rincian Khusus Penjual -->
+                        <div class="pt-3 border-t border-dashed border-line space-y-2">
+                            <span class="text-xs font-bold text-ink-muted block">Penerimaan penjual:</span>
+                            <div class="flex items-center justify-between text-ink-muted text-xs">
+                                <span>Potongan komisi platform (5%)</span>
+                                <span class="font-medium text-brick tabular-nums">-{{ order.commission|rupiah }}</span>
+                            </div>
+                            <div class="flex items-baseline justify-between text-xs pt-1">
+                                <span class="font-bold text-ink">Bersih ke dompet penjual</span>
+                                <span class="font-bold text-sm text-pine-dark tabular-nums">{{ order.net_to_seller|rupiah }}</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Status Escrow -->
+                <div class="pt-3 border-t border-line text-[11px] text-ink-muted flex items-center justify-between">
+                    <span>Metode pembayaran:</span>
+                    <span class="font-semibold text-ink">Midtrans Escrow Kampus</span>
+                </div>
+            </div>
+
+            <!-- Kartu Kesepakatan Jadwal & Titik Temu -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-line">
+                    <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                        {% include 'partials/icon.html' with name='map-pin' class='w-4 h-4 text-brand' %}
+                        <span>Jadwal & Titik Temu</span>
+                    </h2>
+                    {% if order.status in 'dibayar,diserahkan' %}
+                        <button type="button" @click="meetupModalOpen = true" class="text-xs text-brand hover:underline">
+                            Ubah &rarr;
+                        </button>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div>
+                        <span class="text-ink-muted block text-[11px]">Waktu temu:</span>
+                        <strong class="text-ink text-xs">
+                            {% if order.meetup_at %}
+                                {{ order.meetup_at|date:"l, d F Y, H:i" }} WIB
+                            {% else %}
+                                Belum dijadwalkan
+                            {% endif %}
+                        </strong>
+                    </div>
+                    <div>
+                        <span class="text-ink-muted block text-[11px]">Titik temu aman kampus:</span>
+                        <strong class="text-ink text-xs">
+                            {% if order.meeting_point %}
+                                {{ order.meeting_point.name }} ({{ order.meeting_point.campus.name }})
+                            {% else %}
+                                {{ order.item.pickup_area|default:'Belum disepakati' }}
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu Perjanjian Pembelian Digital -->
+            <div class="bg-card border border-line rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
+                <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='file-text' class='w-4 h-4 text-brand' %}
+                    <span>Perjanjian Pembelian Digital</span>
+                </h2>
+
+                <div class="space-y-1.5 text-xs text-ink-muted">
+                    <p>S&K Versi: <strong class="text-ink">{{ agreement.terms_version.version_number|default:'1.0' }}</strong></p>
+                    <p>Disetujui: <strong class="text-ink">{{ agreement.agreed_at|date:"d M Y, H:i"|default:order.created_at|date:"d M Y, H:i" }} WIB</strong></p>
+                    <p class="font-mono text-[10px] truncate">Hash: {{ agreement.terms_hash|default:'-' }}</p>
+                </div>
+
+                <div class="pt-2">
+                    <a href="{% url 'sales:order_agreement' order.code %}" target="_blank"
+                       class="w-full py-2.5 min-h-[44px] rounded-xl border border-line bg-paper hover:bg-paper-deep text-ink text-xs font-semibold text-center transition-colors flex items-center justify-center gap-1.5">
+                        {% include 'partials/icon.html' with name='printer' class='w-4 h-4' %}
+                        <span>Buka & Cetak Perjanjian</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL ATUR JADWAL & TITIK TEMU -->
+    <div x-show="meetupModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" x-cloak>
+        <div class="bg-card border border-line rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4" @click.away="meetupModalOpen = false">
+            <h3 class="font-heading text-base font-bold text-ink">Atur Jadwal & Titik Temu</h3>
+            <form method="POST" action="{% url 'sales:order_set_meetup' order.code %}" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Pilih Titik Temu Aman Kampus</label>
+                    <select name="meeting_point_id" class="w-full px-3 py-2 text-xs rounded-xl border border-line bg-card focus:ring-brand focus:border-brand">
+                        <option value="">-- Pilih Titik Temu --</option>
+                        {% for mp in meeting_points %}
+                            <option value="{{ mp.id }}" {% if order.meeting_point_id == mp.id %}selected{% endif %}>
+                                {{ mp.name }} ({{ mp.campus.name }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Waktu Temu</label>
+                    <input type="datetime-local" name="meetup_at"
+                           value="{{ order.meetup_at|date:'Y-m-d\TH:i' }}"
+                           class="w-full px-3 py-2 text-xs rounded-xl border border-line bg-card focus:ring-brand focus:border-brand">
+                </div>
+                <div class="flex gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="meetupModalOpen = false" class="w-1/2 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink">Batal</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-brand text-white text-xs font-bold">Simpan Jadwal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL SERAH TERIMA PENJUAL -->
+    <div x-show="handoverModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" x-cloak>
+        <div class="bg-card border border-line rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4" @click.away="handoverModalOpen = false">
+            <h3 class="font-heading text-base font-bold text-ink">Konfirmasi Penyerahan Barang</h3>
+            <p class="text-xs text-ink-muted">Pastikan Anda telah bertemu pembeli dan menyerahkan barang fisik secara langsung.</p>
+            <form method="POST" action="{% url 'sales:order_handover' order.code %}" enctype="multipart/form-data" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Foto Bukti Serah Terima (Opsional)</label>
+                    <input type="file" name="handover_photo" accept="image/*" class="w-full text-xs text-ink file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-tint file:text-brand">
+                </div>
+                <div class="flex gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="handoverModalOpen = false" class="w-1/2 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink">Batal</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-brand text-white text-xs font-bold">Ya, Sudah Diserahkan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL KONFIRMASI TERIMA PEMBELI -->
+    <div x-show="confirmModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" x-cloak>
+        <div class="bg-card border border-line rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4" @click.away="confirmModalOpen = false">
+            <h3 class="font-heading text-base font-bold text-ink">Konfirmasi Penerimaan Barang</h3>
+            <p class="text-xs text-ink-muted">Dengan menekan tombol di bawah, Anda menyatakan barang telah diperiksa dan sesuai deskripsi. Dana escrow akan diteruskan ke penjual dan transaksi dinyatakan selesai.</p>
+            <form method="POST" action="{% url 'sales:order_confirm_received' order.code %}" class="space-y-3">
+                {% csrf_token %}
+                <div class="flex gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="confirmModalOpen = false" class="w-1/2 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink">Batal</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-pine-dark text-white text-xs font-bold">Diterima Sesuai</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL LAPOR MASALAH / SENGKETA PEMBELI -->
+    <div x-show="disputeModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" x-cloak>
+        <div class="bg-card border border-line rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4 max-h-[90vh] overflow-y-auto" @click.away="disputeModalOpen = false">
+            <h3 class="font-heading text-base font-bold text-brick">Laporkan Masalah Barang</h3>
+            <p class="text-xs text-ink-muted">Jika barang tidak sesuai deskripsi atau memiliki cacat tersembunyi yang tidak disebutkan, laporkan ke admin platform.</p>
+            <form method="POST" action="{% url 'sales:order_dispute' order.code %}" enctype="multipart/form-data" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Jenis Masalah</label>
+                    <select name="issue_type" required class="w-full px-3 py-2 text-xs rounded-xl border border-line bg-card">
+                        <option value="tidak_sesuai_deskripsi">Kondisi fisik tidak sesuai deskripsi</option>
+                        <option value="penjual_tidak_hadir">Penjual tidak hadir di titik temu</option>
+                        <option value="rusak_saat_serah_terima">Barang rusak / fungsi bermasalah saat serah terima</option>
+                        <option value="palsu">Barang tidak asli / tiruan</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Jelaskan Masalah Secara Rinci</label>
+                    <textarea name="reason" rows="3" required placeholder="Tuliskan kendala yang Anda temui..." class="w-full px-3 py-2 text-xs rounded-xl border border-line bg-card"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Unggah Foto Bukti (Maks. 3 foto)</label>
+                    <input type="file" name="dispute_photos" accept="image/*" multiple class="w-full text-xs text-ink file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brick-tint file:text-brick">
+                </div>
+                <div class="flex gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="disputeModalOpen = false" class="w-1/2 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink">Batal</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-brick text-white text-xs font-bold">Kirim Laporan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PEMBATALAN PESANAN -->
+    <div x-show="cancelModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" x-cloak>
+        <div class="bg-card border border-line rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4" @click.away="cancelModalOpen = false">
+            <h3 class="font-heading text-base font-bold text-ink">Batalkan Pesanan</h3>
+            <p class="text-xs text-ink-muted">Apakah Anda yakin ingin membatalkan pesanan ini?</p>
+            <form method="POST" action="{% url 'sales:order_cancel' order.code %}" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1">Alasan Pembatalan</label>
+                    <textarea name="cancel_reason" rows="2" placeholder="Tulis alasan pembatalan..." class="w-full px-3 py-2 text-xs rounded-xl border border-line bg-card"></textarea>
+                </div>
+                <div class="flex gap-2 pt-2 border-t border-line">
+                    <button type="button" @click="cancelModalOpen = false" class="w-1/2 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink">Kembali</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-brick text-white text-xs font-bold">Ya, Batalkan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

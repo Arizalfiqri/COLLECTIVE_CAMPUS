@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Status Pembayaran Sewa {{ rental.code }} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[860px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs text-ink-muted mb-6" aria-label="Breadcrumb">
+        <a href="{% url 'home' %}" class="hover:text-ink transition-colors">Beranda</a>
+        <span>/</span>
+        <a href="{% url 'accounts:dashboard' %}" class="hover:text-ink transition-colors">Dasbor</a>
+        <span>/</span>
+        <a href="{% url 'rentals:rental_detail' code=rental.code %}" class="hover:text-ink transition-colors font-mono">Sewa {{ rental.code }}</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">Status Pembayaran</span>
+    </nav>
+
+    <!-- Kartu Utama Bukti Pembayaran -->
+    <div class="bg-card border-2 border-line rounded-2xl overflow-hidden shadow-sm">
+        {% include 'partials/kain_border.html' with variant='ink' size='sm' %}
+
+        <div class="p-6 sm:p-10 space-y-8">
+            <!-- Header Status -->
+            <div class="text-center max-w-xl mx-auto space-y-3">
+                {% if is_settled %}
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-pine-tint text-pine border-2 border-pine/30 mx-auto">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-8 h-8 text-pine' %}
+                    </div>
+                    <span class="inline-block text-xs font-bold text-pine-dark bg-pine-tint px-3 py-1 rounded-full border border-pine/20">
+                        Pembayaran berhasil diverifikasi
+                    </span>
+                    <h1 class="font-heading text-2xl sm:text-3xl font-bold text-ink">
+                        Transaksi berhasil diproses
+                    </h1>
+                    <p class="text-[15px] text-ink-muted leading-relaxed">
+                        Dana Anda kini ditahan secara aman oleh platform (escrow). Pemilik barang telah diberi notifikasi untuk menyiapkan barang.
+                    </p>
+                {% else %}
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-tint text-amber-text border-2 border-amber-text/30 mx-auto">
+                        {% include 'partials/icon.html' with name='clock' class='w-8 h-8 text-amber-text' %}
+                    </div>
+                    <span class="inline-block text-xs font-bold text-amber-text bg-amber-tint px-3 py-1 rounded-full border border-amber-text/30">
+                        Menunggu konfirmasi Midtrans
+                    </span>
+                    <h1 class="font-heading text-2xl sm:text-3xl font-bold text-ink">
+                        Status pembayaran sedang diverifikasi
+                    </h1>
+                    <p class="text-[15px] text-ink-muted leading-relaxed">
+                        Sistem sedang menyinkronkan status transaksi Anda dengan gateway perbankan. Silakan muat ulang halaman ini atau kembali ke rincian sewa.
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Struk Rincian Transaksi -->
+            <div class="bg-paper border border-line rounded-xl p-5 sm:p-7 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-line gap-2">
+                    <div>
+                        <span class="text-xs font-bold text-ink-muted block">Nomor referensi transaksi</span>
+                        <span class="font-mono text-sm sm:text-base font-bold text-ink">{{ order_id }}</span>
+                    </div>
+                    <div class="sm:text-right">
+                        <span class="text-xs font-bold text-ink-muted block">Waktu transaksi</span>
+                        <span class="text-xs sm:text-sm font-medium text-ink">
+                            {% if payment and payment.paid_at %}
+                                {{ payment.paid_at|date:"d M Y, H:i" }} WIB
+                            {% elif payment and payment.created_at %}
+                                {{ payment.created_at|date:"d M Y, H:i" }} WIB
+                            {% else %}
+                                Sekarang
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Rincian Barang & Biaya -->
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-start justify-between gap-4 py-2 border-b border-line/60">
+                        <div>
+                            <span class="font-semibold text-ink block">{{ rental.item.title }}</span>
+                            <span class="text-xs text-ink-muted">
+                                Kategori: {{ rental.item.category.name|default:'Perlengkapan Kampus' }} &bull; Durasi: {{ rental.days }} hari ({{ rental.start_date|date:"d M" }} - {{ rental.end_date|date:"d M Y" }})
+                            </span>
+                        </div>
+                        <span class="font-mono font-semibold text-ink tabular-nums flex-shrink-0">
+                            {{ rental.rent_total|rupiah }}
+                        </span>
+                    </div>
+
+                    {% if rental.deposit_total > 0 %}
+                    <div class="flex items-center justify-between py-1 text-ink-muted text-xs sm:text-sm">
+                        <div class="flex items-center gap-1.5">
+                            <span>Deposit Jaminan Sewa</span>
+                            <span class="text-[11px] text-pine font-medium bg-pine-tint px-2 py-0.5 rounded-full">100% kembali</span>
+                        </div>
+                        <span class="font-mono tabular-nums text-ink flex-shrink-0">
+                            {{ rental.deposit_total|rupiah }}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if rental.protection_fee > 0 %}
+                        <div class="flex items-center justify-between py-1 text-ink-muted text-xs sm:text-sm">
+                            <span>Iuran Dana Gotong Royong</span>
+                            <span class="font-mono tabular-nums text-ink flex-shrink-0">
+                                {{ rental.protection_fee|rupiah }}
+                            </span>
+                        </div>
+                    {% endif %}
+
+                    <div class="flex items-center justify-between pt-3 border-t-2 border-line">
+                        <span class="font-heading font-bold text-base text-ink">Total pembayaran</span>
+                        <span class="font-mono font-bold text-lg sm:text-xl text-brand tabular-nums">
+                            {{ rental.grand_total|rupiah }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Metadata Pihak Terlibat -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-line text-xs text-ink-muted">
+                    <div>
+                        <span class="block text-xs font-semibold">Penyewa (Anda):</span>
+                        <span class="font-medium text-ink">{{ rental.renter.get_full_name|default:rental.renter.username }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold">Pemilik barang:</span>
+                        <span class="font-medium text-ink">{{ rental.owner.get_full_name|default:rental.owner.username }}</span>
+                        {% if rental.owner.profile.campus %}
+                            <span class="text-ink-muted">({{ rental.owner.profile.campus.name }})</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Penjelasan Perlindungan Escrow -->
+            <div class="bg-brand-tint/30 border border-brand/20 rounded-xl p-4 sm:p-5 flex items-start gap-3.5">
+                <div class="text-brand flex-shrink-0 mt-0.5">
+                    {% include 'partials/icon.html' with name='shield' class='w-5 h-5 text-brand' %}
+                </div>
+                <div class="space-y-1">
+                    <h3 class="font-semibold text-sm text-ink">
+                        Bagaimana perlindungan dana Anda bekerja di {{ SITE_NAME }}?
+                    </h3>
+                    <p class="text-xs sm:text-[13px] text-ink-muted leading-relaxed">
+                        Dana sewa Anda <strong>tidak langsung dikirimkan ke pemilik</strong>. Platform menahan dana secara aman (escrow) dan baru diteruskan setelah barang Anda terima dan masa sewa selesai dengan baik.{% if rental.deposit_total > 0 %} Deposit sebesar <span class="font-mono font-semibold text-ink">{{ rental.deposit_total|rupiah }}</span> akan dicairkan kembali 100% ke dompet Anda saat barang dikembalikan dalam kondisi prima.{% else %} Transaksi dilindungi oleh Syarat dan Ketentuan (S&amp;K) Digital resmi yang telah Anda setujui.{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Panduan Langkah Selanjutnya -->
+            <div class="space-y-3">
+                <h3 class="font-heading font-bold text-base text-ink">
+                    Langkah selanjutnya
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="p-3.5 bg-paper rounded-xl border border-line space-y-1.5">
+                        <div class="flex items-center gap-2 text-brand">
+                            {% include 'partials/icon.html' with name='map-pin' class='w-4 h-4 text-brand' %}
+                            <span class="text-xs font-bold">1. Titik temu kampus</span>
+                        </div>
+                        <p class="text-xs text-ink-muted leading-relaxed">
+                            Buka ruang obrolan sewa untuk menyepakati lokasi dan jam temu aman di lingkungan kampus.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 bg-paper rounded-xl border border-line space-y-1.5">
+                        <div class="flex items-center gap-2 text-brand">
+                            {% include 'partials/icon.html' with name='camera' class='w-4 h-4 text-brand' %}
+                            <span class="text-xs font-bold">2. Cek kondisi fisik</span>
+                        </div>
+                        <p class="text-xs text-ink-muted leading-relaxed">
+                            Pastikan kelengkapan barang dan periksa dokumentasi foto kondisi sebelum serah terima.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 bg-paper rounded-xl border border-line space-y-1.5">
+                        <div class="flex items-center gap-2 text-pine">
+                            {% include 'partials/icon.html' with name='check-circle' class='w-4 h-4 text-pine' %}
+                            <span class="text-xs font-bold">3. Konfirmasi serah terima</span>
+                        </div>
+                        <p class="text-xs text-ink-muted leading-relaxed">
+                            Tandai serah terima di aplikasi agar masa sewa resmi dimulai secara aman dan transparan.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tombol Aksi Navigasi -->
+            <div class="pt-4 border-t border-line flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <a href="{% url 'accounts:dashboard' %}"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-line bg-paper hover:bg-paper-deep text-ink text-sm font-semibold transition">
+                    {% include 'partials/icon.html' with name='arrow-left' class='w-4 h-4 text-ink-muted' %}
+                    <span>Ke Dasbor Saya</span>
+                </a>
+
+                <a href="{% url 'rentals:rental_detail' code=rental.code %}"
+                   class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-semibold transition shadow-sm">
+                    <span>Buka Ruang Sewa & Rincian Pesanan</span>
+                    {% include 'partials/icon.html' with name='arrow-right' class='w-4 h-4 text-white' %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}{% if is_edit %}Ubah {{ item.title }}{% else %}Pasang Barang Jualan{% endif %} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[840px] mx-auto px-4 pt-4 sm:pt-6 lg:pt-8 pb-16"
+     x-data="{
+         priceValue: '{{ form.price.value|default:'' }}',
+         origPriceValue: '{{ form.original_price.value|default:'' }}',
+         selectedCondition: '{{ form.condition.value|default:'baik' }}',
+         formatRp(n) {
+             return 'Rp' + (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+         },
+         savingsPercent() {
+             const p = parseInt(this.priceValue) || 0;
+             const op = parseInt(this.origPriceValue) || 0;
+             if (op > p && p > 0) {
+                 return Math.round(((op - p) / op) * 100);
+             }
+             return null;
+         }
+     }">
+
+    <!-- Header Formulir -->
+    <div class="mb-4 sm:mb-5 lg:mb-6">
+        <h1 class="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+            {% if is_edit %}Ubah informasi barang jualan{% else %}Pasang barang jualan baru{% endif %}
+        </h1>
+        <p class="text-sm text-ink-muted mt-1 leading-relaxed">
+            Jual buku, perabot kos, pakaian, dan barang kuliah yang sudah tidak terpakai kepada sesama mahasiswa kampus.
+        </p>
+    </div>
+
+    <!-- Kotak Form -->
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm">
+        {% if form.errors or photo_errors %}
+            <div class="mb-6 p-4 rounded-xl bg-brick-tint border border-brick/30 text-brick text-xs space-y-2">
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    {% include 'partials/icon.html' with name='alert-circle' class='w-4 h-4 flex-shrink-0' %}
+                    <span>Terdapat kendala pada isian formulir:</span>
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-xs">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    {% for p_err in photo_errors %}
+                        <li><strong>Foto:</strong> {{ p_err }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <!-- Peringatan Barang Terlarang -->
+        <div class="mb-6 p-4 rounded-xl bg-paper border border-line flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-brick-tint text-brick flex items-center justify-center flex-shrink-0 mt-0.5">
+                {% include 'partials/icon.html' with name='alert-triangle' class='w-4 h-4' %}
+            </div>
+            <div class="text-xs space-y-1 text-ink-muted">
+                <h4 class="font-bold text-ink text-sm">Pedoman barang terlarang</h4>
+                <p class="leading-relaxed">
+                    Demi keamanan bersama, platform melarang keras penjualan barang-barang berikut: obat resep atau obat keras, miras dan minuman keras, rokok dan vape, senjata atau benda tajam berbahaya, hewan peliharaan, makanan olahan atau makanan basah, barang palsu atau curian, serta akun digital atau akun game.
+                </p>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6" novalidate
+              x-data="{
+                  photoPreviews: [],
+                  photoError: '',
+                  hasExistingPhotos: {% if is_edit and item.photos.exists %}true{% else %}false{% endif %},
+                  handleFiles(e) {
+                      const files = Array.from(e.target.files);
+                      this.photoPreviews = [];
+                      this.photoError = '';
+
+                      if (files.length > 6) {
+                          this.photoError = 'Maksimal 6 foto yang dapat dipilih.';
+                          e.target.value = '';
+                          return;
+                      }
+
+                      files.forEach(file => {
+                          if (file.size > 5 * 1024 * 1024) {
+                              this.photoError = 'Ukuran berkas melebihi 5 MB (' + file.name + ').';
+                              return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                              this.photoPreviews.push(event.target.result);
+                          };
+                          reader.readAsDataURL(file);
+                      });
+                  }
+              }">
+            {% csrf_token %}
+
+            <!-- Bagian 1: Informasi Dasar -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold text-ink pb-2 border-b border-line flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='file-text' class='w-4 h-4 text-brand' %}
+                    <span>Informasi dasar barang</span>
+                </h3>
+
+                <!-- Judul -->
+                <div>
+                    <label for="id_title" class="block text-xs font-semibold text-ink mb-1.5">
+                        Judul barang <span class="text-brick">*</span>
+                    </label>
+                    {{ form.title }}
+                    <p class="text-[11px] text-ink-muted mt-1">Sebutkan merk, tipe, atau judul spesifik barang.</p>
+                </div>
+
+                <!-- Kategori -->
+                <div>
+                    <label for="id_category" class="block text-xs font-semibold text-ink mb-1.5">
+                        Kategori jual beli <span class="text-brick">*</span>
+                    </label>
+                    {{ form.category }}
+                </div>
+
+                <!-- Deskripsi -->
+                <div>
+                    <label for="id_description" class="block text-xs font-semibold text-ink mb-1.5">
+                        Deskripsi lengkap <span class="text-brick">*</span>
+                    </label>
+                    {{ form.description }}
+                </div>
+            </div>
+
+            <!-- Bagian 2: Kondisi & Kelengkapan -->
+            <div class="space-y-4 pt-4">
+                <h3 class="text-sm font-bold text-ink pb-2 border-b border-line flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='check-circle' class='w-4 h-4 text-brand' %}
+                    <span>Kondisi dan kelengkapan</span>
+                </h3>
+
+                <!-- Kondisi -->
+                <div>
+                    <label for="id_condition" class="block text-xs font-semibold text-ink mb-1.5">
+                        Kondisi barang <span class="text-brick">*</span>
+                    </label>
+                    <select name="condition" id="id_condition"
+                            x-model="selectedCondition"
+                            class="w-full bg-card border border-line rounded-lg px-4 py-2.5 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+                        {% for val, label in form.fields.condition.choices %}
+                            <option value="{{ val }}" {% if form.condition.value == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Cacat atau Minus -->
+                <div x-show="selectedCondition === 'cukup' || selectedCondition === 'ada_cacat'"
+                     x-transition class="p-4 rounded-xl bg-paper border border-line space-y-2">
+                    <label for="id_flaws" class="block text-xs font-semibold text-ink">
+                        Rincian cacat atau minus <span class="text-brick">*</span>
+                    </label>
+                    {{ form.flaws }}
+                    <p class="text-[11px] text-brick font-medium">Wajib diisi secara jujur jika memilih kondisi Cukup atau Ada cacat.</p>
+                </div>
+
+                <!-- Kelengkapan -->
+                <div>
+                    <label for="id_included_items" class="block text-xs font-semibold text-ink mb-1.5">
+                        Kelengkapan yang disertakan
+                    </label>
+                    {{ form.included_items }}
+                    <p class="text-[11px] text-ink-muted mt-1">Misalnya: dus asli, charger, kabel data, atau pelindung.</p>
+                </div>
+
+                <!-- Alasan Dijual -->
+                <div>
+                    <label for="id_reason_for_sale" class="block text-xs font-semibold text-ink mb-1.5">
+                        Alasan dijual <span class="text-ink-muted font-normal">(opsional)</span>
+                    </label>
+                    {{ form.reason_for_sale }}
+                </div>
+            </div>
+
+            <!-- Bagian 3: Harga & Lokasi -->
+            <div class="space-y-4 pt-4">
+                <h3 class="text-sm font-bold text-ink pb-2 border-b border-line flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='wallet' class='w-4 h-4 text-brand' %}
+                    <span>Harga dan titik temu</span>
+                </h3>
+
+                <!-- Informasi Batas Harga Tangga Penjual -->
+                <div class="p-3.5 rounded-xl bg-paper border border-line flex items-center justify-between text-xs">
+                    <div>
+                        <span class="text-ink-muted">Tingkat penjual Anda:</span>
+                        <strong class="text-ink ml-1">{{ seller_tier_label }}</strong>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-ink-muted">Batas harga maksimum:</span>
+                        <strong class="text-brand ml-1">{{ max_price|rupiah }}</strong>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Harga Jual -->
+                    <div>
+                        <label for="id_price" class="block text-xs font-semibold text-ink mb-1.5">
+                            Harga jual (Rp) <span class="text-brick">*</span>
+                        </label>
+                        <input type="number" name="price" id="id_price"
+                               x-model="priceValue"
+                               class="w-full bg-card border border-line rounded-lg px-4 py-2.5 text-ink placeholder-ink-muted/60 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                               placeholder="Contoh: 150000"
+                               value="{{ form.price.value|default:'' }}">
+                    </div>
+
+                    <!-- Harga Beli Asli -->
+                    <div>
+                        <label for="id_original_price" class="block text-xs font-semibold text-ink mb-1.5">
+                            Harga beli baru/asli (Rp) <span class="text-ink-muted font-normal">(opsional)</span>
+                        </label>
+                        <input type="number" name="original_price" id="id_original_price"
+                               x-model="origPriceValue"
+                               class="w-full bg-card border border-line rounded-lg px-4 py-2.5 text-ink placeholder-ink-muted/60 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                               placeholder="Contoh: 300000"
+                               value="{{ form.original_price.value|default:'' }}">
+                        <p class="text-[11px] text-pine font-medium mt-1" x-show="savingsPercent()" x-cloak>
+                            Penghematan pembeli: hemat <span x-text="savingsPercent()"></span>%!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Area Titik Temu -->
+                <div>
+                    <label for="id_pickup_area" class="block text-xs font-semibold text-ink mb-1.5">
+                        Area titik temu / kampus <span class="text-brick">*</span>
+                    </label>
+                    {{ form.pickup_area }}
+                    <p class="text-[11px] text-ink-muted mt-1">Sebutkan nama kampus, fakultas, atau titik pertemuan umum yang aman.</p>
+                </div>
+            </div>
+
+            <!-- Bagian 4: Unggah Foto -->
+            <div class="space-y-4 pt-4">
+                <h3 class="text-sm font-bold text-ink pb-2 border-b border-line flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='camera' class='w-4 h-4 text-brand' %}
+                    <span>Foto barang jualan (1 hingga 6 foto)</span>
+                </h3>
+
+                {% if is_edit and item.photos.exists %}
+                    <div class="mb-3">
+                        <p class="text-xs font-semibold text-ink mb-2">Foto barang saat ini:</p>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            {% for photo in item.photos.all %}
+                                <div class="relative rounded-lg overflow-hidden border border-line aspect-square bg-paper">
+                                    <img src="{{ photo.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div>
+                    <label class="block text-xs font-semibold text-ink mb-1.5">
+                        {% if is_edit %}Tambah foto baru{% else %}Pilih foto barang <span class="text-brick">*</span>{% endif %}
+                    </label>
+                    <div class="border-2 border-dashed border-line hover:border-brand/40 rounded-xl p-5 text-center bg-paper transition-colors cursor-pointer"
+                         @click="$refs.photoInput.click()">
+                        <input type="file" name="photos" id="id_photos" multiple accept="image/*"
+                               x-ref="photoInput"
+                               class="hidden"
+                               @change="handleFiles">
+                        <div class="space-y-2 py-1">
+                            <div class="w-10 h-10 rounded-full bg-brand-tint text-brand flex items-center justify-center mx-auto">
+                                {% include 'partials/icon.html' with name='camera' class='w-5 h-5' %}
+                            </div>
+                            <p class="text-xs sm:text-sm font-semibold text-ink">
+                                Klik untuk memilih foto barang
+                            </p>
+                            <p class="text-[11px] text-ink-muted">
+                                Unggah minimal 1 foto, maksimal 6 foto. Maks 5 MB per foto (JPG/PNG). Foto otomatis dikompres.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="photoError" x-text="photoError" class="p-2.5 rounded-lg bg-brick-tint border border-brick/30 text-brick text-xs font-semibold" x-cloak></div>
+
+                <!-- Preview Foto Baru -->
+                <div x-show="photoPreviews.length > 0" class="pt-2" x-cloak>
+                    <p class="text-xs font-semibold text-ink mb-2">Pratinjau foto yang akan diunggah:</p>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        <template x-for="(src, index) in photoPreviews" :key="index">
+                            <div class="relative rounded-lg overflow-hidden border border-line aspect-square bg-paper">
+                                <img :src="src" class="w-full h-full object-cover">
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bagian 5: Syarat & Ketentuan Penjual -->
+            {% if not is_edit and seller_terms %}
+                <div class="space-y-3 pt-4 border-t border-line">
+                    <h3 class="text-sm font-bold text-ink flex items-center gap-2">
+                        {% include 'partials/icon.html' with name='shield' class='w-4 h-4 text-pine' %}
+                        <span>Syarat &amp; ketentuan penjual (versi {{ seller_terms.version }})</span>
+                    </h3>
+
+                    <div class="p-4 rounded-xl bg-paper border border-line max-h-48 overflow-y-auto text-xs text-ink-muted leading-relaxed whitespace-pre-line font-mono">
+                        {{ seller_terms.content }}
+                    </div>
+
+                    <div class="flex items-start gap-2.5 pt-2">
+                        <input type="checkbox" name="agree_terms" id="id_agree_terms" required
+                               class="mt-1 w-4 h-4 rounded border-line text-brand focus:ring-brand">
+                        <label for="id_agree_terms" class="text-xs font-medium text-ink cursor-pointer leading-relaxed">
+                            Saya menjamin barang adalah milik sah pribadi, deskripsi dan foto jujur apa adanya, telah mencantumkan cacat/minus bila ada, serta menyetujui seluruh Syarat &amp; Ketentuan Penjual {{ SITE_NAME }}. <span class="text-brick">*</span>
+                        </label>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Tombol Aksi -->
+            <div class="pt-6 border-t border-line flex flex-col sm:flex-row items-center justify-end gap-3">
+                <a href="{% if is_edit %}/jual/saya/{% else %}/jual-beli/{% endif %}"
+                   class="w-full sm:w-auto px-5 py-2.5 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-ink text-xs font-semibold text-center transition-colors">
+                    Batal
+                </a>
+                <button type="submit"
+                        class="w-full sm:w-auto px-6 py-2.5 min-h-[44px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold text-center shadow-sm transition-colors">
+                    {% if is_edit %}Simpan perubahan{% else %}Tayangkan barang jualan{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

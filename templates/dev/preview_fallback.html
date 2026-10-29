@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load formatters %}
+
+{% block title %}Pratinjau Cadangan Template Kartu Barang{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4 space-y-6">
+    <div class="border-b border-line pb-4">
+        <h1 class="text-2xl font-bold font-heading text-ink">Pratinjau Cadangan Template Tanpa Foto</h1>
+        <p class="text-sm text-ink-muted mt-1">
+            Membuktikan bahwa kartu barang tanpa foto memakai bidang datar #E6ECFB (brand-tint), ikon kamera 40% di tengah, tanpa teks, tanpa label huruf kapital, dan tanpa warna per kategori.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="space-y-2">
+            <span class="text-xs font-semibold text-ink-muted uppercase">Kartu Barang Tanpa Foto (Fallback)</span>
+            {% include "partials/item_card.html" with item=mock_item %}
+        </div>
+    </div>
+</div>
+{% endblock %}

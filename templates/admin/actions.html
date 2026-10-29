@@ -1,0 +1,34 @@
+{% load i18n %}
+<div class="actions flex flex-wrap items-center gap-3 text-xs text-ink">
+  {% block actions %}
+    {% block actions-form %}
+    <div class="flex items-center gap-2">
+        <label for="action-select" class="font-semibold text-ink-muted whitespace-nowrap">Aksi massal:</label>
+        {% for field in action_form %}
+            {% if field.label %}{{ field }}{% else %}{{ field }}{% endif %}
+        {% endfor %}
+    </div>
+    {% endblock %}
+    {% block actions-submit %}
+    <button type="submit"
+            class="button px-3.5 py-1.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-sm font-sans cursor-pointer"
+            title="{% translate "Jalankan aksi terpilih" %}"
+            name="index"
+            value="{{ action_index|default:0 }}">
+        Terapkan
+    </button>
+    {% endblock %}
+    {% block actions-counter %}
+    {% if actions_selection_counter %}
+        <span class="action-counter text-xs text-ink-muted font-medium bg-paper px-2.5 py-1 rounded-md border border-line" data-actions-icnt="{{ cl.result_list|length }}">{{ selection_note }}</span>
+        {% if cl.result_count != cl.result_list|length %}
+        <span class="all hidden">{{ selection_note_all }}</span>
+        <span class="question hidden text-xs text-brand hover:underline font-semibold">
+            <a href="#" title="{% translate "Pilih semua objek di semua halaman" %}">{% blocktranslate with cl.result_count as total_count %}Pilih semua {{ total_count }} data{% endblocktranslate %}</a>
+        </span>
+        <span class="clear hidden text-xs text-brick hover:underline font-semibold"><a href="#">{% translate "Batalkan pilihan" %}</a></span>
+        {% endif %}
+    {% endif %}
+    {% endblock %}
+  {% endblock %}
+</div>

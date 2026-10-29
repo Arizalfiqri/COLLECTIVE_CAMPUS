@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#56C596"/>
+  <!-- Alat Praktikum (Multimeter Digital): lebar ~240px, garis ink 2.5px, layar LCD ink -->
+  <!-- Bodi multimeter -->
+  <rect x="85" y="125" width="230" height="270" rx="22" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Bezel layar -->
+  <rect x="110" y="145" width="180" height="75" rx="10" fill="#FFFFFF" stroke="#141B34" stroke-width="2"/>
+  <!-- Detail isi ink: layar display LCD digital -->
+  <rect x="118" y="153" width="164" height="59" rx="6" fill="#141B34" stroke="none"/>
+  <!-- Tombol dan putaran pemilih range selector -->
+  <circle cx="200" cy="275" r="42" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <circle cx="200" cy="275" r="28" fill="#FFFFFF" stroke="#141B34" stroke-width="2"/>
+  <line x1="200" y1="275" x2="200" y2="248" stroke="#141B34" stroke-width="3" stroke-linecap="round"/>
+  <!-- Titik indikator putaran -->
+  <circle cx="155" cy="275" r="3" fill="#141B34"/>
+  <circle cx="245" cy="275" r="3" fill="#141B34"/>
+  <circle cx="168" cy="243" r="3" fill="#141B34"/>
+  <circle cx="232" cy="243" r="3" fill="#141B34"/>
+  <!-- Lubang probe di bawah -->
+  <circle cx="140" cy="355" r="10" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <circle cx="200" cy="355" r="10" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <circle cx="260" cy="355" r="10" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+</svg>

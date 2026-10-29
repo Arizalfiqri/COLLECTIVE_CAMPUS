@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Surat Perjanjian Jual Beli Digital #{{ order.code }} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[900px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6 lg:pt-8 pb-16 print:py-0 print:px-0 print:max-w-none text-ink">
+
+    <!-- Bilah Aksi Atas (Hanya Tampil di Layar, Sembunyi Saat Cetak) -->
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-line shadow-sm print:hidden">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'sales:order_detail' order.code %}"
+               class="w-11 h-11 flex items-center justify-center rounded-xl border border-line hover:bg-paper text-ink-muted hover:text-ink transition-colors flex-shrink-0"
+               title="Kembali ke pesanan">
+                {% include 'partials/icon.html' with name='arrow-left' class='w-4 h-4' %}
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-ink">Dokumen Perjanjian Jual Beli Digital</h1>
+                <p class="text-xs text-ink-muted">Bukti persetujuan resmi transaksi jual beli mahasiswa {{ SITE_NAME }}</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <button type="button"
+                    onclick="window.print()"
+                    class="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                {% include 'partials/icon.html' with name='printer' class='w-4 h-4' %}
+                <span>Cetak / Simpan PDF</span>
+            </button>
+            <a href="{% url 'sales:order_detail' order.code %}"
+               class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl border border-line transition-colors">
+                Kembali
+            </a>
+        </div>
+    </div>
+
+    <!-- Dokumen Perjanjian Resmi (Dicetak) -->
+    <div class="bg-card border border-line print:border-none rounded-2xl print:rounded-none p-6 sm:p-10 print:p-0 shadow-sm print:shadow-none space-y-6 text-xs leading-relaxed">
+
+        <!-- Kop Dokumen -->
+        <div class="text-center pb-6 border-b-2 border-ink space-y-1">
+            <span class="font-mono text-[11px] font-bold tracking-widest text-brand uppercase block">
+                {{ SITE_NAME|upper }} PLATFORM MAHASISWA
+            </span>
+            <h2 class="font-heading text-xl sm:text-2xl font-bold text-ink uppercase tracking-tight">
+                SURAT PERJANJIAN JUAL BELI DIGITAL
+            </h2>
+            <p class="text-xs text-ink-muted">
+                Nomor Registrasi Pesanan: <strong class="font-mono text-ink font-bold">#{{ order.code }}</strong>
+            </p>
+        </div>
+
+        <!-- Metadata Otentikasi Digital (Audit Trail) -->
+        <div class="p-4 rounded-xl bg-paper border border-line grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+            <div>
+                <span class="text-ink-muted block text-[10px]">Versi S&K Pembeli:</span>
+                <strong class="text-ink font-semibold">
+                    {% if agreement and agreement.terms_version %}
+                        {{ agreement.terms_version.version_number }}
+                    {% else %}
+                        1.0
+                    {% endif %}
+                </strong>
+            </div>
+            <div>
+                <span class="text-ink-muted block text-[10px]">Waktu Persetujuan Digital:</span>
+                <strong class="text-ink font-semibold">
+                    {{ agreement.agreed_at|date:"d F Y, H:i:s"|default:order.created_at|date:"d F Y, H:i:s" }} WIB
+                </strong>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="text-ink-muted block text-[10px]">Hash Kriptografis Persetujuan (SHA-256):</span>
+                <code class="font-mono text-[10px] text-ink break-all select-all font-bold block mt-0.5">
+                    {{ agreement.terms_hash|default:"-" }}
+                </code>
+            </div>
+            <div>
+                <span class="text-ink-muted block text-[10px]">Alamat IP Pembeli:</span>
+                <strong class="font-mono text-ink font-semibold">{{ agreement.ip_address|default:"127.0.0.1 (Tervalidasi)" }}</strong>
+            </div>
+            <div>
+                <span class="text-ink-muted block text-[10px]">Perangkat / User Agent:</span>
+                <span class="font-mono text-[10px] text-ink-muted truncate block" title="{{ agreement.user_agent }}">
+                    {% if agreement.user_agent %}{{ agreement.user_agent|truncatechars:50 }}{% else %}Sistem Autentikasi {{ SITE_NAME }}{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Para Pihak -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Pihak Pertama (Penjual) -->
+            <div class="p-4 rounded-xl border border-line bg-paper space-y-1.5">
+                <span class="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">Pihak Pertama (Penjual)</span>
+                <p class="font-bold text-sm text-ink">{{ order.seller.full_name|default:order.seller.username }}</p>
+                <p class="text-ink-muted">NIM: <span class="font-mono text-ink">{{ order.seller.student_profile.nim|default:'-' }}</span></p>
+                <p class="text-ink-muted">Kampus: {{ order.seller.student_profile.campus.name|default:'-' }}</p>
+                <p class="text-ink-muted">Program Studi: {{ order.seller.student_profile.major|default:'-' }}</p>
+            </div>
+
+            <!-- Pihak Kedua (Pembeli) -->
+            <div class="p-4 rounded-xl border border-line bg-paper space-y-1.5">
+                <span class="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">Pihak Kedua (Pembeli)</span>
+                <p class="font-bold text-sm text-ink">{{ order.buyer.full_name|default:order.buyer.username }}</p>
+                <p class="text-ink-muted">NIM: <span class="font-mono text-ink">{{ order.buyer.student_profile.nim|default:'-' }}</span></p>
+                <p class="text-ink-muted">Kampus: {{ order.buyer.student_profile.campus.name|default:'-' }}</p>
+                <p class="text-ink-muted">Program Studi: {{ order.buyer.student_profile.major|default:'-' }}</p>
+            </div>
+        </div>
+
+        <!-- Rincian Objek Jual Beli -->
+        <div class="space-y-2">
+            <h3 class="font-bold text-sm text-ink">Pasal 1: Objek dan Harga Jual Beli</h3>
+            <div class="p-4 rounded-xl border border-line bg-paper space-y-2 text-xs">
+                <div class="flex justify-between items-baseline">
+                    <span class="font-bold text-ink">{{ order.listing_snapshot.title|default:order.item.title }}</span>
+                    <span class="font-bold text-ink tabular-nums">{{ order.price_snapshot|rupiah }}</span>
+                </div>
+                <p class="text-ink-muted">Kondisi: <strong>{{ order.listing_snapshot.condition|default:order.item.condition }}</strong></p>
+                {% if order.listing_snapshot.defect_description %}
+                    <p class="text-amber-text bg-amber-tint p-2 rounded-lg border border-amber-text/20">
+                        <strong>Catatan Cacat Fisik:</strong> {{ order.listing_snapshot.defect_description }}
+                    </p>
+                {% endif %}
+                <p class="text-ink-muted pt-1 border-t border-line">
+                    {{ order.listing_snapshot.description|default:order.item.description }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Ketentuan Transaksi -->
+        <div class="space-y-3">
+            <h3 class="font-bold text-sm text-ink">Pasal 2: Syarat, Ketentuan, dan Hak Kewajiban</h3>
+            <div class="p-4 rounded-xl border border-line bg-paper text-ink space-y-2 leading-relaxed">
+                {% if agreement.text_snapshot %}
+                    <div class="whitespace-pre-line">{{ agreement.text_snapshot }}</div>
+                {% else %}
+                    <p>1. <strong>Barang Bekas Dijual Apa Adanya (As-Is):</strong> Pembeli memahami dan menyepakati bahwa barang yang dibeli adalah barang bekas milik mahasiswa yang dijual sesuai deskripsi, foto, dan catatan cacat yang tertera pada saat pemesanan.</p>
+                    <p>2. <strong>Pemeriksaan Saat Serah Terima:</strong> Pembeli berkewajiban memeriksa kondisi fisik dan kelayakan fungsi barang secara langsung pada saat pertemuan serah terima (meetup) di titik kampus yang disepakati.</p>
+                    <p>3. <strong>Pembayaran Platform (Escrow):</strong> Seluruh pembayaran wajib melalui saluran resmi platform {{ SITE_NAME }}. Dana pembeli ditahan aman dalam penampungan perantara (escrow) hingga barang diserahterimakan dan dikonfirmasi pembeli.</p>
+                    <p>4. <strong>Penyelesaian dan Larangan Pengembalian:</strong> Setelah pembeli menekan tombol konfirmasi penerimaan barang atau setelah masa pemeriksaan 48 jam berakhir tanpa sanggahan, transaksi berstatus selesai dan dana diteruskan ke penjual. Tidak ada pengembalian dana setelah transaksi selesai kecuali sengketa yang diputuskan admin.</p>
+                    <p>5. <strong>Penyelesaian Sengketa:</strong> Apabila timbul perselisihan mengenai ketidaksesuaian barang dengan deskripsi yang dilaporkan dalam masa pemeriksaan 48 jam, penyelesaian dilakukan melalui mediasi admin platform yang bersifat mengikat.</p>
+                    <p>6. <strong>Kedudukan Platform:</strong> {{ SITE_NAME }} bertindak sebagai penyedia sarana teknologi dan perantara transaksi aman antar mahasiswa.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tanda Tangan Digital -->
+        <div class="pt-6 border-t border-line grid grid-cols-2 gap-8 text-center text-xs">
+            <div class="space-y-8">
+                <span class="text-ink-muted">Pihak Pertama (Penjual)</span>
+                <div class="p-2 border border-dashed border-line rounded-lg font-mono text-[10px] text-ink-muted">
+                    Tervalidasi Digital {{ SITE_NAME }}<br>
+                    ID Pengguna: #{{ order.seller.id }}
+                </div>
+                <strong class="text-ink block">{{ order.seller.full_name|default:order.seller.username }}</strong>
+            </div>
+
+            <div class="space-y-8">
+                <span class="text-ink-muted">Pihak Kedua (Pembeli)</span>
+                <div class="p-2 border border-dashed border-line rounded-lg font-mono text-[10px] text-ink-muted">
+                    Tervalidasi Digital {{ SITE_NAME }}<br>
+                    ID Pengguna: #{{ order.buyer.id }}
+                </div>
+                <strong class="text-ink block">{{ order.buyer.full_name|default:order.buyer.username }}</strong>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Rekonsiliasi keuangan | {{ SITE_NAME }} Admin{% endblock %}
+{% block page_title %}Rekonsiliasi keuangan{% endblock %}
+{% block page_subtitle %}Audit menyeluruh aliran dana escrow, saldo dompet, komisi platform, dan dana gotong royong{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Bilah Aksi Atas -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <span class="text-xs text-ink-muted">Pemeriksaan invarian matematika buku besar terhadap aliran kas nyata</span>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payments:admin_withdrawals' %}" class="px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl border border-line bg-card hover:bg-paper text-xs font-semibold text-ink transition-colors">
+                Antrean penarikan dana
+            </a>
+            <a href="{% url 'payments:admin_reconciliation' %}" class="px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors">
+                Segarkan audit
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Invarian Global -->
+    <div class="p-6 rounded-2xl border {% if recon.summary.global_balanced %}bg-pine-tint border-pine/30{% else %}bg-brick-tint border-brick/30{% endif %} mb-8 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl {% if recon.summary.global_balanced %}bg-pine text-white{% else %}bg-brick text-white{% endif %} flex items-center justify-center flex-shrink-0">
+                    {% if recon.summary.global_balanced %}
+                        {% include 'partials/icon.html' with name='check' class='w-6 h-6' %}
+                    {% else %}
+                        {% include 'partials/icon.html' with name='x' class='w-6 h-6' %}
+                    {% endif %}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-heading text-lg font-bold text-ink">
+                            Status Invarian Sistem:
+                        </h2>
+                        {% if recon.summary.global_balanced %}
+                            <span class="bg-pine text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                Seimbang (0 Selisih)
+                            </span>
+                        {% else %}
+                            <span class="bg-brick text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                Selisih Terdeteksi (Rp{{ recon.summary.discrepancy|ribuan }})
+                            </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                        {% if recon.summary.global_balanced %}
+                            Semua arus dana masuk ke escrow terhitung dengan presisi ke dana keluar yang dilepas, dana tertahan aktif, atau saldo dompet.
+                        {% else %}
+                            Perhatian: Terdapat selisih matematis antara dana masuk escrow dengan total alokasi yang tercatat. Harap periksa rincian sewa di bawah.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <span class="text-xs text-ink-muted block">Waktu audit</span>
+                <span class="text-xs font-mono font-medium text-ink">{{ recon.generated_at|date:"d M Y, H:i:s" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ringkasan Angka Rekonsiliasi (Grid) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Total masuk escrow</span>
+            <span class="text-lg sm:text-xl font-bold text-ink tabular-nums">Rp{{ recon.summary.total_inflow|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Pembayaran penyewa sah</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Escrow ditahan aktif</span>
+            <span class="text-lg sm:text-xl font-bold text-amber-text tabular-nums">Rp{{ recon.summary.total_held_escrow|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Sewa sedang berjalan</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Total saldo pengguna</span>
+            <span class="text-lg sm:text-xl font-bold text-pine-dark tabular-nums">Rp{{ recon.summary.total_user_wallets|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Kewajiban dompet mahasiswa</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Penarikan aktif</span>
+            <span class="text-lg sm:text-xl font-bold text-ink tabular-nums">Rp{{ recon.summary.total_pending_withdrawals|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Menunggu transfer admin</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Komisi platform ({{ platform_commission_percent }}%)</span>
+            <span class="text-lg sm:text-xl font-bold text-brand tabular-nums">Rp{{ recon.summary.total_platform_commission|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Pendapatan operasional</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Dana gotong royong</span>
+            <span class="text-lg sm:text-xl font-bold text-ink tabular-nums">Rp{{ recon.summary.total_protection_pool|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Pool proteksi risiko</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Penarikan selesai</span>
+            <span class="text-lg sm:text-xl font-bold text-ink tabular-nums">Rp{{ recon.summary.total_completed_withdrawals|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Sudah dicairkan ke bank</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Tagihan terutang</span>
+            <span class="text-lg sm:text-xl font-bold text-brick tabular-nums">Rp{{ recon.summary.total_extra_charges_unpaid|ribuan }}</span>
+            <span class="block text-[11px] text-ink-muted mt-1">Denda & kompensasi terutang</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Sewa bermasalah</span>
+            <span class="text-lg sm:text-xl font-bold {% if recon.summary.mismatched_rentals_count > 0 %}text-brick{% else %}text-pine-dark{% endif %} tabular-nums">
+                {{ recon.summary.mismatched_rentals_count }}
+            </span>
+            <span class="block text-[11px] text-ink-muted mt-1">Dari {{ recon.summary.total_rentals_checked }} transaksi</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-card border border-line shadow-sm">
+            <span class="text-xs font-semibold text-ink-muted block mb-1">Jual beli bermasalah</span>
+            <span class="text-lg sm:text-xl font-bold {% if recon.summary.mismatched_sales_count > 0 %}text-brick{% else %}text-pine-dark{% endif %} tabular-nums">
+                {{ recon.summary.mismatched_sales_count|default:"0" }}
+            </span>
+            <span class="block text-[11px] text-ink-muted mt-1">Dari {{ recon.summary.total_sales_checked|default:"0" }} pesanan</span>
+        </div>
+    </div>
+
+    <!-- Tabel Audit Buku Besar Per Transaksi Sewa -->
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+        <div class="flex items-center justify-between pb-4 border-b border-line mb-5">
+            <div>
+                <h2 class="font-heading text-lg font-bold text-ink">Audit invarian per pesanan sewa</h2>
+                <p class="text-xs text-ink-muted mt-0.5">Membandingkan total dana masuk dan keluar pada buku besar tiap transaksi</p>
+            </div>
+            <span class="text-xs font-semibold text-ink-muted bg-paper px-2.5 py-1 rounded-lg border border-line">
+                {{ recon.rentals|length }} pesanan terdaftar
+            </span>
+        </div>
+
+        <div class="overflow-x-auto -mx-6 sm:mx-0">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-line text-ink-muted font-semibold">
+                        <th class="pb-3 px-3">Kode sewa</th>
+                        <th class="pb-3 px-3">Barang</th>
+                        <th class="pb-3 px-3">Status</th>
+                        <th class="pb-3 px-3 text-right">Total masuk</th>
+                        <th class="pb-3 px-3 text-right">Total keluar</th>
+                        <th class="pb-3 px-3 text-right">Selisih</th>
+                        <th class="pb-3 px-3 text-center">Status invarian</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line/70">
+                    {% for r in recon.rentals %}
+                        <tr class="hover:bg-paper/60 transition-colors">
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <a href="{% url 'rentals:rental_detail' r.code %}" class="text-brand hover:underline font-mono font-bold">
+                                    #{{ r.code }}
+                                </a>
+                            </td>
+                            <td class="py-3 px-3 max-w-[200px] truncate text-ink font-medium" title="{{ r.item_title }}">
+                                {{ r.item_title }}
+                            </td>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <span class="text-[11px] text-ink-muted">{{ r.status_display }}</span>
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap tabular-nums text-ink">
+                                Rp{{ r.inflow|ribuan }}
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap tabular-nums text-ink">
+                                Rp{{ r.outflow|ribuan }}
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap tabular-nums {% if r.discrepancy != 0 %}font-bold text-brick{% else %}text-ink-muted{% endif %}">
+                                Rp{{ r.discrepancy|ribuan }}
+                            </td>
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                {% if r.status_label == 'Seimbang' %}
+                                    <span class="bg-pine-tint text-pine-dark px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                                        Seimbang
+                                    </span>
+                                {% elif r.status_label == 'Escrow Ditahan' %}
+                                    <span class="bg-amber-tint text-amber-text px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                                        Escrow Ditahan
+                                    </span>
+                                {% else %}
+                                    <span class="bg-brick-tint text-brick px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                                        Tidak Seimbang
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-ink-muted">
+                                Tidak ada data sewa untuk direkonsiliasi.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tabel Audit Buku Besar Per Pesanan Jual Beli -->
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+        <div class="flex items-center justify-between pb-4 border-b border-line mb-5">
+            <div>
+                <h2 class="font-heading text-lg font-bold text-ink">Audit invarian per pesanan jual beli</h2>
+                <p class="text-xs text-ink-muted mt-0.5">Membandingkan total dana masuk dan keluar pada buku besar tiap transaksi penjualan</p>
+            </div>
+            <span class="text-xs font-semibold text-ink-muted bg-paper px-2.5 py-1 rounded-lg border border-line">
+                {{ recon.sales|length }} pesanan terdaftar
+            </span>
+        </div>
+
+        <div class="overflow-x-auto -mx-6 sm:mx-0">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-line text-ink-muted font-semibold">
+                        <th class="pb-3 px-3">Kode pesanan</th>
+                        <th class="pb-3 px-3">Barang</th>
+                        <th class="pb-3 px-3">Status</th>
+                        <th class="pb-3 px-3 text-right">Total masuk</th>
+                        <th class="pb-3 px-3 text-right">Total keluar</th>
+                        <th class="pb-3 px-3 text-right">Selisih</th>
+                        <th class="pb-3 px-3 text-center">Status invarian</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line/70">
+                    {% for s in recon.sales %}
+                        <tr class="hover:bg-paper/60 transition-colors">
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <a href="{% url 'sales:order_detail' s.code %}" class="text-brand hover:underline font-mono font-bold">
+                                    #{{ s.code }}
+                                </a>
+                            </td>
+                            <td class="py-3 px-3 max-w-[200px] truncate text-ink font-medium" title="{{ s.item_title }}">
+                                {{ s.item_title }}
+                            </td>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                <span class="text-[11px] text-ink-muted">{{ s.status_display }}</span>
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap tabular-nums text-ink">
+                                Rp{{ s.inflow|ribuan }}
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap tabular-nums text-ink">
+                                Rp{{ s.outflow|ribuan }}
+                            </td>
+                            <td class="py-3 px-3 text-right whitespace-nowrap tabular-nums {% if s.discrepancy != 0 %}font-bold text-brick{% else %}text-ink-muted{% endif %}">
+                                Rp{{ s.discrepancy|ribuan }}
+                            </td>
+                            <td class="py-3 px-3 text-center whitespace-nowrap">
+                                {% if s.status_label == 'Seimbang' %}
+                                    <span class="bg-pine-tint text-pine-dark px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                                        Seimbang
+                                    </span>
+                                {% elif s.status_label == 'Escrow Ditahan' %}
+                                    <span class="bg-amber-tint text-amber-text px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                                        Escrow Ditahan
+                                    </span>
+                                {% else %}
+                                    <span class="bg-brick-tint text-brick px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                                        Tidak Seimbang
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-ink-muted">
+                                Tidak ada data pesanan jual beli untuk direkonsiliasi.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

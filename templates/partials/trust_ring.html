@@ -1,0 +1,87 @@
+{# Cincin Skor Kepercayaan — AGENT.md 5A, 5.5, 8.5 #}
+{# Menerima variabel: trust (objek TrustScore atau None), size (opsional: 'sm' untuk kartu, 'md' default, 'lg' untuk kartu utama) #}
+{% if trust %}
+    {% with label=trust.get_label color=trust.get_token_color score=trust.effective_score %}
+    <div class="inline-flex items-center gap-2 group relative cursor-help"
+         title="Skor dihitung dari riwayat sewamu (Skor: {{ score }}/100 - {{ label }}). Pelajari di Bantuan.">
+        {% if size == 'sm' %}
+            {# Versi Mini untuk Kartu Barang (24x24 px) #}
+            <div class="relative flex-shrink-0 w-6 h-6">
+                <svg viewBox="0 0 36 36" class="w-6 h-6 -rotate-90" aria-hidden="true">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#E4DECF" stroke-width="3"/>
+                    <circle cx="18" cy="18" r="15" fill="none"
+                        stroke="{% if color == 'pine' %}#0E7C5A{% elif color == 'amber-text' %}#9A5B00{% elif color == 'brick' %}#B42318{% else %}#566074{% endif %}"
+                        stroke-width="3.5"
+                        stroke-dasharray="{{ score }}, 100"
+                        stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-ink tabular-nums">
+                    {{ score }}
+                </div>
+            </div>
+            <span class="text-[11px] font-medium
+                {% if color == 'pine' %}text-pine-dark
+                {% elif color == 'amber-text' %}text-amber-text
+                {% elif color == 'brick' %}text-brick
+                {% else %}text-ink-muted{% endif %}">
+                {{ label }}
+            </span>
+        {% elif size == 'lg' %}
+            {# Versi Besar (56x56 px) untuk Dashboard #}
+            <div class="relative flex-shrink-0 w-14 h-14">
+                <svg viewBox="0 0 36 36" class="w-14 h-14 -rotate-90" aria-hidden="true">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#E4DECF" stroke-width="3"/>
+                    <circle cx="18" cy="18" r="15" fill="none"
+                        stroke="{% if color == 'pine' %}#0E7C5A{% elif color == 'amber-text' %}#9A5B00{% elif color == 'brick' %}#B42318{% else %}#566074{% endif %}"
+                        stroke-width="3.5"
+                        stroke-dasharray="{{ score }}, 100"
+                        stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-base font-bold text-ink tabular-nums">
+                    {{ score }}
+                </div>
+            </div>
+            <div>
+                <p class="text-sm font-bold
+                    {% if color == 'pine' %}text-pine-dark
+                    {% elif color == 'amber-text' %}text-amber-text
+                    {% elif color == 'brick' %}text-brick
+                    {% else %}text-ink-muted{% endif %}">
+                    {{ label }}
+                </p>
+                <p class="text-[11px] text-ink-muted">Skor Kepercayaan</p>
+            </div>
+        {% else %}
+            {# Versi Standar (44x44 px) untuk Seksi Bukti & Profil #}
+            <div class="relative flex-shrink-0 w-11 h-11">
+                <svg viewBox="0 0 36 36" class="w-11 h-11 -rotate-90" aria-hidden="true">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#E4DECF" stroke-width="3"/>
+                    <circle cx="18" cy="18" r="15" fill="none"
+                        stroke="{% if color == 'pine' %}#0E7C5A{% elif color == 'amber-text' %}#9A5B00{% elif color == 'brick' %}#B42318{% else %}#566074{% endif %}"
+                        stroke-width="3.5"
+                        stroke-dasharray="{{ score }}, 100"
+                        stroke-linecap="round"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-ink tabular-nums">
+                    {{ score }}
+                </div>
+            </div>
+            <div>
+                <p class="text-xs font-semibold
+                    {% if color == 'pine' %}text-pine-dark
+                    {% elif color == 'amber-text' %}text-amber-text
+                    {% elif color == 'brick' %}text-brick
+                    {% else %}text-ink-muted{% endif %}">
+                    {{ label }}
+                </p>
+                <p class="text-[10px] text-ink-muted">Skor Kepercayaan</p>
+            </div>
+        {% endif %}
+    </div>
+    {% endwith %}
+{% else %}
+    <div class="inline-flex items-center gap-1.5 cursor-help" title="Skor dihitung dari riwayat sewamu. Pengguna baru memiliki skor awal 60. Pelajari di Bantuan.">
+        <span class="w-6 h-6 rounded-full bg-paper-deep border border-line flex items-center justify-center text-[10px] text-ink-muted font-bold">60</span>
+        <span class="text-[11px] text-ink-muted">Pengguna baru</span>
+    </div>
+{% endif %}

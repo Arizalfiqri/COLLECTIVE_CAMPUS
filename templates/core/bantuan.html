@@ -1,0 +1,970 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Pusat Bantuan &amp; FAQ | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16"
+     x-data="{
+         searchQuery: '',
+         activeCategory: 'semua',
+         activeItem: null,
+         toggle(id) {
+             this.activeItem = this.activeItem === id ? null : id;
+         },
+         matches(category, text) {
+             const matchCat = this.activeCategory === 'semua' || this.activeCategory === category;
+             const q = this.searchQuery.toLowerCase().trim();
+             const matchSearch = !q || text.toLowerCase().includes(q);
+             return matchCat && matchSearch;
+         }
+     }">
+
+    <!-- ===== HEADER PUSAT BANTUAN ===== -->
+    <div class="max-w-3xl space-y-4 mb-6 sm:mb-8 lg:mb-10">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-ink leading-tight tracking-tight">
+            Ada yang bisa kami bantu?
+        </h1>
+        <p class="text-base sm:text-lg text-ink-muted leading-relaxed">
+            Temukan panduan lengkap seputar verifikasi KTM, sistem sewa dan jual beli mahasiswa, perjanjian resmi, aturan denda keterlambatan, hingga Dana Gotong Royong.
+        </p>
+
+        <!-- Kotak Pencarian Interaktif FAQ -->
+        <div class="pt-2">
+            <div class="relative w-full flex items-center">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-muted" style="position: absolute; left: 0.875rem; top: 0; bottom: 0; display: flex; align-items: center;">
+                    {% include 'partials/icon.html' with name='search' class='w-4 h-4' %}
+                </div>
+                <input type="text"
+                       x-model="searchQuery"
+                       id="faq-search-input"
+                       placeholder="Cari pertanyaan... (misal: S&K digital, KTM, denda, jual beli, escrow)"
+                       style="padding-left: 2.75rem; padding-right: 5.5rem;"
+                       class="w-full py-3 bg-card border border-line rounded-xl text-sm text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all shadow-sm">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; display: flex; align-items: center;">
+                    <button type="button"
+                            x-show="searchQuery"
+                            x-cloak
+                            @click="searchQuery = ''; document.getElementById('faq-search-input').focus();"
+                            class="text-xs text-ink-muted hover:text-ink bg-paper-deep hover:bg-line px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 font-medium border border-line">
+                        {% include 'partials/icon.html' with name='x' class='w-3.5 h-3.5' %}
+                        <span>Hapus</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== KATEGORI FAQ TABS (Sentence case chips) ===== -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 text-xs font-semibold no-scrollbar">
+        <button type="button"
+                @click="activeCategory = 'semua'"
+                :class="activeCategory === 'semua' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Semua topik
+        </button>
+        <button type="button"
+                @click="activeCategory = 'akun'"
+                :class="activeCategory === 'akun' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Verifikasi dan akun
+        </button>
+        <button type="button"
+                @click="activeCategory = 'sewa'"
+                :class="activeCategory === 'sewa' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Sewa dan escrow
+        </button>
+        <button type="button"
+                @click="activeCategory = 'temu'"
+                :class="activeCategory === 'temu' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Titik temu dan foto
+        </button>
+        <button type="button"
+                @click="activeCategory = 'sengketa'"
+                :class="activeCategory === 'sengketa' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Denda dan sengketa
+        </button>
+        <button type="button"
+                @click="activeCategory = 'gotong-royong'"
+                :class="activeCategory === 'gotong-royong' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Dana Gotong Royong
+        </button>
+        <button type="button"
+                @click="activeCategory = 'dompet'"
+                :class="activeCategory === 'dompet' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Dompet dan penarikan
+        </button>
+        <button type="button"
+                @click="activeCategory = 'jual-beli'"
+                :class="activeCategory === 'jual-beli' ? 'bg-brand text-white border-brand' : 'bg-card text-ink-muted border-line hover:border-brand/40 hover:text-ink'"
+                class="px-4 py-2.5 min-h-[44px] rounded-xl border transition-colors whitespace-nowrap">
+            Jual beli
+        </button>
+    </div>
+
+    <!-- ===== DAFTAR PERTANYAAN (ACCORDION) ===== -->
+    <div class="space-y-4 max-w-4xl">
+
+        <!-- 1. KATEGORI: VERIFIKASI & AKUN -->
+        <div class="space-y-3" x-show="matches('akun', 'Siapa saja yang boleh menyewa atau memasang barang verifikasi KTM aktif mahasiswa cara kerja privasi foto KTM delete_image_file durasi simpan foto serah terima lupa kata sandi password reset rate limiting perubahan kampus studentprofile kontak whatsapp disembunyikan nomor chat internal')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-pine' %}
+                <span>Verifikasi dan akun mahasiswa</span>
+            </h2>
+
+            <!-- Q1 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 1 }">
+                <button type="button"
+                        @click="toggle(1)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Siapa saja yang boleh menyewa atau memasang barang di {{ SITE_NAME }}?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 1 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 1" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        {{ SITE_NAME }} adalah komunitas tertutup khusus mahasiswa aktif. Pengunjung tanpa login atau pengguna yang belum verifikasi dapat melihat katalog publik, namun untuk <strong>mengajukan sewa</strong>, <strong>membeli barang</strong>, atau <strong>memasang iklan</strong>, wajib memiliki akun dengan status KTM terverifikasi.
+                    </p>
+                    <p>
+                        Aturan ini menjamin seluruh transaksi berlangsung antar-mahasiswa dengan identitas akademik yang jelas dan bertanggung jawab.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q2 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 2 }">
+                <button type="button"
+                        @click="toggle(2)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana cara kerja verifikasi kartu tanda mahasiswa (KTM)?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 2 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 2" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Setelah mendaftar, buka menu <strong>Verifikasi KTM</strong>. Unggah foto KTM Anda yang masih berlaku. Sistem membaca nomor induk mahasiswa (NIM) dan nama Anda dengan bantuan OCR. Admin kampus akan meninjau data tersebut untuk memastikan keabsahan identitas kemahasiswaan Anda.
+                    </p>
+                    <p class="text-pine-dark font-medium">
+                        Privasi data: Dokumen KTM disimpan secara privat dan hanya diperiksa oleh admin untuk keperluan validasi identitas, tidak dipublikasikan ke pengguna lain (sesuai UU Pelindungan Data Pribadi).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q3 (Item 4: Privasi KTM & Durasi Simpan Foto) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 3 }">
+                <button type="button"
+                        @click="toggle(3)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana privasi foto KTM saya dan berapa lama foto serah terima disimpan?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 3 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 3" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        {{ SITE_NAME }} menerapkan kebijakan minimisasi dan pembersihan data sensitif secara ketat:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Foto dokumen KTM:</strong> Segera setelah permohonan verifikasi disetujui oleh admin kampus, berkas foto fisik KTM otomatis dihapus secara permanen dari server penyimpanan melalui fungsi <code>delete_image_file()</code> (berdasarkan implementasi di berkas <code>apps/verification/models.py</code> baris 97-106). Sistem hanya mempertahankan data teks terverifikasi (nama lengkap dan NIM) pada profil mahasiswa untuk keperluan autentikasi.</li>
+                        <li><strong>Foto serah terima barang:</strong> Foto bukti fisik kondisi barang yang diunggah saat serah terima disimpan aman selama transaksi berlangsung. Setelah transaksi berstatus selesai tanpa adanya sengketa, sistem menjalankan rutinitas pembersihan berkala <code>purge_handover_photos()</code> (di <code>apps/rentals/photos.py</code> baris 109-140) yang menghapus file foto serah terima setelah masa retensi 14 hingga 30 hari.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q4 (Item 5: Lupa Kata Sandi) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 4 }">
+                <button type="button"
+                        @click="toggle(4)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana jika saya lupa kata sandi akun?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 4 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 4" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Jika Anda tidak dapat masuk karena lupa kata sandi, ikuti langkah berikut:
+                    </p>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Buka halaman masuk dan klik tautan <strong>Lupa kata sandi?</strong>.</li>
+                        <li>Masukkan alamat email yang terdaftar pada akun Anda.</li>
+                        <li>Sistem akan mengirimkan surel berisi tautan resmi untuk mengatur ulang kata sandi baru.</li>
+                    </ol>
+                    <p>
+                        Untuk melindungi akun mahasiswa dari upaya penyalahgunaan atau spam otomatis, fitur ini dilindungi oleh mekanisme pembatasan frekuensi (rate limiting) ketat melalui pengendali <code>RateLimitedPasswordResetView</code> (di berkas <code>apps/accounts/views.py</code> baris 324).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q5 (Item 6: Perubahan Kampus) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 5 }">
+                <button type="button"
+                        @click="toggle(5)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apakah saya bisa mengubah kampus atau fakultas setelah akun terverifikasi?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 5 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 5" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Data kampus dan nomor induk mahasiswa (NIM) terikat secara permanen pada entitas profil mahasiswa (bidang <code>StudentProfile.campus</code> dan <code>StudentProfile.nim</code> pada <code>apps/accounts/models.py</code> baris 86-90) berdasarkan dokumen KTM yang disetujui admin.
+                    </p>
+                    <p>
+                        Pengguna tidak dapat mengubah instansi kampus secara mandiri di menu profil. Hal ini bertujuan untuk mencegah pemalsuan identitas atau transaksi fiktif lintas-kampus. Apabila Anda berpindah kampus atau melanjutkan studi baru, silakan hubungi tim admin platform via email bantuan dengan melampirkan bukti surat keterangan pindah atau KTM baru yang sah untuk pembaruan data manual.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q6 (Item 3: Penyamaran Kontak) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 6 }">
+                <button type="button"
+                        @click="toggle(6)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Mengapa nomor WhatsApp atau kontak pribadi saya tidak langsung ditampilkan ke publik?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 6 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 6" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Demi menjaga privasi dan keamanan sesama mahasiswa:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>Semua tanya jawab barang, negosiasi harga, dan kesepakatan waktu temu dilakukan terpusat melalui fitur pesan internal platform (diimplementasikan pada <code>apps/chat/models.py</code>).</li>
+                        <li>Nomor telepon, WhatsApp, dan surel pribadi Anda disembunyikan dari profil publik dan listing katalog untuk mencegah spam, panggilan telepon tidak dikenal, atau pelecehan di luar kendali kampus.</li>
+                        <li>Transaksi di dalam platform memastikan jejak percakapan tersimpan sebagai rujukan resmi jika timbul sengketa kondisi barang atau kendala serah terima.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. KATEGORI: SEWA & ESCROW -->
+        <div class="space-y-3 pt-4" x-show="matches('sewa', 'Bagaimana sistem pembayaran escrow dana ditahan perjanjian digital tagihan tambahan komisi platform pembatalan sewa pengembalian biaya tersembunyi tidak responsif kewajiban centang S&K terms_accepted')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='wallet' class='w-4 h-4 text-amber-text' %}
+                <span>Penyewaan dan sistem escrow (dana ditahan)</span>
+            </h2>
+
+            <!-- Q7 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 7 }">
+                <button type="button"
+                        @click="toggle(7)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apa itu sistem penahanan dana (Escrow) di {{ SITE_NAME }}?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 7 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 7" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Sistem Escrow adalah mekanisme pengamanan transaksi: saat penyewa atau pembeli membayar, dana transaksi <strong>tidak langsung diterima oleh pemilik atau penjual</strong>, melainkan disimpan aman oleh sistem platform {{ SITE_NAME }}.
+                    </p>
+                    <p>
+                        Dana sewa baru dicairkan ke saldo pemilik setelah barang berhasil dikembalikan dan disetujui kedua belah pihak. Hal ini mencegah penipuan barang fiktif atau pembatalan sepihak.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q8 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 8 }">
+                <button type="button"
+                        @click="toggle(8)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana perlindungan barang sewaan tanpa jaminan tunai di muka?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 8 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 8" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Di {{ SITE_NAME }}, penyewaan mahasiswa berjalan dengan perlindungan hukum penuh <strong>tanpa penahanan uang di muka</strong>. Penyewa mengikatkan diri secara hukum melalui Syarat &amp; Ketentuan (S&amp;K) Digital resmi serta surat perjanjian digital berjejak audit saat mengajukan sewa.
+                    </p>
+                    <p>
+                        Jika terjadi keterlambatan atau kerusakan yang terbukti saat pengembalian, sistem akan menerbitkan tagihan tambahan resmi yang wajib diselesaikan oleh penyewa.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q9 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 9 }">
+                <button type="button"
+                        @click="toggle(9)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Metode pembayaran apa saja yang digunakan?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 9 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 9" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        {{ SITE_NAME }} terintegrasi dengan gerbang pembayaran <strong>Midtrans Sandbox</strong> untuk pengujian transaksi yang aman dan andal. Metode yang didukung mencakup:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>QRIS (GoPay, ShopeePay, m-Banking)</li>
+                        <li>Virtual Account Bank (BCA, BNI, BRI, Mandiri, Permata)</li>
+                    </ul>
+                    <p>
+                        Status pembayaran diperbarui secara otomatis menggunakan tanda tangan webhook terotentikasi.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q10 (Item 1 & 7: Aturan Pembatalan Sewa & Pemilik Tidak Responsif) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 10 }">
+                <button type="button"
+                        @click="toggle(10)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana aturan pembatalan sewa dan jika pemilik barang tidak responsif?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 10 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 10" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Mekanisme pembatalan sewa diatur secara adil dan terprogram:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Sebelum disetujui:</strong> Penyewa dapat membatalkan pengajuan sewa kapan saja secara langsung tanpa dikenakan biaya apa pun melalui fungsi <code>cancel_rental_request_view</code> (pada <code>apps/rentals/views.py</code>).</li>
+                        <li><strong>Sebelum pembayaran:</strong> Jika pengajuan telah disetujui pemilik namun penyewa tidak menyelesaikan pembayaran hingga batas waktu kedaluwarsa, sewa otomatis dibatalkan oleh sistem.</li>
+                        <li><strong>Pemilik tidak merespons setelah bayar:</strong> Jika penyewa telah membayar namun pemilik tidak mengonfirmasi jadwal temu atau tidak hadir, transaksi dapat dibatalkan dan seluruh dana sewa beserta iuran Dana Gotong Royong dikembalikan 100% utuh ke saldo penyewa via mekanisme pemulihan escrow (di <code>apps/rentals/services.py</code>).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q11 (Item 2: Biaya Tambahan & Transparansi) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 11 }">
+                <button type="button"
+                        @click="toggle(11)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apakah ada biaya tambahan atau biaya tersembunyi saat bertransaksi?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 11 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 11" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Semua transaksi di {{ SITE_NAME }} bersifat transparan tanpa biaya siluman:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Transaksi Sewa:</strong> Penyewa membayar harga sewa harian sesuai durasi ditambah iuran Dana Gotong Royong (5% dari biaya sewa, min. Rp3.000) sebagai proteksi bersama tanpa penahanan jaminan tunai di muka. Pemilik dikenakan komisi platform saat pencairan hasil sewa.</li>
+                        <li><strong>Transaksi Jual Beli:</strong> Pembeli <strong>sama sekali tidak dikenakan biaya tambahan (0% biaya admin bagi pembeli)</strong>. Harga yang dibayar adalah murni harga barang pada listing. Penjual dikenakan komisi pemeliharaan sistem 5% (min. Rp2.000) yang dipotong dari hasil penjualan saat dana dicairkan.</li>
+                    </ul>
+                    <p>
+                        Tagihan tambahan hanya diterbitkan apabila penyewa terbukti terlambat mengembalikan barang sewa (denda keterlambatan) atau terjadi kerusakan fisik yang disetujui dalam mediasi sengketa.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q12 (Item 11: Kewajiban Centang S&K) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 12 }">
+                <button type="button"
+                        @click="toggle(12)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Mengapa saya wajib mencentang persetujuan Syarat &amp; Ketentuan (S&amp;K) digital?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 12 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 12" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Pencatatan persetujuan S&amp;K (melalui validasi kotak centang wajib <code>terms_accepted</code> di <code>apps/rentals/views.py</code> baris 61 dan <code>apps/sales/views.py</code> baris 516) memiliki peran fundamental:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Kekuatan hukum digital:</strong> Menjadi bukti kesepakatan tertulis digital resmi antar-mahasiswa tanpa perlu tanda tangan basah di atas kertas bermaterai.</li>
+                        <li><strong>Pengganti jaminan tunai:</strong> Memungkinkan mahasiswa meminjam barang bernilai tinggi tanpa harus menahan dana tunai ratusan ribu rupiah di muka, karena penyewa secara sah terikat pada sanksi tagihan denda keterlambatan atau ganti rugi jika melanggar.</li>
+                        <li><strong>Perlindungan hak kedua pihak:</strong> Menjadi dasar hukum bagi platform untuk membekukan akun, memasukkan NIM ke daftar hitam, atau memediasi kompensasi apabila terjadi penyalahgunaan.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. KATEGORI: TITIK TEMU & FOTO -->
+        <div class="space-y-3 pt-4" x-show="matches('temu', 'Di mana titik temu serah terima kampus jadwal foto kondisi sebelum sesudah dokumentasi bukti fisik')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='map-pin' class='w-4 h-4 text-brand' %}
+                <span>Titik temu dan dokumentasi foto</span>
+            </h2>
+
+            <!-- Q13 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 13 }">
+                <button type="button"
+                        @click="toggle(13)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Di mana dan bagaimana serah terima barang dilakukan?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 13 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 13" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Serah terima dilakukan secara langsung di area publik kampus (seperti perpustakaan, lobi fakultas, atau gerbang utama). Pemilik atau penjual mengusulkan jam dan titik temu pada detail transaksi, lalu pihak penerima dapat menyetujui atau mengusulkan jam alternatif.
+                    </p>
+                    <p>
+                        Untuk kenyamanan dan keamanan kedua pihak, dilarang melakukan transaksi serah terima di lokasi privat di luar area kampus.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q14 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 14 }">
+                <button type="button"
+                        @click="toggle(14)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Mengapa wajib mengambil foto kondisi saat serah terima?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 14 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 14" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Foto kondisi adalah bukti fisik digital yang melindungi penyewa dan pemilik:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Foto sebelum:</strong> Pemilik mengunggah foto kondisi awal barang sebelum diserahkan.</li>
+                        <li><strong>Foto serah terima:</strong> Diambil bersama saat serah terima barang di lokasi temu kampus.</li>
+                        <li><strong>Foto pengembalian:</strong> Diambil saat pengembalian barang sewaan.</li>
+                    </ul>
+                    <p>
+                        Jika di kemudian hari terjadi perbedaan klaim kondisi barang, admin menggunakan foto ini sebagai acuan objektif penyelesaian sengketa.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. KATEGORI: DENDA & SENGKETA -->
+        <div class="space-y-3 pt-4" x-show="matches('sengketa', 'Bagaimana jika terlambat mengembalikan barang denda barang tidak kembali sengketa kerusakan tagihan tambahan mediasi')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='alert-circle' class='w-4 h-4 text-brick' %}
+                <span>Denda keterlambatan dan penyelesaian sengketa</span>
+            </h2>
+
+            <!-- Q15 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 15 }">
+                <button type="button"
+                        @click="toggle(15)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Berapa denda jika barang terlambat dikembalikan?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 15 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 15" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Denda dihitung per hari penuh keterlambatan dengan tarif <strong>50% dari harga sewa harian</strong> per hari terlambat. Denda ini diterbitkan sebagai <strong>tagihan tambahan resmi</strong> kepada penyewa dan diteruskan kepada pemilik barang sebagai kompensasi waktu sewa yang terlewat.
+                    </p>
+                    <p>
+                        Perhitungan: Barang dengan harga sewa Rp50.000/hari terlambat 2 hari dikenakan denda Rp25.000 &times; 2 = Rp50.000.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q16 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 16 }">
+                <button type="button"
+                        @click="toggle(16)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apa konsekuensi jika penyewa tidak mengembalikan barang sama sekali?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 16 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 16" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Platform menerapkan aturan tegas anti-kehilangan:
+                    </p>
+                    <ol class="list-decimal pl-4 space-y-1 text-brick">
+                        <li>Jika lewat batas waktu pengembalian tanpa respons, status sewa diubah menjadi <strong>Sengketa Barang Tidak Dikembalikan</strong>.</li>
+                        <li>Tagihan ganti rugi penuh sebesar nilai taksiran barang diterbitkan kepada penyewa.</li>
+                        <li>Akun penyewa otomatis dibekukan secara permanen.</li>
+                        <li>NIM mahasiswa dimasukkan ke dalam daftar hitam (blacklist) permanen sehingga tidak dapat lagi mendaftar ke platform {{ SITE_NAME }}.</li>
+                        <li>Pemilik barang berhak mengajukan klaim santunan kepada Dana Gotong Royong platform.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Q17 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 17 }">
+                <button type="button"
+                        @click="toggle(17)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana jika terjadi kerusakan fisik pada barang?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 17 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 17" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Saat pengembalian, pemilik dapat memilih <strong>Laporkan Masalah</strong> dan mengusulkan nominal tagihan ganti rugi kerusakan (maksimal hingga nilai taksiran barang).
+                    </p>
+                    <p>
+                        Penyewa dapat langsung menyetujui nominal tersebut agar diterbitkan tagihan resmi yang dapat dilunasi. Jika tidak dicapai kesepakatan, sengketa akan dimediasi oleh admin platform berdasarkan perbandingan foto bukti serah terima dan pengembalian.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. KATEGORI: DANA GOTONG ROYONG & SKOR KEPERCAYAAN -->
+        <div class="space-y-3 pt-4" x-show="matches('gotong-royong', 'Apa itu Dana Gotong Royong skor kepercayaan AI model machine learning santunan iuran')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='users' class='w-4 h-4 text-brand' %}
+                <span>Dana gotong royong dan skor kepercayaan</span>
+            </h2>
+
+            <!-- Q18 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 18 }">
+                <button type="button"
+                        @click="toggle(18)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apa fungsi Dana Gotong Royong pada transaksi sewa?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 18 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 18" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Dana Gotong Royong adalah iuran bersama kecil (5% dari biaya sewa, min. Rp3.000) yang dihimpun ke dalam pos cadangan platform.
+                    </p>
+                    <p>
+                        Dana ini dialokasikan sebagai pos cadangan perlindungan apabila timbul kendala fatal seperti barang tidak dikembalikan oleh penyewa, dengan bantuan santunan kompensasi yang dapat disetujui pengelola hingga 50% nilai taksiran barang setelah investigasi admin.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q19 & Panduan Skor Kepercayaan -->
+            <div id="skor-kepercayaan"
+                 class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 19 }">
+                <button type="button"
+                        @click="toggle(19)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span class="flex items-center gap-2">
+                        {% include 'partials/icon.html' with name='shield' class='w-4 h-4 text-brand' %}
+                        <span>Bagaimana Skor Kepercayaan dihitung?</span>
+                    </span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 19 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 19" x-cloak class="px-4 pb-5 sm:px-6 sm:pb-6 text-xs text-ink-muted leading-relaxed border-t border-line pt-4 space-y-4">
+                    <p class="text-ink font-medium">
+                        Skor Kepercayaan (skala 0 - 100) dirancang untuk menciptakan ekosistem sewa yang aman, transparan, dan berkeadilan di lingkungan kampus tanpa diskriminasi.
+                    </p>
+
+                    <!-- 4 Blok Penjelasan -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                        <!-- 1. Faktor yang dinilai -->
+                        <div class="p-3.5 rounded-xl bg-paper border border-line space-y-1.5">
+                            <div class="flex items-center gap-2 text-ink font-bold text-xs">
+                                <span class="w-2 h-2 rounded-full bg-pine"></span>
+                                <h4>Faktor yang dinilai</h4>
+                            </div>
+                            <ul class="list-disc pl-4 space-y-1 text-ink-muted text-[11px]">
+                                <li>Ketepatan waktu pengembalian barang sewa.</li>
+                                <li>Rating dan ulasan dari sesama mahasiswa setelah sewa selesai.</li>
+                                <li>Penyelesaian sewa yang sukses tanpa sengketa.</li>
+                                <li>Komitmen pemesanan (rendahnya pembatalan sepihak).</li>
+                            </ul>
+                        </div>
+
+                        <!-- 2. Yang TIDAK dipakai -->
+                        <div class="p-3.5 rounded-xl bg-paper border border-line space-y-1.5">
+                            <div class="flex items-center gap-2 text-ink font-bold text-xs">
+                                <span class="w-2 h-2 rounded-full bg-brick"></span>
+                                <h4>Faktor yang TIDAK dipakai</h4>
+                            </div>
+                            <ul class="list-disc pl-4 space-y-1 text-ink-muted text-[11px]">
+                                <li>Data pribadi demografis (gender, suku, ras, agama).</li>
+                                <li>Jurusan, fakultas, maupun kampus asal pengguna.</li>
+                                <li>Nominal harga barang atau volume uang transaksi.</li>
+                                <li>Latar belakang ekonomi mahasiswa.</li>
+                            </ul>
+                        </div>
+
+                        <!-- 3. Arti Pengguna Baru -->
+                        <div class="p-3.5 rounded-xl bg-paper border border-line space-y-1.5">
+                            <div class="flex items-center gap-2 text-ink font-bold text-xs">
+                                <span class="w-2 h-2 rounded-full bg-amber-text"></span>
+                                <h4>Arti "Pengguna baru" (Skor 60)</h4>
+                            </div>
+                            <p class="text-[11px] text-ink-muted leading-relaxed">
+                                Mahasiswa yang baru bergabung dan memiliki kurang dari 3 transaksi selesai mendapatkan skor netral <strong>60 ("Pengguna baru")</strong>. Ini menjamin kamu tetap bisa menyewa tanpa terhambat ketiadaan riwayat masa lalu.
+                            </p>
+                        </div>
+
+                        <!-- 4. Cara menaikkan skor -->
+                        <div class="p-3.5 rounded-xl bg-paper border border-line space-y-1.5">
+                            <div class="flex items-center gap-2 text-ink font-bold text-xs">
+                                <span class="w-2 h-2 rounded-full bg-brand"></span>
+                                <h4>Cara menaikkan skor</h4>
+                            </div>
+                            <ul class="list-disc pl-4 space-y-1 text-ink-muted text-[11px]">
+                                <li>Kembalikan barang tepat waktu sesuai kesepakatan.</li>
+                                <li>Jaga barang sewa dalam kondisi baik dan bersih.</li>
+                                <li>Komunikasikan jadwal serah terima dengan sopan dan jelas.</li>
+                                <li>Hindari pembatalan mendadak setelah permintaan disetujui.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. KATEGORI: DOMPET & PENARIKAN DANA -->
+        <div class="space-y-3 pt-4" x-show="matches('dompet', 'Bagaimana cara menarik saldo dompet pencairan dana payout rekening bank e-wallet minimal penarikan')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='wallet' class='w-4 h-4 text-brand' %}
+                <span>Dompet dan penarikan dana</span>
+            </h2>
+
+            <!-- Q20 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 20 }">
+                <button type="button"
+                        @click="toggle(20)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana mekanisme pencairan saldo dari dompet {{ SITE_NAME }}?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 20 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 20" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Saldo dompet Anda bertambah dari penerimaan sewa barang (setelah dipotong komisi platform), hasil penjualan barang thrift, pembayaran denda/ganti rugi yang terselesaikan, atau santunan kompensasi Dana Gotong Royong.
+                    </p>
+                    <p>
+                        Pencairan dana diproses ke rekening bank atau akun dompet digital terdaftar (DANA, SeaBank, Mandiri, BCA, BRI, BNI) setelah verifikasi keamanan.
+                    </p>
+                    <p>
+                        Batas minimal penarikan saldo adalah {{ WITHDRAWAL_MIN|rupiah }} (diatur terpusat melalui variabel <code>WITHDRAWAL_MIN</code> di <code>config/settings.py</code> baris 280), dan nomor rekening Anda dienkripsi secara aman dengan algoritma kriptografi Fernet di server sehingga kerahasiaan data perbankan Anda terlindungi sepenuhnya.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. KATEGORI: JUAL BELI -->
+        <div class="space-y-3 pt-4" x-show="matches('jual-beli', 'Bagaimana cara jual beli thrift barang bekas tangga penjual batas harga barang terlarang komisi pembeli 0% masa inspeksi 48 jam status dipesan pembatalan penjual tidak responsif persetujuan S&K')">
+            <h2 class="text-sm font-bold tracking-wider text-ink-muted pt-2 pb-1 flex items-center gap-2">
+                {% include 'partials/icon.html' with name='tag' class='w-4 h-4 text-amber-text' %}
+                <span>Jual beli dan thrift mahasiswa</span>
+            </h2>
+
+            <!-- Q21 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 21 }">
+                <button type="button"
+                        @click="toggle(21)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana cara kerja jual beli barang thrift di {{ SITE_NAME }}?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 21 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 21" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Jual beli di {{ SITE_NAME }} dirancang khusus untuk barang bekas layak pakai (thrift) sesama mahasiswa kampus:
+                    </p>
+                    <ol class="list-decimal pl-4 space-y-1 text-ink-muted text-xs">
+                        <li><strong>Cari &amp; hubungi penjual:</strong> Temukan barang di katalog jual beli dan tanyakan detail melalui fitur pesan aman.</li>
+                        <li><strong>Bayar lewat platform:</strong> Pembayaran ditahan oleh platform secara aman hingga serah terima selesai.</li>
+                        <li><strong>Bertemu di kampus:</strong> Lakukan pertemuan langsung di titik temu area publik kampus yang disepakati untuk cek kondisi fisik barang.</li>
+                        <li><strong>Konfirmasi terima:</strong> Pembeli mengonfirmasi penerimaan barang di sistem, dan dana diteruskan ke saldo dompet penjual.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Q22 (Item 9: Biaya Bagi Pembeli 0%) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 22 }">
+                <button type="button"
+                        @click="toggle(22)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Berapa biaya admin atau komisi yang dibebankan kepada pembeli barang thrift?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 22 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 22" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Pembeli <strong>sama sekali tidak dikenakan biaya admin atau komisi platform (0% fee pembeli)</strong>.
+                    </p>
+                    <p>
+                        Nominal total yang dibayarkan oleh pembeli murni setara dengan harga barang yang tercantum pada listing iklan (sesuai properti <code>SaleOrder.total_amount = self.price_snapshot</code> pada berkas <code>apps/sales/models.py</code> baris 393-394). Komisi platform pemeliharaan sebesar 5% (minimal Rp2.000) hanya dipotong dari nominal bersih yang dicairkan ke saldo dompet penjual setelah transaksi tuntas.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q23 (Item 8: Masa Periksa Barang / Inspeksi 48 Jam) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 23 }">
+                <button type="button"
+                        @click="toggle(23)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Berapa lama masa periksa kondisi barang oleh pembeli pada transaksi jual beli?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 23 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 23" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Pembeli dilindungi oleh dua lapis pemeriksaan:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Pemeriksaan fisik langsung saat temu COD:</strong> Pembeli dapat memeriksa fisik, kelengkapan, dan fungsi dasar barang secara langsung saat bertemu di titik temu kampus sebelum menandatangani berita acara serah terima.</li>
+                        <li><strong>Masa inspeksi 48 jam:</strong> Setelah penyerahan dikonfirmasi di sistem, pembeli memiliki masa inspeksi selama 48 jam penuh (konfigurasi <code>SALE_INSPECTION_HOURS = 48</code> pada <code>apps/sales/services.py</code> baris 480). Selama masa ini, dana masih ditahan aman di escrow. Jika ditemukan cacat tersembunyi yang tidak sesuai deskripsi iklan, pembeli berhak mengajukan sanggahan/sengketa sebelum konfirmasi selesai.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q24 (Item 10: Status Dipesan & Kunci Pembelian) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 24 }">
+                <button type="button"
+                        @click="toggle(24)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apa arti status barang 'Dipesan' dan apakah orang lain masih bisa membelinya?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 24 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 24" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Ketika seorang pembeli mengklik tombol beli dan membuat pesanan, sistem mengubah status barang menjadi <strong>dipesan</strong> (berdasarkan status <code>SaleItem.Status.DIPESAN</code> pada <code>apps/sales/models.py</code> baris 33).
+                    </p>
+                    <p>
+                        Selama barang berstatus dipesan:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>Tombol pembelian dikunci oleh sistem (divalidasi melalui <code>apps/sales/services.py</code> baris 268-270) sehingga calon pembeli lain tidak dapat melakukan pemesanan ganda.</li>
+                        <li>Pembeli diberi batas waktu tertentu untuk menyelesaikan pembayaran dan mengatur pertemuan serah terima.</li>
+                        <li>Jika pembayaran tidak diselesaikan sebelum batas waktu kedaluwarsa atau pesanan dibatalkan, status barang akan otomatis kembali menjadi <code>aktif</code> dan dapat dibeli kembali oleh mahasiswa lain.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q25 (Item 1 & 7: Pembatalan Pesanan Jual Beli & Penjual Tidak Responsif) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 25 }">
+                <button type="button"
+                        @click="toggle(25)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana aturan pembatalan pesanan jual beli dan jika penjual tidak responsif?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 25 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 25" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Aturan pembatalan transaksi jual beli melindungi hak pembeli dan penjual:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Sebelum pembayaran:</strong> Pembeli dapat membatalkan pesanan kapan saja, atau pesanan otomatis dibatalkan sistem jika batas waktu reservasi berakhir.</li>
+                        <li><strong>Sebelum serah terima:</strong> Pembeli dapat mengajukan pembatalan pesanan melalui pengendali <code>sale_order_cancel_view</code> (pada <code>apps/sales/views.py</code>) apabila penjual tidak responsif dalam menyepakati jadwal pertemuan di kampus.</li>
+                        <li><strong>Pengembalian dana 100%:</strong> Jika transaksi dibatalkan setelah pembayaran karena ketidakhadiran penjual atau kesepakatan kedua pihak, seluruh dana yang tertahan di escrow otomatis dikembalikan 100% utuh ke saldo dompet pembeli tanpa potongan (di <code>apps/sales/services.py</code>).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q26 (Item 11: Persetujuan S&K Jual Beli) -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 26 }">
+                <button type="button"
+                        @click="toggle(26)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Mengapa penjual dan pembeli wajib menyetujui Syarat &amp; Ketentuan jual beli?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 26 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 26" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Persetujuan S&amp;K jual beli (diatur dalam model <code>SellerTermsAcceptance</code> dan validasi checkout <code>terms_accepted</code> di <code>apps/sales/views.py</code> baris 516) menjamin standar etika transaksi kampus:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>Penjual berkomitmen menyatakan kondisi fisik barang secara jujur dan tidak menyembunyikan cacat atau minus.</li>
+                        <li>Pembeli menyetujui mekanisme serah terima tatap muka di lingkungan kampus dan masa inspeksi resmi 48 jam.</li>
+                        <li>Persetujuan ini menjadi dasar hukum bagi platform untuk membekukan akun atau memasukkan pengguna ke daftar hitam jika terbukti melakukan penipuan.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q27 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 27 }">
+                <button type="button"
+                        @click="toggle(27)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Berapa batas harga maksimal barang yang boleh saya jual?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 27 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 27" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Untuk menjaga keamanan transaksi dan mencegah risiko penipuan bernilai tinggi, {{ SITE_NAME }} menerapkan <strong>Tangga Penjual</strong> berdasarkan riwayat transaksi yang berhasil:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1 text-ink-muted text-xs">
+                        <li><strong>Penjual baru:</strong> Batas harga maksimal Rp1.000.000 per barang (berlaku untuk semua pengguna yang belum memiliki 5 penjualan selesai).</li>
+                        <li><strong>Penjual tepercaya:</strong> Batas harga maksimal Rp3.000.000 per barang (minimal 5 penjualan selesai tanpa sengketa dan rating rata-rata 4,5 ke atas).</li>
+                        <li><strong>Penjual sangat tepercaya:</strong> Batas harga maksimal Rp8.000.000 per barang (minimal 15 penjualan selesai tanpa sengketa dan rating rata-rata 4,7 ke atas).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Q28 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 28 }">
+                <button type="button"
+                        @click="toggle(28)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apa saja barang yang dilarang dijual di {{ SITE_NAME }}?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 28 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 28" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Sistem menyaring kata kunci terlarang secara otomatis saat Anda membuat iklan jualan. Barang-barang yang dilarang keras meliputi:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1 text-brick text-xs">
+                        <li>Obat-obatan keras atau obat resep dokter.</li>
+                        <li>Minuman beralkohol (miras).</li>
+                        <li>Rokok konvensional, cerutu, tembakau, serta vape / rokok elektrik dan cairannya.</li>
+                        <li>Senjata tajam, senjata api, airsoft gun, dan bahan berbahaya/peledak.</li>
+                        <li>Hewan peliharaan atau satwa apa pun.</li>
+                        <li>Makanan olahan basah atau makanan cepat saji yang mudah basi.</li>
+                        <li>Barang palsu, bajakan, tiruan (KW), atau barang hasil tindak kejahatan/curian.</li>
+                        <li>Akun digital (akun game, streaming, email, media sosial, atau lisensi bajakan).</li>
+                    </ul>
+                    <p class="text-[11px] text-ink-muted pt-1">
+                        Iklan yang memuat barang terlarang akan ditolak otomatis oleh sistem dan dapat mengakibatkan pembekuan akun mahasiswa secara permanen.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q29 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 29 }">
+                <button type="button"
+                        @click="toggle(29)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Kapan dana diteruskan ke penjual dan berapa komisi platform?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 29 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 29" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Pembayaran pembeli ditahan secara aman di escrow platform. Dana akan diteruskan ke saldo dompet penjual setelah:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1 text-ink-muted text-xs">
+                        <li>Serah terima fisik tatap muka telah dikonfirmasi dan foto barang diunggah;</li>
+                        <li>Masa inspeksi 48 jam telah berlalu tanpa ada laporan sengketa, ATAU pembeli langsung menekan tombol "Konfirmasi terima".</li>
+                    </ul>
+                    <p class="pt-1">
+                        Platform memotong komisi sebesar <strong>5%</strong> (dengan nilai minimum Rp2.000) dari harga transaksi untuk pemeliharaan sistem dan kontribusi Dana Gotong Royong. Sisa dana bersih (95%) langsung masuk ke saldo dompet penjual dan dapat ditarik ke rekening bank.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Q30 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 30 }">
+                <button type="button"
+                        @click="toggle(30)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Bagaimana jika barang yang diterima rusak atau tidak sesuai deskripsi?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 30 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 30" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Pembeli dilindungi oleh <strong>Masa Inspeksi 48 Jam</strong> sejak barang diserahterimakan:
+                    </p>
+                    <ol class="list-decimal pl-4 space-y-1 text-ink-muted text-xs">
+                        <li>Jika barang rusak, cacat tidak diungkapkan, atau barang palsu, pembeli dapat mengklik tombol <strong>Ajukan sengketa</strong> pada halaman pesanan sebelum 48 jam berakhir.</li>
+                        <li>Moderator kampus akan meninjau bukti perbandingan antara snapshot listing beku saat pemesanan, foto serah terima, foto sengketa, dan transkrip pesan.</li>
+                        <li>Moderator dapat memutuskan pengembalian dana 100% ke pembeli, pelepasan dana ke penjual, atau kesepakatan potongan sebagian. Penjual yang terbukti melanggar akan dikenai penalti penurunan reputasi.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Q31 -->
+            <div class="bg-card border border-line rounded-card overflow-hidden shadow-sm transition-colors"
+                 :class="{ 'border-brand/50 ring-1 ring-brand/20': activeItem === 31 }">
+                <button type="button"
+                        @click="toggle(31)"
+                        class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-ink hover:text-brand transition-colors">
+                    <span>Apakah pembeli boleh menawar harga barang jualan?</span>
+                    <span class="text-ink-muted transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180 text-brand': activeItem === 31 }">
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-4 h-4' %}
+                    </span>
+                </button>
+                <div x-show="activeItem === 31" x-cloak class="px-4 pb-4 sm:px-5 sm:pb-5 text-xs text-ink-muted leading-relaxed border-t border-line pt-3 space-y-2">
+                    <p>
+                        Bila fitur penawaran harga diaktifkan pada platform, tombol <strong>Tawar harga</strong> akan tersedia di halaman detail barang aktif:
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1 text-ink-muted text-xs">
+                        <li>Pembeli dapat mengajukan nominal tawaran yang wajar di bawah harga listing.</li>
+                        <li>Tawaran berlaku selama 24 jam untuk dipertimbangkan penjual.</li>
+                        <li>Jika penjual menyetujui tawaran, pesanan otomatis terbentuk dengan harga kesepakatan dan pembeli diberi batas waktu 6 jam untuk menyelesaikan pembayaran.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== BANTUAN LEBIH LANJUT (CTA BOX) ===== -->
+    <div class="mt-12 sm:mt-16 bg-card border border-line rounded-card p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
+        <div class="space-y-1.5 max-w-xl">
+            <h3 class="text-lg sm:text-xl font-bold text-ink">
+                Butuh bantuan admin atau mediasi sengketa?
+            </h3>
+            <p class="text-xs sm:text-sm text-ink-muted leading-relaxed">
+                Untuk kendala verifikasi akun atau eskalasi sengketa transaksi sewa dan jual beli, hubungi tim admin platform via email resmi kampus atau ajukan laporan masalah langsung dari halaman transaksi Anda.
+            </p>
+        </div>
+        <div class="flex-shrink-0 flex flex-wrap items-center gap-3">
+            <a href="/tentang/"
+               class="inline-flex items-center gap-1.5 bg-paper hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors">
+                {% include 'partials/icon.html' with name='info' class='w-4 h-4 text-brand' %}
+                <span>Tentang {{ SITE_NAME }}</span>
+            </a>
+            <a href="mailto:{{ SUPPORT_EMAIL }}?subject=Bantuan%20Kendala%20{{ SITE_NAME }}"
+               class="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors">
+                {% include 'partials/icon.html' with name='mail' class='w-4 h-4' %}
+                <span>Hubungi Admin</span>
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

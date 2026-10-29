@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#FFC83D"/>
+  <!-- Busana / Jas Formal: lebar ~270px (70% lebar ubin), garis ink 2.5px, dasi ink -->
+  <!-- Kerah dan Bahu Jas -->
+  <path d="M 145 130 L 70 180 L 105 270 L 130 250 L 130 370 L 270 370 L 270 250 L 295 270 L 330 180 L 255 130 Z"
+        fill="#FFFFFF" stroke="#141B34" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Kerah V -->
+  <path d="M 145 130 L 200 240 L 255 130" fill="none" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Kemeja putih dalam -->
+  <polygon points="175,130 225,130 200,190" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Lapel lipatan jas -->
+  <path d="M 145 130 L 175 220 L 200 240 L 225 220 L 255 130" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Belahan tengah jas -->
+  <line x1="200" y1="240" x2="200" y2="370" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Saku jas -->
+  <line x1="145" y1="290" x2="175" y2="290" stroke="#141B34" stroke-width="2.5"/>
+  <line x1="225" y1="290" x2="255" y2="290" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Detail isi ink: dasi kupu-kupu formal di kerah -->
+  <polygon points="182,142 200,152 182,162 200,152 218,142 200,152 218,162" fill="#141B34" stroke="#141B34" stroke-width="1.5"/>
+  <circle cx="200" cy="152" r="4" fill="#141B34"/>
+</svg>

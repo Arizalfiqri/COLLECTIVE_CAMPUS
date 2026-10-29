@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Institut Teknologi Sumatera",
+    "short_name": "ITERA",
+    "city": "Lampung Selatan",
+    "ktm_keywords": ["itera", "institut teknologi sumatera", "sumatera"],
+    "nim_pattern": "^1\\d{8}$",
+    "is_active": true,
+    "meeting_points": [
+      {
+        "name": "Gedung Kuliah Umum (GKU 1)",
+        "is_public": true
+      },
+      {
+        "name": "Perpustakaan Utama ITERA",
+        "is_public": true
+      },
+      {
+        "name": "Kantin Utama Embung C",
+        "is_public": true
+      }
+    ]
+  }
+]

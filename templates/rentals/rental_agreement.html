@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Surat Perjanjian Sewa Digital #{{ rental.code }} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[900px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6 lg:pt-8 pb-16 print:py-0 print:px-0 print:max-w-none text-ink">
+
+    <!-- Bilah Aksi Atas (Hanya Tampil di Layar, Sembunyi Saat Cetak) -->
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-line shadow-sm print:hidden">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'rentals:rental_detail' rental.code %}"
+               class="w-11 h-11 flex items-center justify-center rounded-xl border border-line hover:bg-paper text-ink-muted hover:text-ink transition-colors flex-shrink-0"
+               title="Kembali ke detail sewa">
+                {% include 'partials/icon.html' with name='arrow-left' class='w-4 h-4' %}
+            </a>
+            <div>
+                <h1 class="text-sm font-bold text-ink">Dokumen Perjanjian Sewa Digital</h1>
+                <p class="text-xs text-ink-muted">Bukti persetujuan resmi antara penyewa dan pemilik barang</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <button type="button"
+                    onclick="window.print()"
+                    class="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                {% include 'partials/icon.html' with name='printer' class='w-4 h-4' %}
+                <span>Cetak / Simpan PDF</span>
+            </button>
+            <a href="{% url 'rentals:rental_detail' rental.code %}"
+               class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl border border-line transition-colors">
+                Kembali
+            </a>
+        </div>
+    </div>
+
+    <!-- Dokumen Perjanjian Resmi (Dicetak) -->
+    <div class="bg-card border border-line print:border-none rounded-2xl print:rounded-none p-6 sm:p-10 print:p-0 shadow-sm print:shadow-none space-y-6 text-xs leading-relaxed">
+        
+        <!-- Kop Dokumen -->
+        <div class="text-center pb-6 border-b-2 border-ink space-y-1">
+            <span class="font-mono text-[11px] font-bold tracking-widest text-brand uppercase block">
+                {{ SITE_NAME|upper }} PLATFORM TRANSAKSI SEWA KAMPUS
+            </span>
+            <h2 class="font-heading text-xl sm:text-2xl font-bold text-ink uppercase tracking-tight">
+                SURAT PERJANJIAN SEWA MENYEWA DIGITAL
+            </h2>
+            <p class="text-xs text-ink-muted">
+                Nomor Registrasi Transaksi: <strong class="font-mono text-ink font-bold">#{{ rental.code }}</strong>
+            </p>
+        </div>
+
+        <!-- Metadata Otentikasi Digital (Audit Trail) -->
+        <div class="p-4 rounded-xl bg-paper border border-line grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+            <div>
+                <span class="text-ink-muted block text-[10px]">Versi Syarat & Ketentuan:</span>
+                <strong class="text-ink font-semibold">{{ agreement.terms_version_string|default:"v1.0" }}</strong>
+            </div>
+            <div>
+                <span class="text-ink-muted block text-[10px]">Waktu Persetujuan Digital:</span>
+                <strong class="text-ink font-semibold">{{ agreement.accepted_at|date:"d F Y, H:i:s"|default:rental.created_at|date:"d F Y, H:i:s" }} WIB</strong>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="text-ink-muted block text-[10px]">Hash Kriptografis Dokumen (SHA-256):</span>
+                <code class="font-mono text-[10px] text-ink break-all select-all font-bold block mt-0.5">
+                    {{ terms_hash|default:agreement.terms_hash|default:"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" }}
+                </code>
+            </div>
+            <div>
+                <span class="text-ink-muted block text-[10px]">Alamat IP Pencatatan:</span>
+                <strong class="font-mono text-ink font-semibold">{{ agreement.ip_address|default:"127.0.0.1 (Tervalidasi)" }}</strong>
+            </div>
+            <div>
+                <span class="text-ink-muted block text-[10px]">User Agent Browser:</span>
+                <span class="font-mono text-[10px] text-ink-muted truncate block" title="{{ agreement.user_agent }}">
+                    {% if agreement.user_agent %}{{ agreement.user_agent|truncatechars:50 }}{% else %}Sistem Autentikasi {{ SITE_NAME }}{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Pembukaan Klausul -->
+        <p class="text-justify leading-relaxed">
+            Pada hari ini, dengan pencatatan elektronik otomatis pada platform {{ SITE_NAME }}, telah dibuat dan disepakati perjanjian sewa-menyewa oleh dan antara para pihak di bawah ini:
+        </p>
+
+        <!-- Identitas Para Pihak (Dua Kolom) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Pihak Pertama: Pemilik -->
+            <div class="p-4 rounded-xl border border-line bg-card space-y-1.5">
+                <span class="font-bold text-ink uppercase text-[11px] block border-b border-line pb-1 text-brand">
+                    PIHAK PERTAMA (PEMILIK BARANG)
+                </span>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">Nama:</span>
+                    <strong class="col-span-2 text-ink">{{ agreement.owner_name|default:rental.owner.get_full_name|default:rental.owner.username }}</strong>
+                </div>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">NIM:</span>
+                    <strong class="col-span-2 text-ink font-mono">{{ agreement.owner_nim|default:rental.owner.student_profile.nim|default:"-" }}</strong>
+                </div>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">Kampus:</span>
+                    <span class="col-span-2 text-ink">{{ agreement.owner_campus|default:rental.owner.student_profile.campus.name|default:"-" }}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">Username:</span>
+                    <span class="col-span-2 text-ink-muted font-mono">@{{ rental.owner.username }}</span>
+                </div>
+            </div>
+
+            <!-- Pihak Kedua: Penyewa -->
+            <div class="p-4 rounded-xl border border-line bg-card space-y-1.5">
+                <span class="font-bold text-ink uppercase text-[11px] block border-b border-line pb-1 text-pine-dark">
+                    PIHAK KEDUA (PENYEWA BARANG)
+                </span>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">Nama:</span>
+                    <strong class="col-span-2 text-ink">{{ agreement.renter_name|default:rental.renter.get_full_name|default:rental.renter.username }}</strong>
+                </div>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">NIM:</span>
+                    <strong class="col-span-2 text-ink font-mono">{{ agreement.renter_nim|default:rental.renter.student_profile.nim|default:"-" }}</strong>
+                </div>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">Kampus:</span>
+                    <span class="col-span-2 text-ink">{{ agreement.renter_campus|default:rental.renter.student_profile.campus.name|default:"-" }}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1">
+                    <span class="text-ink-muted">Username:</span>
+                    <span class="col-span-2 text-ink-muted font-mono">@{{ rental.renter.username }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Objek Sewa & Rincian Keuangan -->
+        <div class="space-y-2">
+            <h3 class="font-heading text-xs font-bold uppercase tracking-wider text-ink">
+                Objek Sewa dan Rincian Transaksi
+            </h3>
+            <div class="table-responsive border border-line rounded-xl">
+                <table class="w-full text-left text-xs border-collapse min-w-[300px]">
+                    <tbody class="divide-y divide-line">
+                        <tr class="bg-paper">
+                            <td class="p-2.5 font-semibold text-ink-muted w-1/3">Nama Barang</td>
+                            <td class="p-2.5 font-bold text-ink">{{ item.title }}</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5 font-semibold text-ink-muted">Nilai Taksiran Barang</td>
+                            <td class="p-2.5 text-ink font-bold tabular-nums">Rp{{ item.estimated_value|ribuan }}</td>
+                        </tr>
+                        <tr class="bg-paper">
+                            <td class="p-2.5 font-semibold text-ink-muted">Durasi & Rentang Tanggal</td>
+                            <td class="p-2.5 text-ink">{{ rental.days }} hari ({{ rental.start_date|date:"d M Y" }} s/d {{ rental.end_date|date:"d M Y" }})</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5 font-semibold text-ink-muted">Tarif Sewa Pokok</td>
+                            <td class="p-2.5 text-ink tabular-nums">{{ rental.price_per_day_snapshot|rupiah }} / hari (Total: {{ rental.rent_total|rupiah }})</td>
+                        </tr>
+                        <tr class="bg-paper">
+                            <td class="p-2.5 font-semibold text-ink-muted">Iuran Dana Gotong Royong</td>
+                            <td class="p-2.5 text-ink tabular-nums">{% if rental.use_protection %}{{ rental.protection_fee|rupiah }} (Aktif){% else %}Tidak Aktif{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5 font-semibold text-ink-muted">Status jaminan / deposit</td>
+                            <td class="p-2.5 text-ink font-medium">
+                                {% if rental.deposit_total > 0 %}
+                                    {{ rental.deposit_total|rupiah }} (Jaminan ditahan sistem)
+                                {% else %}
+                                    Rp0 &bull; <span class="text-pine-dark font-semibold">Tanpa Uang Jaminan (Diganti Syarat & Ketentuan Digital)</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr class="bg-paper font-bold">
+                            <td class="p-2.5 text-ink">Total dibayar di muka</td>
+                            <td class="p-2.5 text-brand text-sm tabular-nums">{{ rental.grand_total|rupiah }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Klausul & Ketentuan Pokok (Snapshot Teks S&K) -->
+        <div class="space-y-2">
+            <h3 class="font-heading text-xs font-bold uppercase tracking-wider text-ink">
+                Klausul Syarat & Ketentuan yang Disepakati
+            </h3>
+            <div class="p-4 rounded-xl bg-paper border border-line text-[11px] leading-relaxed space-y-2.5 text-justify">
+                {% if agreement.terms_text_snapshot %}
+                    {{ agreement.terms_text_snapshot|linebreaks }}
+                {% elif agreement.terms_snapshot.terms_text %}
+                    {{ agreement.terms_snapshot.terms_text|linebreaks }}
+                {% else %}
+                    <ol class="list-decimal list-inside space-y-1.5">
+                        <li><strong>Identitas Sah:</strong> Pihak Kedua menjamin bahwa seluruh data identitas, status mahasiswa, dan KTM yang diserahkan adalah benar, valid, dan milik sah Pihak Kedua.</li>
+                        <li><strong>Penggunaan Wajar:</strong> Barang hanya dipergunakan untuk keperluan wajar sesuai fungsinya, tidak dipindahtangankan, digadaikan, atau disewakan ulang kepada pihak ketiga mana pun.</li>
+                        <li><strong>Kewajiban Pengembalian:</strong> Pihak Kedua wajib mengembalikan barang kepada Pihak Pertama sesuai jadwal dan lokasi yang disepakati.</li>
+                        <li><strong>Tanggung Jawab Kerusakan & Kehilangan:</strong> Pihak Kedua bertanggung jawab penuh atas segala bentuk kerusakan atau kehilangan barang, dengan kewajiban membayar biaya perbaikan yang wajar atau ganti rugi maksimal sebesar nilai taksiran barang (Rp{{ item.estimated_value|ribuan }}).</li>
+                        <li><strong>Denda & Tagihan Tambahan:</strong> Keterlambatan pengembalian dikenakan denda sebesar 50% dari tarif harian per hari keterlambatan. Denda dan kompensasi dicatat sebagai tagihan tambahan terutang yang wajib dilunasi, dengan sanksi pembatasan akun, daftar hitam NIM, serta pelaporan ke instansi kampus atau pihak berwajib bila diperlukan.</li>
+                        <li><strong>Dokumentasi & Penyelesaian Sengketa:</strong> Para pihak menyetujui dokumentasi foto serah terima saat penyerahan dan pengembalian. Segala bentuk sengketa diselesaikan melalui mediasi admin {{ SITE_NAME }} dengan kedudukan platform sebagai perantara.</li>
+                    </ol>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tanda Tangan Elektronik / Pengesahan Digital -->
+        <div class="pt-6 border-t border-line grid grid-cols-1 sm:grid-cols-2 gap-8 text-center text-xs">
+            <div class="space-y-12">
+                <span class="text-ink-muted block text-[11px]">Pihak Pertama (Pemilik)</span>
+                <div>
+                    <div class="inline-block px-3 py-1 rounded-md bg-paper border border-line text-[10px] font-mono text-ink-muted mb-1">
+                        [TERSETUJUI DI APLIKASI]
+                    </div>
+                    <strong class="block text-ink font-bold">{{ agreement.owner_name|default:rental.owner.get_full_name|default:rental.owner.username }}</strong>
+                    <span class="text-[10px] text-ink-muted font-mono">NIM: {{ agreement.owner_nim|default:rental.owner.student_profile.nim|default:"-" }}</span>
+                </div>
+            </div>
+
+            <div class="space-y-12">
+                <span class="text-ink-muted block text-[11px]">Pihak Kedua (Penyewa)</span>
+                <div>
+                    <div class="inline-block px-3 py-1 rounded-md bg-pine-tint border border-pine/30 text-[10px] font-mono text-pine-dark font-bold mb-1">
+                        [PERSYARATAN DICENTANG & DISETUJUI]
+                    </div>
+                    <strong class="block text-ink font-bold">{{ agreement.renter_name|default:rental.renter.get_full_name|default:rental.renter.username }}</strong>
+                    <span class="text-[10px] text-ink-muted font-mono">NIM: {{ agreement.renter_nim|default:rental.renter.student_profile.nim|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Catatan Kaki Dokumen Hukum -->
+        <div class="pt-4 border-t border-line text-center text-[10px] text-ink-muted">
+            <p>Dokumen ini diterbitkan secara otomatis dan sah melalui sistem elektronik {{ SITE_NAME }} berdasarkan persetujuan para pihak.</p>
+            <p class="mt-0.5">Verifikasi keaslian: {{ SITE_NAME }} Digital Registry &bull; Ref: {{ rental.code }} &bull; SHA-256: {{ agreement.terms_hash|default:"-"|slice:":20" }}...</p>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

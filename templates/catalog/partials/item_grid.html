@@ -1,0 +1,104 @@
+{% load formatters %}
+
+<!-- Ringkasan Jumlah Hasil Pencarian -->
+<div class="mb-4 flex items-center justify-between text-xs sm:text-sm text-ink-muted">
+    <p>
+        {% if page_obj.paginator.count > 0 %}
+            Menampilkan <strong class="font-semibold text-ink">{{ page_obj.paginator.count }}</strong> barang disewakan
+        {% else %}
+            Menampilkan <strong class="font-semibold text-ink">0</strong> barang disewakan
+        {% endif %}
+    </p>
+</div>
+
+{% if page_obj.object_list %}
+    <!-- Grid Barang 12 Item per Halaman -->
+    <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5" id="katalog-grid-items">
+        {% for item in page_obj %}
+            {% include 'partials/item_card.html' with item=item %}
+        {% endfor %}
+    </div>
+
+    <!-- Paginasi Bersih -->
+    {% if page_obj.has_other_pages %}
+        <nav class="mt-10 pt-6 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4 text-xs"
+             aria-label="Navigasi Halaman Katalog">
+            <span class="text-ink-muted">
+                Menampilkan halaman <strong class="text-ink">{{ page_obj.number }}</strong> dari <strong class="text-ink">{{ page_obj.paginator.num_pages }}</strong> (total {{ page_obj.paginator.count }} barang)
+            </span>
+
+            <div class="inline-flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                       hx-get="/barang/hasil/?page={{ page_obj.previous_page_number }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                       hx-target="#katalog-hasil"
+                       hx-push-url="/barang/?page={{ page_obj.previous_page_number }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                       hx-indicator="#katalog-loading"
+                       class="inline-flex items-center gap-1 px-3.5 py-2.5 min-h-[44px] rounded-lg border border-line bg-card text-ink font-semibold hover:border-brand hover:text-brand transition-colors">
+                        {% include 'partials/icon.html' with name='chevron-left' class='w-3.5 h-3.5' %}
+                        <span>Sebelumnya</span>
+                    </a>
+                {% endif %}
+
+                <!-- Nomor Halaman -->
+                <div class="hidden sm:inline-flex items-center gap-1">
+                    {% for p in page_obj.paginator.page_range %}
+                        {% if p == page_obj.number %}
+                            <span class="w-8 h-8 rounded-lg bg-brand text-white font-bold flex items-center justify-center">
+                                {{ p }}
+                            </span>
+                        {% elif p >= page_obj.number|add:"-2" and p <= page_obj.number|add:"2" %}
+                            <a href="?page={{ p }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                               hx-get="/barang/hasil/?page={{ p }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                               hx-target="#katalog-hasil"
+                               hx-push-url="/barang/?page={{ p }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                               hx-indicator="#katalog-loading"
+                               class="w-8 h-8 rounded-lg border border-line bg-card text-ink hover:border-brand hover:text-brand font-medium flex items-center justify-center transition-colors">
+                                {{ p }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                       hx-get="/barang/hasil/?page={{ page_obj.next_page_number }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                       hx-target="#katalog-hasil"
+                       hx-push-url="/barang/?page={{ page_obj.next_page_number }}&kampus={{ current_kampus }}&q={{ current_q }}&kategori={{ current_kategori }}&harga_min={{ current_harga_min }}&harga_max={{ current_harga_max }}&kondisi={{ current_kondisi }}&start_date={{ current_start_date }}&end_date={{ current_end_date }}&urut={{ current_urut }}"
+                       hx-indicator="#katalog-loading"
+                       class="inline-flex items-center gap-1 px-3.5 py-2.5 min-h-[44px] rounded-lg border border-line bg-card text-ink font-semibold hover:border-brand hover:text-brand transition-colors">
+                        <span>Berikutnya</span>
+                        {% include 'partials/icon.html' with name='chevron-right' class='w-3.5 h-3.5' %}
+                    </a>
+                {% endif %}
+            </div>
+        </nav>
+    {% endif %}
+
+{% else %}
+    <!-- Keadaan Kosong (Empty State) Sesuai AGENT.md Bagian 10 (Microcopy Ramah & Berguna) -->
+    <div class="bg-card border border-line rounded-2xl p-8 sm:p-12 text-center my-6 max-w-lg mx-auto">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-paper-deep flex items-center justify-center text-ink-muted">
+            {% include 'partials/icon.html' with name='package' class='w-7 h-7' %}
+        </div>
+        <h3 class="font-heading text-lg sm:text-xl font-bold text-ink">
+            Tidak ada barang yang cocok
+        </h3>
+        <p class="text-xs sm:text-sm text-ink-muted mt-2 leading-relaxed">
+            Barang yang Anda cari mungkin sedang disewa pada tanggal tersebut, berada di luar rentang harga yang dipilih, atau belum tersedia di katalog.
+        </p>
+
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="/barang/"
+               class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                {% include 'partials/icon.html' with name='refresh-cw' class='w-3.5 h-3.5' %}
+                <span>Setel Ulang Filter</span>
+            </a>
+            <a href="/barang/baru/"
+               class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-card hover:bg-paper text-ink border border-line text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                {% include 'partials/icon.html' with name='plus' class='w-3.5 h-3.5' %}
+                <span>Pasang Barang Ini</span>
+            </a>
+        </div>
+    </div>
+{% endif %}

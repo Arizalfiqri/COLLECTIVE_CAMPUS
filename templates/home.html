@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}{{ SITE_NAME }}: sewa dan beli barang kampus dari sesama mahasiswa{% endblock %}
+{% block og_title %}{{ SITE_NAME }}: sewa dan beli barang kampus dari sesama mahasiswa{% endblock %}
+
+{% block content %}
+<div x-data="{ mode: 'semua' }">
+<!-- ===== HERO SECTION (Rata Kiri, Dua Kolom Asimetris — AGENT.md 7 & FASE 9) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-10 sm:pb-12 lg:pb-12">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        
+        {# Sisi Kiri: Teks Rata Kiri + Pencarian Pil #}
+        <div class="lg:col-span-7 space-y-6">
+            <div class="space-y-3">
+                <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-ink leading-tight tracking-tight">
+                    Butuh barang? <span class="bg-saffron text-ink px-2 py-0.5 rounded">Sewa atau beli</span> dari sesama mahasiswa.
+                </h1>
+                <p class="text-xs sm:text-sm font-semibold text-brand tracking-wide">
+                    {{ SITE_TAGLINE }}
+                </p>
+                <p class="text-base sm:text-lg text-ink-muted leading-relaxed">
+                    Pemilik terverifikasi KTM. Pembayaran ditahan platform sampai barang diterima atau kembali dengan aman.
+                </p>
+            </div>
+
+            {# Kolom Pencarian Pil dengan Sakelar Sewa / Beli (Fase 9 Butir 2a, 2b) #}
+            <div class="max-w-xl space-y-3">
+                <!-- Sakelar Mode: Semua | Sewa | Beli -->
+                <div class="inline-flex items-center p-1 rounded-full bg-paper-deep border border-line">
+                    <button type="button"
+                            @click="mode = 'semua'"
+                            :class="mode === 'semua' ? 'bg-brand text-white shadow-sm font-bold' : 'text-ink-muted hover:text-ink font-medium'"
+                            class="px-3.5 py-1.5 rounded-full text-xs transition-colors min-h-[36px]"
+                            title="Tampilkan semua barang sewa dan jual beli">
+                        <span>Semua</span>
+                    </button>
+                    <button type="button"
+                            @click="mode = 'sewa'"
+                            :class="mode === 'sewa' ? 'bg-brand text-white shadow-sm font-bold' : 'text-ink-muted hover:text-ink font-medium'"
+                            class="px-3.5 py-1.5 rounded-full text-xs transition-colors flex items-center gap-1.5 min-h-[36px]">
+                        {% include 'partials/icon.html' with name='calendar' class='w-3.5 h-3.5' %}
+                        <span>Sewa</span>
+                    </button>
+                    <button type="button"
+                            @click="mode = 'beli'"
+                            :class="mode === 'beli' ? 'bg-brand text-white shadow-sm font-bold' : 'text-ink-muted hover:text-ink font-medium'"
+                            class="px-3.5 py-1.5 rounded-full text-xs transition-colors flex items-center gap-1.5 min-h-[36px]">
+                        {% include 'partials/icon.html' with name='tag' class='w-3.5 h-3.5' %}
+                        <span>Beli</span>
+                    </button>
+                </div>
+
+                <!-- Formulir Pencarian Bersih, Luas & Responsif (Langsung Mengarah ke Katalog) -->
+                <form :action="mode === 'beli' ? '/jual-beli/' : '/barang/'" method="GET"
+                      class="bg-card rounded-full p-2 pl-4 sm:pl-5 border border-line shadow-sm flex items-center gap-2 hover:border-ink-muted focus-within:border-brand transition-colors">
+                    <div class="text-ink-muted flex-shrink-0">
+                        {% include 'partials/icon.html' with name='search' class='w-5 h-5 text-ink-muted' %}
+                    </div>
+                    
+                    <!-- Input Kata Kunci (Luas & Responsif) -->
+                    <input type="text" name="q" id="hero-search"
+                           :placeholder="mode === 'beli' ? 'Cari buku, pakaian, kalkulator, perlengkapan kuliah...' : (mode === 'sewa' ? 'Cari kamera, laptop, tenda, jas, toga...' : 'Cari perlengkapan kuliah yang kamu butuhkan...')"
+                           class="flex-grow bg-transparent text-sm sm:text-base text-ink placeholder-ink-muted/70 focus:outline-none min-w-0 pr-2">
+
+                    {# Tombol Saffron Bulat dengan Ikon Ink #}
+                    <button type="submit" aria-label="Cari barang"
+                            class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-saffron hover:brightness-95 flex items-center justify-center text-ink flex-shrink-0 transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 shadow-sm">
+                        {% include 'partials/icon.html' with name='search' class='w-5 h-5 text-ink' %}
+                    </button>
+                </form>
+
+                {# Tiga Jaminan Singkat Berikon #}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                    <div class="flex items-center gap-2 text-xs sm:text-[13px] font-medium text-ink">
+                        <div class="w-6 h-6 rounded-full bg-pine-tint flex items-center justify-center flex-shrink-0 text-pine-dark">
+                            {% include 'partials/icon.html' with name='shield-check' class='w-3.5 h-3.5 text-pine-dark' %}
+                        </div>
+                        <span>Pemilik terverifikasi KTM</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs sm:text-[13px] font-medium text-ink">
+                        <div class="w-6 h-6 rounded-full bg-brand-tint flex items-center justify-center flex-shrink-0 text-brand">
+                            {% include 'partials/icon.html' with name='wallet' class='w-3.5 h-3.5 text-brand' %}
+                        </div>
+                        <span>Pembayaran ditahan platform</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs sm:text-[13px] font-medium text-ink">
+                        <div class="w-6 h-6 rounded-full bg-amber-tint flex items-center justify-center flex-shrink-0 text-amber-text">
+                            {% include 'partials/icon.html' with name='file-text' class='w-3.5 h-3.5 text-amber-text' %}
+                        </div>
+                        <span>Perjanjian digital</span>
+                    </div>
+                </div>
+
+                {# Pencarian Populer #}
+                <div x-show="mode !== 'beli'">
+                    {% if popular_search_categories|length >= 2 %}
+                    <div class="text-ink-muted text-xs pt-1 px-1">
+                        <span>Pencarian populer: </span>
+                        {% for cat in popular_search_categories %}
+                            <a href="/barang/?kategori={{ cat.slug }}" class="text-brand underline hover:text-brand-hover">{{ cat.short_name|default:cat.name }}</a>{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Sisi Kanan: Kartu Hero Dinamis Sesuai Mode (Maks. 3 Listing Terbaru — Butir 2a) #}
+        <div class="lg:col-span-5 relative mt-6 lg:mt-0">
+            <div class="relative w-full max-w-md mx-auto p-4 sm:p-5 rounded-[12px] shadow-sm border border-line space-y-3.5"
+                 style="background-color: #141B34; background-image: url('/static/img/tapis-tile.svg'); background-repeat: repeat;">
+                
+                <!-- Hero Mode Sewa / Semua (Maks 3 Barang Sewa, Dengan /hari) -->
+                <div x-show="mode !== 'beli'" class="space-y-3">
+                    {% if hero_items %}
+                        {% for item in hero_items %}
+                            <a href="{% url 'catalog:item_detail' slug=item.slug %}"
+                               class="block bg-card border border-line rounded-card p-3 shadow-sm hover:border-brand transition-colors group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-16 h-20 bg-brand-tint rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                        {% if item.primary_photo %}
+                                            <img src="{{ item.primary_photo.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="hidden w-full h-full bg-brand-tint items-center justify-center">
+                                                {% include 'partials/icon.html' with name='camera' class='w-2/5 h-2/5 text-brand/40' %}
+                                            </div>
+                                        {% else %}
+                                            <div class="w-full h-full bg-brand-tint flex items-center justify-center">
+                                                {% include 'partials/icon.html' with name='camera' class='w-2/5 h-2/5 text-brand/40' %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0 flex-grow space-y-1">
+                                        <div class="flex items-center justify-between gap-1">
+                                            <span class="text-[10px] font-semibold text-brand bg-brand-tint px-1.5 py-0.5 rounded">Disewakan</span>
+                                            <span class="text-[10px] text-ink-muted">{{ item.category.short_name|default:item.category.name }}</span>
+                                        </div>
+                                        <h4 class="text-xs font-bold text-ink truncate group-hover:text-brand transition-colors">
+                                            {{ item.title }}
+                                        </h4>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-sm font-bold text-ink tabular-nums">{{ item.price_per_day|rupiah }}</span>
+                                            <span class="text-[11px] text-ink-muted">/ hari</span>
+                                        </div>
+                                        <div class="flex items-center text-[11px] text-ink-muted">
+                                            <span class="flex items-center gap-1 truncate">
+                                                {% include 'partials/icon.html' with name='map-pin' class='w-3 h-3 text-ink-muted' %}
+                                                {{ item.pickup_area|default:item.owner.student_profile.campus.short_name|default:"Area Kampus" }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="bg-card border border-line rounded-card p-4 text-center text-xs text-ink-muted">
+                            Belum ada barang sewa aktif. Jadilah yang pertama menyewakan!
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Hero Mode Beli (Maks 3 Barang Jualan, TANPA /hari, Dengan Chip Kondisi & Label 'Dijual' — Butir 2a) -->
+                <div x-show="mode === 'beli'" x-cloak class="space-y-3">
+                    {% if hero_sale_items %}
+                        {% for s_item in hero_sale_items %}
+                            <a href="{% url 'sales:item_detail' slug=s_item.slug %}"
+                               class="block bg-card border border-line rounded-card p-3 shadow-sm hover:border-brand transition-colors group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-16 h-20 bg-amber-tint rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                        {% if s_item.primary_photo %}
+                                            <img src="{{ s_item.primary_photo.image.url }}" alt="{{ s_item.title }}" class="w-full h-full object-cover"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="hidden w-full h-full bg-amber-tint items-center justify-center">
+                                                {% include 'partials/icon.html' with name='tag' class='w-2/5 h-2/5 text-amber-text/50' %}
+                                            </div>
+                                        {% else %}
+                                            <div class="w-full h-full bg-amber-tint flex items-center justify-center">
+                                                {% include 'partials/icon.html' with name='tag' class='w-2/5 h-2/5 text-amber-text/50' %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0 flex-grow space-y-1">
+                                        <div class="flex items-center justify-between gap-1">
+                                            <span class="text-[10px] font-bold text-pine-dark bg-pine-tint px-1.5 py-0.5 rounded">Dijual</span>
+                                            <span class="text-[10px] font-semibold text-amber-text bg-amber-tint px-1.5 py-0.5 rounded border border-line">
+                                                {{ s_item.get_condition_display }}
+                                            </span>
+                                        </div>
+                                        <h4 class="text-xs font-bold text-ink truncate group-hover:text-brand transition-colors">
+                                            {{ s_item.title }}
+                                        </h4>
+                                        <div class="flex items-baseline">
+                                            <!-- Mode Beli: Angka Harga Nyata TANPA /hari (Butir 2a) -->
+                                            <span class="text-sm font-bold text-ink tabular-nums">{{ s_item.price|rupiah }}</span>
+                                        </div>
+                                        <div class="flex items-center text-[11px] text-ink-muted">
+                                            <span class="flex items-center gap-1 truncate">
+                                                {% include 'partials/icon.html' with name='map-pin' class='w-3 h-3 text-ink-muted' %}
+                                                {{ s_item.pickup_area|default:s_item.owner.student_profile.campus.short_name|default:"Area Kampus" }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="bg-card border border-line rounded-card p-4 text-center text-xs text-ink-muted">
+                            Belum ada barang jualan aktif. Jadilah yang pertama menjual barang bekasmu!
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ===== SATU BARIS KATEGORI (Mengikuti Mode Sewa / Beli — Butir 2a) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8">
+    <!-- Kategori Sewa -->
+    <div x-show="mode !== 'beli'" class="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1" role="list">
+        {% for cat in categories %}
+        <a href="/barang/?kategori={{ cat.slug }}"
+           class="inline-flex items-center gap-2 px-3.5 py-2 rounded-card bg-card border border-line
+                  hover:border-brand hover:text-brand text-xs font-medium text-ink transition-colors flex-shrink-0 min-h-[40px]
+                  focus:outline-none focus:ring-2 focus:ring-brand" role="listitem">
+            <span class="text-ink">
+                {% include 'partials/icon.html' with name=cat.icon_name class='w-4 h-4' %}
+            </span>
+            <span>{{ cat.short_name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Kategori Jual Beli -->
+    <div x-show="mode === 'beli'" x-cloak class="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1" role="list">
+        {% for cat in sale_categories %}
+        <a href="/jual-beli/?kategori={{ cat.slug }}"
+           class="inline-flex items-center gap-2 px-3.5 py-2 rounded-card bg-card border border-line
+                  hover:border-brand hover:text-brand text-xs font-medium text-ink transition-colors flex-shrink-0 min-h-[40px]
+                  focus:outline-none focus:ring-2 focus:ring-brand" role="listitem">
+            <span class="text-amber-text">
+                {% include 'partials/icon.html' with name='tag' class='w-4 h-4' %}
+            </span>
+            <span>{{ cat.name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- ===== DUA SEKSI BERLABEL JELAS: DISEWAKAN TERBARU & DIJUAL TERBARU (Butir 2a) ===== -->
+
+<!-- 1. SEKSI DISEWAKAN TERBARU (Sembunyikan bila belum ada data) -->
+{% if featured_items %}
+<section id="seksi-disewakan" x-show="mode === 'sewa' || mode === 'semua'" class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
+        <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-semibold bg-brand-tint text-brand border border-line mb-1">
+                {% include 'partials/icon.html' with name='calendar' class='w-3 h-3' %}
+                <span>Sewa perlengkapan</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink">Disewakan terbaru</h2>
+            <p class="text-ink-muted text-xs sm:text-sm mt-0.5">Perlengkapan kuliah yang dapat kamu sewa dari sesama mahasiswa kampus</p>
+        </div>
+        <a href="/barang/"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-ink border border-line bg-card px-3.5 py-1.5 min-h-[40px] rounded-lg hover:border-brand hover:text-brand transition-colors focus:outline-none focus:ring-2 focus:ring-brand">
+            <span>Lihat semua sewaan</span>
+            {% include 'partials/icon.html' with name='arrow-right' class='w-3.5 h-3.5' %}
+        </a>
+    </div>
+
+    {# Grid 4 Kolom Desktop, 3 Tablet, 2 Mobile >=360px, 1 Kolom <360px #}
+    <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+        {% for item in featured_items|slice:":8" %}
+            {% include 'partials/item_card.html' %}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- 2. SEKSI DIJUAL TERBARU (Sembunyikan bila belum ada data) -->
+{% if latest_sale_items %}
+<section id="seksi-dijual" x-show="mode === 'beli' || mode === 'semua'" x-cloak class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
+        <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-semibold bg-amber-tint text-amber-text border border-line mb-1">
+                {% include 'partials/icon.html' with name='tag' class='w-3 h-3' %}
+                <span>Thrift &amp; jual beli</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink">Dijual terbaru</h2>
+            <p class="text-ink-muted text-xs sm:text-sm mt-0.5">Barang jualan dan perlengkapan thrift dari sesama mahasiswa kampus</p>
+        </div>
+        <a href="/jual-beli/"
+           class="inline-flex items-center gap-1.5 text-xs font-semibold text-ink border border-line bg-card px-3.5 py-1.5 min-h-[40px] rounded-lg hover:border-brand hover:text-brand transition-colors focus:outline-none focus:ring-2 focus:ring-brand">
+            <span>Lihat semua jual beli</span>
+            {% include 'partials/icon.html' with name='arrow-right' class='w-3.5 h-3.5' %}
+        </a>
+    </div>
+
+    {# Grid 4 Kolom Desktop, 3 Tablet, 2 Mobile >=360px, 1 Kolom <360px #}
+    <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+        {% for s_item in latest_sale_items|slice:":8" %}
+            {% include 'sales/partials/item_card.html' with item=s_item %}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+</div>
+
+<!-- ===== CARA KERJA (Alur Linear 2 Tab: Sewa & Jual Beli — Butir 2g) ===== -->
+<section id="cara-kerja" class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16" x-data="{ stepTab: 'sewa' }">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4 sm:mb-5 lg:mb-6">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-ink">Cara kerja</h2>
+            <p class="text-ink-muted text-xs sm:text-sm mt-1">Alur transaksi transparan dan aman antarmahasiswa kampus</p>
+        </div>
+
+        <!-- Sakelar Tab Sewa | Jual Beli -->
+        <div class="inline-flex items-center p-1 rounded-xl bg-paper-deep border border-line self-start sm:self-auto">
+            <button type="button"
+                    @click="stepTab = 'sewa'"
+                    :class="stepTab === 'sewa' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                    class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                {% include 'partials/icon.html' with name='calendar' class='w-3.5 h-3.5' %}
+                <span>Sewa barang</span>
+            </button>
+            <button type="button"
+                    @click="stepTab = 'jual'"
+                    :class="stepTab === 'jual' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                    class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                {% include 'partials/icon.html' with name='tag' class='w-3.5 h-3.5' %}
+                <span>Jual beli</span>
+            </button>
+        </div>
+    </div>
+
+    <div x-show="stepTab === 'sewa'">
+        {% include 'partials/steps.html' %}
+    </div>
+    <div x-show="stepTab === 'jual'" x-cloak>
+        {% include 'partials/steps_sales.html' %}
+    </div>
+</section>
+
+<!-- ===== SEKSI HITUNG BIAYA (Satu Judul Saja, Tab Sewa & Jual — Butir 2d) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="mb-4 sm:mb-5 lg:mb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold text-ink">Hitung biaya sewa &amp; jual</h2>
+        <p class="text-xs sm:text-sm text-ink-muted mt-1">Transparansi perhitungan biaya sewa penyewa dan hasil bersih penjualan</p>
+    </div>
+
+    {# Kartu Hitung Biaya: Satu Judul Saja, Tab Sewa | Jual #}
+    {% include 'core/partials/rental_calculator.html' with calc=calc %}
+</section>
+
+<!-- ===== MENGAPA TRANSAKSI AMAN (Mencakup Sewa dan Jual Beli — Butir 2e) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="bg-ink text-white rounded-card overflow-hidden border border-line shadow-sm">
+        <!-- Identitas Lampung-Nusantara: Tumpal Tiga Lapis Tepi Atas Blok Bukti (ink, lg) -->
+        {% include 'partials/kain_border.html' with variant='ink' size='lg' %}
+
+        <div class="p-6 sm:p-10 md:p-12">
+            <div class="mb-4 sm:mb-5 lg:mb-6 max-w-2xl">
+                <span class="text-xs font-bold text-saffron">Keamanan transaksi</span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1">Mengapa transaksi di {{ SITE_NAME }} aman?</h2>
+                <p class="text-xs sm:text-sm text-white/90 mt-1.5 leading-relaxed">
+                    Perlindungan menyeluruh untuk sewa dan jual beli barang kuliah antar sesama mahasiswa kampus.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <!-- 1. Verifikasi KTM -->
+                <div class="flex items-start gap-4 p-4 rounded-xl bg-card/5 border border-white/10">
+                    <div class="w-10 h-10 rounded-lg bg-brand/30 border border-brand/50 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-5 h-5 text-saffron' %}
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-white">Verifikasi identitas mahasiswa (KTM)</h3>
+                        <p class="text-xs sm:text-sm text-white/90 leading-relaxed">
+                            Setiap pemilik, penyewa, penjual, dan pembeli wajib memverifikasi KTM aktif sebelum bertransaksi. Akses komunitas terisolasi khusus mahasiswa kampus.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 2. Pembayaran Ditahan (Escrow) -->
+                <div class="flex items-start gap-4 p-4 rounded-xl bg-card/5 border border-white/10">
+                    <div class="w-10 h-10 rounded-lg bg-brand/30 border border-brand/50 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                        {% include 'partials/icon.html' with name='wallet' class='w-5 h-5 text-saffron' %}
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-white">Perjanjian digital &amp; penahanan pembayaran</h3>
+                        <p class="text-xs sm:text-sm text-white/90 leading-relaxed">
+                            Dana pembayaran ditahan secara aman di escrow platform sampai barang kembali (sewa) atau diterima pembeli (jual beli).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 3. Bukti Foto & Jadwal Temu -->
+                <div class="flex items-start gap-4 p-4 rounded-xl bg-card/5 border border-white/10">
+                    <div class="w-10 h-10 rounded-lg bg-brand/30 border border-brand/50 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                        {% include 'partials/icon.html' with name='camera' class='w-5 h-5 text-saffron' %}
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-white">Dokumentasi foto serah terima fisik</h3>
+                        <p class="text-xs sm:text-sm text-white/90 leading-relaxed">
+                            Kondisi barang didokumentasikan dengan foto saat serah terima fisik di titik kumpul kampus yang disepakati bersama untuk mencegah perselisihan sepihak.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 4. Perjanjian Digital & Dana Gotong Royong -->
+                <div class="flex items-start gap-4 p-4 rounded-xl bg-card/5 border border-white/10">
+                    <div class="w-10 h-10 rounded-lg bg-brand/30 border border-brand/50 flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+                        {% include 'partials/icon.html' with name='heart-handshake' class='w-5 h-5 text-saffron' %}
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-white">Dana Gotong Royong untuk sewa</h3>
+                        <p class="text-xs sm:text-sm text-white/90 leading-relaxed">
+                            Perlindungan risiko bersama melalui Dana Gotong Royong dan surat perjanjian digital berkekuatan hukum khusus transaksi sewa.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Identitas Lampung-Nusantara: Tumpal Tiga Lapis Tepi Bawah Blok Bukti (ink, lg) -->
+        {% include 'partials/kain_border.html' with variant='ink' size='lg' %}
+    </div>
+</section>
+
+<!-- ===== GOTONG ROYONG, VERSI KAMPUS (Tanpa Kutipan Slogan Duplikat — Butir 2c) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        {# Sisi Kiri: Teks Ringkas, Tiga Prinsip, dan Kartu Dana Gotong Royong #}
+        <div class="lg:col-span-7 space-y-5">
+            <div class="mb-4 sm:mb-5 lg:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-ink">Gotong royong, versi kampus</h2>
+            </div>
+
+            {# Teks Ringkas (Maks. Dua Paragraf Pendek) #}
+            <div class="space-y-3 text-xs sm:text-sm text-ink-muted leading-relaxed">
+                <p>
+                    Mahasiswa punya barang yang jarang dipakai, sementara mahasiswa lain membutuhkannya untuk jangka pendek. {{ SITE_NAME }} menghubungkan keduanya dengan verifikasi identitas terpercaya dan dana yang ditahan platform.
+                </p>
+                <p>
+                    Semangat kebersamaan kampus diwujudkan melalui ekosistem saling sewa dan saling jual yang aman, transparan, dan dapat diandalkan oleh seluruh sivitas akademika.
+                </p>
+            </div>
+
+            {# Tiga Prinsip Singkat Berikon Lucide #}
+            <div class="space-y-3 pt-1">
+                <div class="flex items-center gap-3 text-xs sm:text-sm font-semibold text-ink">
+                    <div class="w-8 h-8 rounded-lg bg-brand-tint flex items-center justify-center flex-shrink-0 text-brand">
+                        {% include 'partials/icon.html' with name='heart-handshake' class='w-4 h-4' %}
+                    </div>
+                    <span>Saling bantu (Dana Gotong Royong)</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs sm:text-sm font-semibold text-ink">
+                    <div class="w-8 h-8 rounded-lg bg-brand-tint flex items-center justify-center flex-shrink-0 text-brand">
+                        {% include 'partials/icon.html' with name='map-pin' class='w-4 h-4' %}
+                    </div>
+                    <span>Ramah (serah terima di titik temu kampus)</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs sm:text-sm font-semibold text-ink">
+                    <div class="w-8 h-8 rounded-lg bg-brand-tint flex items-center justify-center flex-shrink-0 text-brand">
+                        {% include 'partials/icon.html' with name='users' class='w-4 h-4' %}
+                    </div>
+                    <span>Terbuka antarkampus</span>
+                </div>
+            </div>
+
+            {# Blok Penjelasan Dana Gotong Royong #}
+            <div class="bg-card border border-line rounded-card p-5 space-y-3 mt-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        {% include 'partials/icon.html' with name='users' class='w-5 h-5 text-brand' %}
+                        <h3 class="font-bold text-sm text-ink">Dana Gotong Royong</h3>
+                    </div>
+                    <img src="/static/img/siger.svg" alt="" class="h-4 w-auto object-contain flex-shrink-0" aria-hidden="true" />
+                </div>
+                <p class="text-xs text-ink-muted leading-relaxed">
+                    Iuran kecil (5% biaya sewa, min. Rp3.000) dari setiap transaksi masuk ke dana bersama untuk cadangan proteksi kompensasi bagi pemilik bila terjadi kehilangan barang yang tidak dikembalikan.
+                </p>
+                <div class="bg-paper rounded-lg p-3 border border-line text-[11px] text-ink-muted leading-relaxed flex items-start gap-1.5">
+                    {% include 'partials/icon.html' with name='info' class='w-3.5 h-3.5 text-brand flex-shrink-0 mt-0.5' %}
+                    <span>Dikelola transparan melalui pencatatan mutasi buku besar internal platform.</span>
+                </div>
+            </div>
+
+            <div>
+                <a href="/tentang/" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-brand underline hover:text-brand-hover transition-colors">
+                    <span>Baca selengkapnya tentang {{ SITE_NAME }}</span>
+                    {% include 'partials/icon.html' with name='arrow-right' class='w-3.5 h-3.5' %}
+                </a>
+            </div>
+        </div>
+
+        {# Sisi Kanan: Panel Kain Marun Tapis dengan Plat Kertas di Tengah #}
+        <div class="lg:col-span-5">
+            <div class="relative w-full h-[200px] md:h-[300px] rounded-[12px] border border-line shadow-sm flex items-center justify-center p-4 overflow-hidden select-none"
+                 style="background-color: #5B1A24; background-image: url('/static/img/tapis-tile-marun.svg'); background-repeat: repeat;"
+                 aria-hidden="true">
+                <div class="bg-paper border border-line rounded-xl px-6 py-4 shadow-sm flex flex-col items-center justify-center gap-2 max-w-[260px] text-center">
+                    <img src="/static/img/kapal-tinta.svg" alt="" class="h-12 md:h-14 w-auto object-contain" aria-hidden="true" />
+                    <img src="/static/img/siger.svg" alt="" class="h-3.5 md:h-4 w-auto object-contain" aria-hidden="true" />
+                    <span class="text-xs font-semibold text-ink tracking-tight">Gotong Royong Mahasiswa</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA PEMILIK & PENJUAL (Dua Tombol dengan Ilustrasi Angka Dari Pengaturan — Butir 2f) ===== -->
+<section class="max-w-[1200px] mx-auto px-4 sm:px-8 mt-10 sm:mt-12 lg:mt-16">
+    <div class="bg-brand rounded-card p-6 sm:p-8 text-white shadow-sm space-y-6">
+        <div class="max-w-2xl space-y-2">
+            <h3 class="text-xl sm:text-2xl font-bold text-white">
+                Punya barang yang jarang dipakai di kos?
+            </h3>
+            <p class="text-xs sm:text-sm text-white/90 leading-relaxed">
+                Manfaatkan barangmu untuk menambah uang saku. Sewakan peralatan praktikum atau jual perlengkapan kuliah bekasmu ke sesama mahasiswa dengan perlindungan platform.
+            </p>
+        </div>
+
+        <!-- Dua Tombol Aksi dengan Ilustrasi Angka Riil Terhitung Dari Pengaturan (Butir 2f) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <!-- Tombol 1: Sewakan Barang -->
+            <div class="bg-white/20 border border-white/20 rounded-xl p-4 flex flex-col justify-between gap-3">
+                <div>
+                    <span class="text-xs font-bold text-saffron block">Opsi sewa</span>
+                    <h4 class="text-base font-bold text-white mt-1">Sewakan barangmu</h4>
+                    <p class="text-xs text-white/70 mt-1 leading-relaxed">
+                        Ilustrasi: sewa Rp75.000 &times; 3 hari = Rp225.000. Diterima bersih <strong class="text-white font-bold">Rp207.000</strong> setelah potongan komisi platform {{ platform_commission_percent|default:8 }}%.
+                    </p>
+                </div>
+                <div>
+                    <a href="{% if user.is_authenticated %}/barang/baru/{% else %}/masuk/?next=/barang/baru/{% endif %}"
+                       class="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-saffron hover:brightness-95 text-ink text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand">
+                        <span>Sewakan barang</span>
+                        {% include 'partials/icon.html' with name='arrow-right' class='w-4 h-4 text-ink' %}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tombol 2: Jual Barang -->
+            <div class="bg-white/20 border border-white/20 rounded-xl p-4 flex flex-col justify-between gap-3">
+                <div>
+                    <span class="text-xs font-bold text-saffron block">Opsi jual beli</span>
+                    <h4 class="text-base font-bold text-white mt-1">Jual barang bekas (thrift)</h4>
+                    <p class="text-xs text-white/70 mt-1 leading-relaxed">
+                        Ilustrasi: jual buku/pakaian Rp100.000. Diterima bersih <strong class="text-white font-bold">Rp95.000</strong> setelah potongan komisi platform {{ sale_commission_percent|default:5 }}% (min. {{ sale_commission_min|default:2000|rupiah }}).
+                    </p>
+                </div>
+                <div>
+                    <a href="{% if user.is_authenticated %}/jual/baru/{% else %}/masuk/?next=/jual/baru/{% endif %}"
+                       class="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-white hover:bg-paper text-brand text-xs sm:text-sm font-bold px-4 py-2.5 rounded-lg transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand">
+                        <span>Jual barang</span>
+                        {% include 'partials/icon.html' with name='arrow-right' class='w-4 h-4 text-brand' %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

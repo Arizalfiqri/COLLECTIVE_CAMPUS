@@ -1,0 +1,12 @@
+{
+  "name": "collective-campus",
+  "version": "1.0.0",
+  "description": "Platform sewa dan jual beli barang antarmahasiswa Collective Campus",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/input.css -o ./static/css/styles.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

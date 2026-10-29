@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Dompet Mahasiswa | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1100px] mx-auto px-4 sm:px-8 pt-6 pb-16">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs text-ink-muted mb-6" aria-label="Breadcrumb">
+        <a href="/dashboard/" class="hover:text-ink transition-colors">Dashboard</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">Dompet saya</span>
+    </nav>
+
+    <!-- Kartu Saldo Utama -->
+    <div class="bg-card border border-line rounded-2xl overflow-hidden shadow-sm mb-8">
+        {% include 'partials/kain_border.html' with variant='ink' size='sm' %}
+        <div class="p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <span class="text-xs font-semibold text-ink-muted block mb-1">
+                    Saldo dompet aktif
+                </span>
+                <div class="flex items-baseline gap-3">
+                    <h1 class="font-heading text-3xl sm:text-4xl font-bold text-ink tabular-nums">
+                        {{ balance|rupiah }}
+                    </h1>
+                    {% if balance >= min_withdrawal and not pending_withdrawal %}
+                        <span class="text-xs text-pine-dark bg-pine-tint font-semibold px-2.5 py-1 rounded-full">
+                            Dapat ditarik
+                        </span>
+                    {% endif %}
+                </div>
+                <p class="text-xs sm:text-sm text-ink-muted mt-2 max-w-xl leading-relaxed">
+                    Saldo bertambah dari penerimaan sewa barang (setelah dipotong komisi platform {{ platform_commission_percent }}%), hasil penjualan barang (setelah dipotong komisi {{ sale_commission_percent }}%), pengembalian dana pembatalan pesanan, pembayaran denda atau ganti rugi, atau santunan Dana Gotong Royong.
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row md:flex-col items-stretch md:items-end gap-3 flex-shrink-0">
+                {% if pending_withdrawal %}
+                    <div class="text-right">
+                        <span class="inline-block bg-amber-tint text-amber-text text-xs font-semibold px-3 py-1.5 rounded-lg border border-amber-text/20 mb-2">
+                            Penarikan aktif: {{ pending_withdrawal.amount|rupiah }} ({{ pending_withdrawal.get_status_display }})
+                        </span>
+                        <p class="text-[11px] text-ink-muted">Tunggu hingga penarikan selesai untuk mengajukan baru.</p>
+                    </div>
+                    <button type="button" disabled class="min-h-[44px] bg-paper-deep text-ink-muted text-xs sm:text-sm font-semibold px-5 py-3 rounded-xl border border-line cursor-not-allowed">
+                        Tarik dana
+                    </button>
+                {% elif balance < min_withdrawal %}
+                    <div class="text-right">
+                        <span class="text-xs text-ink-muted block mb-1">Minimal penarikan {{ min_withdrawal|rupiah }}</span>
+                    </div>
+                    <button type="button" disabled class="min-h-[44px] bg-paper-deep text-ink-muted text-xs sm:text-sm font-semibold px-5 py-3 rounded-xl border border-line cursor-not-allowed" title="Saldo belum mencukupi batas minimal penarikan">
+                        Tarik dana
+                    </button>
+                {% else %}
+                    <a href="{% url 'payments:withdrawal_request' %}" class="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-5 py-3 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                        {% include 'partials/icon.html' with name='wallet' class='w-4 h-4' %}
+                        <span>Tarik dana</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Catatan Layanan Pencairan Dana -->
+        <div class="bg-paper px-6 py-3.5 border-t border-line text-xs text-ink-muted flex items-start gap-2.5">
+            <div class="text-brand flex-shrink-0 mt-0.5">
+                {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4' %}
+            </div>
+            <p class="leading-relaxed">
+                Pencairan dana diproses manual oleh admin {{ SITE_NAME }} ke rekening bank atau dompet digital Anda dalam waktu 1x24 jam kerja.
+            </p>
+        </div>
+    </div>
+
+    <!-- Dua Tab / Bagian: Mutasi Dompet & Riwayat Penarikan -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <!-- Kolom Kiri: Riwayat Mutasi Saldo (2/3) -->
+        <div class="lg:col-span-2 bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+            <div class="flex items-center justify-between pb-4 border-b border-line mb-5">
+                <div>
+                    <h2 class="font-heading text-lg font-bold text-ink">Mutasi transaksi</h2>
+                    <p class="text-xs text-ink-muted mt-0.5">Catatan kredit dan debit saldo akun Anda</p>
+                </div>
+                <span class="text-xs font-semibold text-ink-muted bg-paper px-2.5 py-1 rounded-lg border border-line">
+                    {{ transactions|length }} transaksi
+                </span>
+            </div>
+
+            {% if transactions %}
+                <!-- Tabel Desktop & Tablet: Kolom Nominal Selalu Terlihat Penuh -->
+                <div class="hidden sm:block table-responsive w-full overflow-x-auto rounded-lg">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-line text-ink-muted font-semibold">
+                                <th class="pb-3 px-2 sm:px-3 whitespace-nowrap">Tanggal</th>
+                                <th class="pb-3 px-2 sm:px-3">Keterangan</th>
+                                <th class="pb-3 px-2 sm:px-3 whitespace-nowrap">Referensi</th>
+                                <th class="pb-3 px-2 sm:px-3 text-right whitespace-nowrap" style="min-width: 110px;">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-line/70">
+                            {% for t in transactions %}
+                                <tr class="hover:bg-paper/60 transition-colors">
+                                    <td class="py-3.5 px-2 sm:px-3 text-ink-muted whitespace-nowrap">
+                                        {{ t.created_at|date:"d M Y, H:i" }}
+                                    </td>
+                                    <td class="py-3.5 px-2 sm:px-3">
+                                        <div class="font-medium text-ink" title="{{ t.get_kind_display }}">
+                                            {{ t.label_display }}
+                                        </div>
+                                        {% if t.note %}
+                                            <div class="text-[11px] text-ink-muted mt-0.5 max-w-[170px] sm:max-w-xs truncate" title="{{ t.note }}">
+                                                {{ t.note }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3.5 px-2 sm:px-3 whitespace-nowrap">
+                                        {% if t.rental %}
+                                            <a href="{% url 'rentals:rental_detail' t.rental.code %}" class="text-brand hover:underline font-medium inline-block py-1">
+                                                #{{ t.rental.code }}
+                                            </a>
+                                        {% elif t.sale_order %}
+                                            <a href="{% url 'sales:order_detail' t.sale_order.code %}" class="text-brand hover:underline font-medium inline-block py-1">
+                                                #{{ t.sale_order.code }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-ink-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3.5 px-2 sm:px-3 text-right whitespace-nowrap tabular-nums" style="min-width: 110px;">
+                                        {% if t.is_credit %}
+                                            <span class="font-bold text-pine-dark">
+                                                +{{ t.amount|rupiah }}
+                                            </span>
+                                        {% else %}
+                                            <span class="font-bold text-brick">
+                                                -{{ t.amount|rupiah }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tampilan Kartu Mobile: Kolom Nominal Selalu Terlihat Jelas di Kanan Atas Tanpa Terpotong -->
+                <div class="sm:hidden divide-y divide-line/70">
+                    {% for t in transactions %}
+                        <div class="py-3.5 flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="font-medium text-xs text-ink" title="{{ t.get_kind_display }}">
+                                    {{ t.label_display }}
+                                </div>
+                                <div class="flex items-center gap-1.5 text-[11px] text-ink-muted mt-0.5">
+                                    <span>{{ t.created_at|date:"d M Y, H:i" }}</span>
+                                    {% if t.rental %}
+                                        <span>&bull;</span>
+                                        <a href="{% url 'rentals:rental_detail' t.rental.code %}" class="text-brand hover:underline font-medium">
+                                            #{{ t.rental.code }}
+                                        </a>
+                                    {% elif t.sale_order %}
+                                        <span>&bull;</span>
+                                        <a href="{% url 'sales:order_detail' t.sale_order.code %}" class="text-brand hover:underline font-medium">
+                                            #{{ t.sale_order.code }}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                                {% if t.note %}
+                                    <div class="text-[11px] text-ink-muted mt-0.5 truncate" title="{{ t.note }}">
+                                        {{ t.note }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="text-right whitespace-nowrap shrink-0 tabular-nums pt-0.5">
+                                {% if t.is_credit %}
+                                    <span class="font-bold text-xs text-pine-dark">
+                                        +{{ t.amount|rupiah }}
+                                    </span>
+                                {% else %}
+                                    <span class="font-bold text-xs text-brick">
+                                        -{{ t.amount|rupiah }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12 text-ink-muted">
+                    {% include 'partials/icon.html' with name='wallet' class='w-8 h-8 mx-auto text-ink-muted/50 mb-2' %}
+                    <p class="text-sm font-medium text-ink">Belum ada mutasi saldo</p>
+                    <p class="text-xs mt-1">Transaksi sewa selesai atau penarikan dana akan tercatat di sini.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Kolom Kanan: Riwayat Penarikan Dana (1/3) -->
+        <div id="riwayat-penarikan" class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm scroll-mt-24 transition-all target:ring-2 target:ring-brand target:border-brand">
+            <div class="flex items-center justify-between pb-4 border-b border-line mb-5">
+                <div>
+                    <h2 class="font-heading text-lg font-bold text-ink">Permintaan penarikan</h2>
+                    <p class="text-xs text-ink-muted mt-0.5">Status pengajuan pencairan dana</p>
+                </div>
+            </div>
+
+            {% if withdrawals %}
+                <div class="space-y-4">
+                    {% for w in withdrawals %}
+                        <div id="penarikan-{{ w.id }}" class="p-4 rounded-xl border border-line bg-paper/60 space-y-2 scroll-mt-28 transition-all target:ring-2 target:ring-brand target:border-brand target:bg-white">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-ink text-sm tabular-nums">
+                                    {{ w.amount|rupiah }}
+                                </span>
+                                {% if w.status == 'diminta' %}
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-tint text-amber-text">
+                                        Diminta
+                                    </span>
+                                {% elif w.status == 'diproses' %}
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-tint text-brand">
+                                        Diproses
+                                    </span>
+                                {% elif w.status == 'selesai' %}
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pine-tint text-pine-dark">
+                                        Selesai
+                                    </span>
+                                {% elif w.status == 'ditolak' %}
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brick-tint text-brick">
+                                        Ditolak
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-xs text-ink-muted leading-relaxed">
+                                <p><strong class="text-ink">{{ w.method }}</strong> &bull; {{ w.masked_account_number }}</p>
+                                <p>a.n. {{ w.account_name }}</p>
+                                <p class="text-[11px] text-ink-muted mt-1">{{ w.requested_at|date:"d M Y, H:i" }}</p>
+                            </div>
+
+                            {% if w.transfer_reference %}
+                                <div class="pt-2 border-t border-line/60 text-[11px] text-pine-dark">
+                                    Ref transfer: <span class="font-medium">{{ w.transfer_reference }}</span>
+                                </div>
+                            {% endif %}
+
+                            {% if w.admin_note and w.status == 'ditolak' %}
+                                <div class="pt-2 border-t border-line/60 text-[11px] text-brick">
+                                    Alasan: {{ w.admin_note }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10 text-ink-muted">
+                    <p class="text-xs">Belum ada permintaan penarikan dana.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

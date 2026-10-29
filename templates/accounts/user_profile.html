@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Profil {{ target_user.full_name|default:target_user.username }} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 sm:px-6 pt-6 pb-16 space-y-6">
+
+    <!-- Breadcrumb Navigasi -->
+    <nav class="flex items-center gap-2 text-xs text-ink-muted mb-6" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-brand transition-colors">Beranda</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">Profil {{ target_user.username }}</span>
+    </nav>
+
+    <!-- Header Profil Pengguna -->
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div class="flex items-start sm:items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-brand text-white font-bold text-xl flex items-center justify-center uppercase select-none shadow-sm flex-shrink-0">
+                    {{ target_user.full_name|default:target_user.username|slice:":2" }}
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <h1 class="font-heading text-xl sm:text-2xl font-bold text-ink">
+                            {{ target_user.full_name|default:target_user.username }}
+                        </h1>
+                        {% if target_user.is_verified_student %}
+                            <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-0.5 rounded-full text-xs font-bold"
+                                  title="Mahasiswa Terverifikasi KTM">
+                                {% include 'partials/icon.html' with name='shield-check' class='w-3.5 h-3.5 text-pine' %}
+                                <span>Terverifikasi KTM</span>
+                            </span>
+                        {% endif %}
+                        {% if seller_tier == 'sangat_tepercaya' %}
+                            <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-0.5 rounded-full text-xs font-bold"
+                                  title="Tingkat Penjual: Sangat Tepercaya">
+                                {% include 'partials/icon.html' with name='award' class='w-3.5 h-3.5 text-pine' %}
+                                <span>Penjual sangat tepercaya</span>
+                            </span>
+                        {% elif seller_tier == 'tepercaya' %}
+                            <span class="inline-flex items-center gap-1 bg-amber-tint text-amber-text px-2.5 py-0.5 rounded-full text-xs font-bold"
+                                  title="Tingkat Penjual: Tepercaya">
+                                {% include 'partials/icon.html' with name='award' class='w-3.5 h-3.5 text-amber-text' %}
+                                <span>Penjual tepercaya</span>
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 bg-paper text-ink-muted px-2.5 py-0.5 rounded-full text-xs font-medium border border-line"
+                                  title="Tingkat Penjual: Penjual Baru">
+                                <span>Penjual baru</span>
+                            </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs sm:text-sm text-ink-muted mt-1">
+                        {{ profile.campus_name|default:"Mahasiswa" }} &bull; {{ profile.major|default:"Akademik" }} &bull; Angkatan {{ profile.entry_year|default:"-" }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Skor Kepercayaan -->
+            <div class="sm:border-l sm:border-line sm:pl-6 space-y-2 max-w-xs"
+                 title="Skor dihitung dari riwayat sewamu. Pelajari selengkapnya di Bantuan.">
+                <div class="flex items-center gap-3">
+                    <div class="text-left sm:text-right">
+                        <span class="block text-[11px] text-ink-muted font-medium">Skor Kepercayaan</span>
+                        <span class="block text-xs font-bold text-ink">
+                            {% if trust_score %}
+                                {{ trust_score.get_label }} ({{ trust_score.effective_score }}/100)
+                            {% else %}
+                                Pengguna Baru (60/100)
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% include 'partials/trust_ring.html' with trust=trust_score size='md' %}
+                </div>
+                {% if trust_score.top_factors %}
+                    <div class="text-[11px] text-ink-muted bg-paper rounded-lg p-2.5 border border-line space-y-1">
+                        <div class="flex items-center justify-between font-semibold text-ink text-[10px] pb-1 border-b border-line/60">
+                            <span>Faktor penjelas utama:</span>
+                            <a href="/skor-kepercayaan/" class="text-brand hover:underline font-bold">Metodologi &rarr;</a>
+                        </div>
+                        {% for factor in trust_score.top_factors %}
+                            <div class="flex items-start gap-1 leading-tight text-[11px]">
+                                <span class="text-brand font-bold">•</span>
+                                <span>{{ factor }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Dua Kolom: Barang yang Disewakan & Riwayat Ulasan -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Kolom Kiri: Riwayat Ulasan yang Diterima (lg:col-span-7) -->
+        <div class="lg:col-span-7 space-y-4">
+            <div class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-line pb-3">
+                    <div>
+                        <h2 class="font-heading text-base font-bold text-ink">Ulasan pengguna</h2>
+                        <p class="text-xs text-ink-muted mt-0.5">Penilaian dari rekan mahasiswa pada transaksi sebelumnya</p>
+                    </div>
+                    <span class="text-xs font-semibold text-brand bg-brand-tint px-2.5 py-1 rounded-lg">
+                        {{ reviews_received|length }} Ulasan
+                    </span>
+                </div>
+
+                {% if reviews_received %}
+                    <div class="space-y-3">
+                        {% for r in reviews_received %}
+                            <div class="p-4 rounded-xl bg-paper border border-line text-xs space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-full bg-brand-tint text-brand font-bold text-[10px] flex items-center justify-center">
+                                            {{ r.reviewer.full_name|default:r.reviewer.username|slice:":2" }}
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-ink block">{{ r.reviewer.full_name|default:r.reviewer.username }}</span>
+                                            <span class="text-[10px] text-ink-muted">Sebagai {{ r.get_as_role_display }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-amber-text font-bold text-xs">{{ r.rating }}★</span>
+                                        <span class="text-[10px] text-ink-muted block">{{ r.created_at|date:"d M Y" }}</span>
+                                    </div>
+                                </div>
+
+                                <p class="text-ink leading-relaxed">
+                                    {{ r.comment|default:"(Pengguna tidak memberikan komentar tambahan)" }}
+                                </p>
+
+                                <div class="pt-1 text-[11px] text-ink-muted">
+                                    Transaksi: <strong class="text-ink">{{ r.rental.item.title }}</strong> ({{ r.rental.code }})
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="p-8 rounded-xl bg-paper border border-line text-center text-xs text-ink-muted space-y-1">
+                        {% include 'partials/icon.html' with name='message-square' class='w-6 h-6 mx-auto text-ink-muted/60 mb-2' %}
+                        <p class="font-medium text-ink">Belum ada ulasan untuk mahasiswa ini</p>
+                        <p class="text-[11px]">Ulasan akan muncul setelah transaksi sewa berhasil diselesaikan.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Kartu Ulasan Jual Beli (Fase 8C) -->
+            {% if sale_reviews_received %}
+                <div class="bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <div>
+                            <h2 class="font-heading text-base font-bold text-ink">Ulasan jual beli</h2>
+                            <p class="text-xs text-ink-muted mt-0.5">Penilaian dari transaksi jual beli barang mahasiswa</p>
+                        </div>
+                        <span class="text-xs font-semibold text-brand bg-brand-tint px-2.5 py-1 rounded-lg">
+                            {{ sale_reviews_received|length }} Ulasan
+                        </span>
+                    </div>
+
+                    <div class="space-y-3">
+                        {% for r in sale_reviews_received %}
+                            <div class="p-4 rounded-xl bg-paper border border-line text-xs space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-full bg-brand-tint text-brand font-bold text-[10px] flex items-center justify-center">
+                                            {{ r.reviewer.full_name|default:r.reviewer.username|slice:":2" }}
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-ink block">{{ r.reviewer.full_name|default:r.reviewer.username }}</span>
+                                            <span class="text-[10px] text-ink-muted">Sebagai {{ r.get_role_display }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-amber-text font-bold text-xs">{{ r.rating }}★</span>
+                                        <span class="text-[10px] text-ink-muted block">{{ r.created_at|date:"d M Y" }}</span>
+                                    </div>
+                                </div>
+
+                                <p class="text-ink leading-relaxed">
+                                    {{ r.comment|default:"(Pengguna tidak memberikan komentar tambahan)" }}
+                                </p>
+
+                                <div class="pt-1 text-[11px] text-ink-muted">
+                                    Transaksi: <strong class="text-ink">{{ r.order.item.title }}</strong> ({{ r.order.code }})
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Kolom Kanan: Barang yang Disewakan & Dijual oleh Pengguna Ini (lg:col-span-5) -->
+        <div class="lg:col-span-5 space-y-4">
+            <!-- Kartu Barang yang Disewakan -->
+            <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-line pb-3">
+                    <h2 class="font-heading text-base font-bold text-ink">Barang yang disewakan</h2>
+                    <span class="text-xs text-ink-muted">{{ active_items|length }} barang</span>
+                </div>
+
+                {% if active_items %}
+                    <div class="space-y-3">
+                        {% for itm in active_items %}
+                            <a href="{% url 'catalog:item_detail' slug=itm.slug %}"
+                               class="flex items-center gap-3 p-3 rounded-xl bg-paper border border-line hover:border-brand/40 transition-colors block">
+                                <div class="w-14 h-14 rounded-lg bg-paper-deep border border-line overflow-hidden flex-shrink-0">
+                                    {% if itm.photos.exists %}
+                                        <img src="{{ itm.photos.first.image.url }}" alt="{{ itm.title }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <img src="{{ itm.fallback_illustration_url }}" alt="{{ itm.title }}" class="w-full h-full object-cover">
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-xs font-bold text-ink truncate">{{ itm.title }}</h3>
+                                    <p class="text-xs font-semibold text-brand mt-0.5">{{ itm.price_per_day|rupiah }} / hari</p>
+                                    <span class="text-[10px] text-ink-muted block mt-0.5">{{ itm.pickup_area }}</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-xs text-ink-muted italic py-4 text-center">
+                        Pengguna ini belum memasang barang sewa.
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Kartu Barang yang Dijual (Fase 8C) -->
+            <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-line pb-3">
+                    <h2 class="font-heading text-base font-bold text-ink">Barang yang dijual</h2>
+                    <span class="text-xs text-ink-muted">{{ active_sale_items|length }} barang</span>
+                </div>
+
+                {% if active_sale_items %}
+                    <div class="space-y-3">
+                        {% for itm in active_sale_items %}
+                            <a href="{% url 'sales:item_detail' slug=itm.slug %}"
+                               class="flex items-center gap-3 p-3 rounded-xl bg-paper border border-line hover:border-brand/40 transition-colors block">
+                                <div class="w-14 h-14 rounded-lg bg-paper-deep border border-line overflow-hidden flex-shrink-0">
+                                    {% if itm.photos.exists %}
+                                        <img src="{{ itm.photos.first.image.url }}" alt="{{ itm.title }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <img src="{{ itm.fallback_illustration_url }}" alt="{{ itm.title }}" class="w-full h-full object-cover">
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-xs font-bold text-ink truncate">{{ itm.title }}</h3>
+                                    <p class="text-xs font-semibold text-brand mt-0.5">{{ itm.price|rupiah }}</p>
+                                    <span class="text-[10px] text-ink-muted block mt-0.5">{{ itm.pickup_area }} &bull; {{ itm.get_condition_display }}</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-xs text-ink-muted italic py-4 text-center">
+                        Pengguna ini belum memasang barang jualan aktif.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

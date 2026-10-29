@@ -1,0 +1,327 @@
+{% load formatters %}
+<div id="kalkulator-hasil" class="bg-card text-ink rounded-card overflow-hidden border border-line shadow-sm"
+     x-data="{
+        calcTab: 'biaya_sewa',
+        ownerPricePerDay: 50000,
+        ownerDays: 3,
+        salePrice: 100000,
+        commRentalPct: {{ platform_commission_percent|default:8 }},
+        commSalePct: {{ sale_commission_percent|default:5 }},
+        commSaleMin: {{ sale_commission_min|default:2000 }}
+     }">
+    <!-- Tepi Kartu Kuitansi: Pola Tapis Geometris -->
+    <div class="h-1.5 w-full opacity-25" style="background: url('/static/patterns/tapis_geom.svg') repeat-x center / auto 100%;" aria-hidden="true"></div>
+
+    <div class="p-6 sm:p-8">
+        <!-- Tab Sakelar: Biaya sewa | Penghasilan sewa | Penghasilan jual (Tiga Tab — Butir 5) -->
+        <div class="flex items-center justify-between border-b border-line pb-4 mb-6 gap-4 flex-wrap">
+            <div class="inline-flex items-center p-1 rounded-xl bg-paper-deep border border-line">
+                <button type="button"
+                        @click="calcTab = 'biaya_sewa'"
+                        :class="calcTab === 'biaya_sewa' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                        class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                    {% include 'partials/icon.html' with name='calendar' class='w-3.5 h-3.5' %}
+                    <span>Biaya sewa</span>
+                </button>
+                <button type="button"
+                        @click="calcTab = 'penghasilan_sewa'"
+                        :class="calcTab === 'penghasilan_sewa' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                        class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                    {% include 'partials/icon.html' with name='wallet' class='w-3.5 h-3.5' %}
+                    <span>Penghasilan sewa</span>
+                </button>
+                <button type="button"
+                        @click="calcTab = 'penghasilan_jual'"
+                        :class="calcTab === 'penghasilan_jual' ? 'bg-card text-brand font-bold shadow-sm' : 'text-ink-muted hover:text-ink font-medium'"
+                        class="px-4 py-2 min-h-[40px] text-xs rounded-lg transition-all flex items-center gap-1.5">
+                    {% include 'partials/icon.html' with name='tag' class='w-3.5 h-3.5' %}
+                    <span>Penghasilan jual</span>
+                </button>
+            </div>
+            <p class="text-xs text-ink-muted hidden sm:block">Perhitungan transparan berbasis aturan resmi platform</p>
+        </div>
+
+        <!-- ================= TAB 1: BIAYA SEWA (PENYEWA) ================= -->
+        <div x-show="calcTab === 'biaya_sewa'">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Kolom 1: Formulir Kontrol Parameter Sewa (HTMX Reactive) -->
+                <div class="lg:col-span-6">
+                    <form hx-get="/kalkulator-sewa/"
+                          hx-target="#kalkulator-hasil"
+                          hx-swap="outerHTML"
+                          hx-trigger="change, input delay:250ms"
+                          class="space-y-4 bg-paper p-5 rounded-xl border border-line text-[15px]">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Harga Sewa per Hari -->
+                            <div>
+                                <label for="calc-ppd" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                                    Harga sewa per hari
+                                </label>
+                                <div class="flex items-center bg-card border border-line rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand focus-within:border-brand">
+                                    <span class="px-3 py-2 bg-paper text-ink-muted text-xs font-semibold border-r border-line select-none flex-shrink-0">Rp</span>
+                                    <input type="text"
+                                           inputmode="numeric"
+                                           id="calc-ppd"
+                                           name="price_per_day"
+                                           value="{{ calc.price_per_day|ribuan }}"
+                                           oninput="formatThousandInput(this)"
+                                           class="w-full bg-transparent px-3 py-2 text-ink font-semibold focus:outline-none text-sm">
+                                </div>
+                            </div>
+
+                            <!-- Durasi Sewa -->
+                            <div>
+                                <label for="calc-days" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                                    Durasi sewa (hari)
+                                </label>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="calc-days"
+                                       name="days"
+                                       value="{{ calc.days }}"
+                                       oninput="formatThousandInput(this)"
+                                       class="w-full bg-card border border-line rounded-lg px-3 py-2 text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-brand text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Tingkat Kepercayaan Penyewa -->
+                            <div>
+                                <label for="calc-tier" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                                    Tingkat penyewa
+                                </label>
+                                <select id="calc-tier"
+                                        name="tier"
+                                        class="w-full bg-card border border-line rounded-lg px-2.5 py-2 text-ink font-medium focus:outline-none focus:ring-2 focus:ring-brand text-xs sm:text-sm">
+                                    <option value="baru" {% if calc.tier == 'baru' %}selected{% endif %}>Baru (maks. Rp750.000)</option>
+                                    <option value="tepercaya" {% if calc.tier == 'tepercaya' %}selected{% endif %}>Tepercaya (maks. Rp1.500.000)</option>
+                                    <option value="sangat_tepercaya" {% if calc.tier == 'sangat_tepercaya' %}selected{% endif %}>Sangat tepercaya (maks. Rp3.000.000)</option>
+                                </select>
+                            </div>
+
+                            <!-- Estimasi Nilai Barang -->
+                            <div>
+                                <label for="calc-val" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                                    Estimasi nilai barang
+                                </label>
+                                <div class="flex items-center bg-card border border-line rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand focus-within:border-brand">
+                                    <span class="px-3 py-2 bg-paper text-ink-muted text-xs font-semibold border-r border-line select-none flex-shrink-0">Rp</span>
+                                    <input type="text"
+                                           inputmode="numeric"
+                                           id="calc-val"
+                                           name="estimated_value"
+                                           value="{{ calc.estimated_value|ribuan }}"
+                                           oninput="formatThousandInput(this)"
+                                           class="w-full bg-transparent px-3 py-2 text-ink font-semibold focus:outline-none text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Opsi Dana Gotong Royong -->
+                        <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-line/60">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox"
+                                       name="use_protection"
+                                       value="1"
+                                       {% if calc.use_protection %}checked{% endif %}
+                                       class="rounded border-line text-brand focus:ring-brand w-4 h-4">
+                                <span class="font-medium text-ink text-xs sm:text-sm">Dana Gotong Royong (5%, min. Rp3.000)</span>
+                            </label>
+                            {% if calc.is_mandatory_protection %}
+                                <span class="text-[11px] text-amber-text font-semibold bg-amber-tint px-2 py-0.5 rounded self-start sm:self-auto">Wajib (> Rp500rb)</span>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Kolom 2: Hasil Perhitungan Biaya Sewa Penyewa -->
+                <div class="lg:col-span-6 space-y-4">
+                    {% if calc.is_exceeded %}
+                        <!-- Pesan Peringatan Batas Nilai Sewa Terlampaui -->
+                        <div class="p-5 rounded-xl bg-amber-tint border border-amber-text/30 text-amber-text text-sm space-y-2" role="alert">
+                            <div class="flex items-center gap-2 font-bold text-amber-text text-base">
+                                {% include 'partials/icon.html' with name='alert-circle' class='w-5 h-5 text-amber-text flex-shrink-0' %}
+                                <span>Batas nilai sewa terlampaui</span>
+                            </div>
+                            <p class="leading-relaxed pl-7 text-xs sm:text-sm">
+                                {{ calc.error_message }}
+                            </p>
+                        </div>
+                    {% else %}
+                        <!-- Kuitansi Rincian Pembayaran Sewa Penyewa -->
+                        <div class="bg-paper p-5 rounded-xl border border-line space-y-3.5 text-sm">
+                            <div class="flex justify-between text-ink-muted">
+                                <span>Biaya sewa ({{ calc.price_per_day|rupiah }} &times; {{ calc.days }} hari)</span>
+                                <span class="font-semibold text-ink tabular-nums">{{ calc.rent_total|rupiah }}</span>
+                            </div>
+                            <div class="flex justify-between text-ink-muted">
+                                <span>Dana Gotong Royong</span>
+                                <span class="font-semibold text-ink tabular-nums">{{ calc.protection_fee|rupiah }}</span>
+                            </div>
+                            <div class="pt-3 border-t border-line flex justify-between items-baseline font-bold text-base sm:text-lg text-ink">
+                                <span>Total dibayar penyewa di awal</span>
+                                <span class="text-brand tabular-nums text-lg sm:text-xl">{{ calc.grand_total|rupiah }}</span>
+                            </div>
+                            <div class="p-3 bg-card rounded-lg border border-line text-xs text-ink-muted leading-relaxed">
+                                Dana pembayaran Anda ditahan secara aman oleh platform sampai barang kembali dalam kondisi baik dan masa sewa selesai.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: PENGHASILAN SEWA (PEMILIK — Butir 5) ================= -->
+        <div x-show="calcTab === 'penghasilan_sewa'" x-cloak>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Kolom 1: Formulir Kontrol Penghasilan Sewa -->
+                <div class="lg:col-span-6 space-y-4 bg-paper p-5 rounded-xl border border-line text-[15px]">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Harga Sewa per Hari Pemilik -->
+                        <div>
+                            <label for="owner-ppd-input" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                                Tarif sewa per hari
+                            </label>
+                            <div class="flex items-center bg-card border border-line rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand focus-within:border-brand">
+                                <span class="px-3 py-2 bg-paper text-ink-muted text-xs font-semibold border-r border-line select-none flex-shrink-0">Rp</span>
+                                <input type="number"
+                                       id="owner-ppd-input"
+                                       x-model.number="ownerPricePerDay"
+                                       min="5000"
+                                       step="5000"
+                                       class="w-full bg-transparent px-3 py-2 text-ink font-semibold focus:outline-none text-sm">
+                            </div>
+                        </div>
+
+                        <!-- Durasi Hari Pemilik -->
+                        <div>
+                            <label for="owner-days-input" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                                Durasi sewa (hari)
+                            </label>
+                            <input type="number"
+                                   id="owner-days-input"
+                                   x-model.number="ownerDays"
+                                   min="1"
+                                   max="30"
+                                   class="w-full bg-card border border-line rounded-lg px-3 py-2 text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-brand text-sm">
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-ink-muted">
+                        Berdasarkan pengaturan platform: komisi operasional platform sebesar <strong class="text-ink font-semibold" x-text="commRentalPct + '%'">{{ platform_commission_percent|default:8 }}%</strong> dari pokok sewa.
+                    </p>
+
+                    <!-- Shortcut Pilihan Cepat Barang Sewa Populer -->
+                    <div class="pt-2 border-t border-line/60">
+                        <span class="text-xs text-ink-muted block mb-2 font-medium">Pilihan barang sewa populer:</span>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="ownerPricePerDay = 75000; ownerDays = 3" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Kamera (3 hari)</button>
+                            <button type="button" @click="ownerPricePerDay = 35000; ownerDays = 2" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Jas/Toga (2 hari)</button>
+                            <button type="button" @click="ownerPricePerDay = 50000; ownerDays = 1" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Proyektor (1 hari)</button>
+                            <button type="button" @click="ownerPricePerDay = 40000; ownerDays = 3" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Tenda (3 hari)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kolom 2: Rincian Penghasilan Bersih Pemilik -->
+                <div class="lg:col-span-6 space-y-4">
+                    <div class="bg-paper p-5 rounded-xl border border-line space-y-3.5 text-sm">
+                        <div class="flex justify-between text-ink-muted">
+                            <span>Total sewa kotor (<span x-text="'Rp' + Number(ownerPricePerDay || 0).toLocaleString('id-ID')"></span> &times; <span x-text="ownerDays || 0"></span> hari)</span>
+                            <span class="font-semibold text-ink tabular-nums" x-text="'Rp' + Number((ownerPricePerDay || 0) * (ownerDays || 0)).toLocaleString('id-ID')">Rp150.000</span>
+                        </div>
+                        <div class="flex justify-between text-ink-muted">
+                            <span>Komisi platform (<span x-text="commRentalPct">8</span>%)</span>
+                            <span class="font-semibold text-brick tabular-nums"
+                                  x-text="'-Rp' + Math.round((ownerPricePerDay || 0) * (ownerDays || 0) * (commRentalPct / 100)).toLocaleString('id-ID')">-Rp12.000</span>
+                        </div>
+                        <div class="pt-3 border-t border-line flex justify-between items-baseline font-bold text-base sm:text-lg text-ink">
+                            <span>Penghasilan bersih pemilik</span>
+                            <span class="text-pine-dark tabular-nums text-lg sm:text-xl font-bold"
+                                  x-text="'Rp' + Math.max(0, ((ownerPricePerDay || 0) * (ownerDays || 0)) - Math.round((ownerPricePerDay || 0) * (ownerDays || 0) * (commRentalPct / 100))).toLocaleString('id-ID')">Rp138.000</span>
+                        </div>
+                        <div class="p-3 bg-card rounded-lg border border-line text-xs text-ink-muted leading-relaxed">
+                            Dana hasil sewa otomatis dicairkan ke saldo dompet {{ SITE_NAME }} Anda segera setelah penyewa mengembalikan barang dan diverifikasi aman.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: PENGHASILAN JUAL (PENJUAL — Butir 5) ================= -->
+        <div x-show="calcTab === 'penghasilan_jual'" x-cloak>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Kolom 1: Formulir Kontrol Harga Jual -->
+                <div class="lg:col-span-6 space-y-4 bg-paper p-5 rounded-xl border border-line text-[15px]">
+                    <div>
+                        <label for="seller-price-input" class="block font-semibold text-ink mb-1.5 text-xs sm:text-sm">
+                            Rencana harga barang jualan
+                        </label>
+                        <div class="flex items-center bg-card border border-line rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand focus-within:border-brand">
+                            <span class="px-3.5 py-2.5 bg-paper text-ink-muted text-xs font-semibold border-r border-line select-none flex-shrink-0">Rp</span>
+                            <input type="number"
+                                   id="seller-price-input"
+                                   x-model.number="salePrice"
+                                   min="5000"
+                                   step="5000"
+                                   placeholder="100000"
+                                   class="w-full bg-transparent px-3 py-2 text-ink font-semibold focus:outline-none text-base">
+                        </div>
+                        <p class="text-xs text-ink-muted mt-1.5">
+                            Berdasarkan pengaturan platform: komisi <strong class="text-ink font-semibold" x-text="commSalePct + '%'">{{ sale_commission_percent|default:5 }}%</strong> dengan minimal <strong class="text-ink font-semibold" x-text="'Rp' + Number(commSaleMin).toLocaleString('id-ID')">{{ sale_commission_min|default:2000|rupiah }}</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Shortcut Pilihan Cepat Harga -->
+                    <div class="pt-2 border-t border-line/60">
+                        <span class="text-xs text-ink-muted block mb-2 font-medium">Pilihan harga cepat:</span>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="salePrice = 25000" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Rp25.000</button>
+                            <button type="button" @click="salePrice = 50000" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Rp50.000</button>
+                            <button type="button" @click="salePrice = 100000" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Rp100.000</button>
+                            <button type="button" @click="salePrice = 300000" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Rp300.000</button>
+                            <button type="button" @click="salePrice = 750000" class="px-2.5 py-1 text-xs rounded-lg bg-card border border-line hover:border-brand text-ink">Rp750.000</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kolom 2: Rincian Hasil Bersih Penjual -->
+                <div class="lg:col-span-6 space-y-4">
+                    <div class="bg-paper p-5 rounded-xl border border-line space-y-3.5 text-sm">
+                        <div class="flex justify-between text-ink-muted">
+                            <span>Harga jualan barang</span>
+                            <span class="font-semibold text-ink tabular-nums" x-text="'Rp' + Number(salePrice || 0).toLocaleString('id-ID')">Rp100.000</span>
+                        </div>
+                        <div class="flex justify-between text-ink-muted">
+                            <span>Komisi platform (<span x-text="commSalePct">5</span>%, min. <span x-text="'Rp' + Number(commSaleMin).toLocaleString('id-ID')">Rp2.000</span>)</span>
+                            <span class="font-semibold text-brick tabular-nums"
+                                  x-text="'-Rp' + Math.min(Number(salePrice || 0), Math.max(Math.round((salePrice || 0) * (commSalePct/100)), commSaleMin)).toLocaleString('id-ID')">-Rp5.000</span>
+                        </div>
+                        <div class="pt-3 border-t border-line flex justify-between items-baseline font-bold text-base sm:text-lg text-ink">
+                            <span>Diterima bersih oleh penjual</span>
+                            <span class="text-pine-dark tabular-nums text-lg sm:text-xl font-bold"
+                                  x-text="'Rp' + Math.max(0, (salePrice || 0) - Math.min(Number(salePrice || 0), Math.max(Math.round((salePrice || 0) * (commSalePct/100)), commSaleMin))).toLocaleString('id-ID')">Rp95.000</span>
+                        </div>
+                        <div class="p-3 bg-card rounded-lg border border-line text-xs text-ink-muted leading-relaxed">
+                            Dana penjualan langsung dicairkan 100% ke saldo dompet {{ SITE_NAME }} Anda begitu pembeli mengonfirmasi penerimaan barang di titik temu kampus.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    if (typeof formatThousandInput !== 'function') {
+        function formatThousandInput(el) {
+            let raw = el.value.replace(/\D/g, '');
+            if (!raw) {
+                el.value = '';
+                return;
+            }
+            el.value = parseInt(raw, 10).toLocaleString('id-ID');
+        }
+    }
+    </script>
+</div>

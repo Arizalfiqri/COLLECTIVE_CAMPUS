@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Verifikasi KTM Mahasiswa | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[840px] mx-auto px-4 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    <!-- Header Verifikasi -->
+    <div class="mb-4 sm:mb-5 lg:mb-6 text-center sm:text-left">
+        <h1 class="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+            Verifikasi kartu tanda mahasiswa
+        </h1>
+        <p class="text-sm text-ink-muted mt-1.5 max-w-2xl leading-relaxed">
+            Verifikasi KTM memastikan setiap penyewa dan pemilik barang adalah mahasiswa aktif yang sah. Transaksi antar-kampus menjadi lebih tenang dan terpercaya.
+        </p>
+    </div>
+
+    <!-- Kartu KTM Ilustratif dengan Bingkai Tepi Kain Tapis 8px (Tanpa Teks di Atas Pola) -->
+    <div class="mb-8 max-w-md mx-auto">
+        <div class="p-2 rounded-2xl shadow-sm" style="background: url('/static/img/tapis-tile.svg') repeat;">
+            <div class="bg-card rounded-xl p-4 sm:p-5 border border-line flex flex-col justify-between" style="aspect-ratio: 1.586 / 1;">
+                <div class="flex items-center justify-between pb-2 border-b border-line">
+                    <div class="flex items-center gap-2">
+                        <img src="{% static 'img/logo-mark.svg' %}" alt="Logo" class="w-6 h-6 object-contain">
+                        <div>
+                            <span class="block text-[10px] font-bold text-ink leading-none">Kartu tanda mahasiswa</span>
+                            <span class="text-[9px] text-ink-muted leading-tight">{{ profile.campus_name|default:profile.campus.name|default:"Universitas Mitra Kampus" }}</span>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2 py-0.5 rounded-full text-[9px] font-bold">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-3 h-3 text-pine' %}
+                        <span>Valid</span>
+                    </span>
+                </div>
+                <div class="flex items-center gap-3.5 my-auto py-2">
+                    <div class="w-12 h-12 rounded-xl bg-brand text-white font-bold text-base flex items-center justify-center uppercase flex-shrink-0 select-none shadow-sm">
+                        {{ user.full_name|default:user.username|slice:":2" }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-xs sm:text-sm font-bold text-ink truncate">{{ user.full_name|default:user.username }}</h3>
+                        <p class="text-[11px] font-mono text-ink-muted">NIM {{ profile.nim|mask_nim }}</p>
+                        <p class="text-[10px] text-ink-muted truncate">{{ profile.major|default:"Akademik" }} &bull; Angkatan {{ profile.entry_year|default:"-" }}</p>
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-line/60 flex items-center justify-between text-[9px] text-ink-muted">
+                    <span>Identitas terverifikasi mahasiswa</span>
+                    <span class="font-mono">{{ SITE_NAME }} ID</span>
+                </div>
+            </div>
+        </div>
+        <p class="text-[11px] text-center text-ink-muted mt-2">
+            Format kartu identitas mahasiswa terverifikasi.
+        </p>
+    </div>
+
+    <!-- Bar Indikator Stepper 3 Langkah (design.md 5.8) -->
+    <div class="bg-card border border-line rounded-2xl p-4 sm:p-6 mb-8 shadow-sm">
+        <div class="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+            <!-- Langkah 1: Data Diri -->
+            <a href="/verifikasi-ktm/?step=1"
+               class="flex flex-col items-center justify-center min-h-[44px] group {% if current_step == 1 %}text-brand font-bold{% elif current_step > 1 %}text-pine font-medium{% else %}text-ink-muted{% endif %}">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 transition-colors
+                    {% if current_step == 1 %}bg-brand text-white ring-4 ring-brand-tint
+                    {% elif current_step > 1 %}bg-pine text-white
+                    {% else %}bg-paper text-ink-muted border border-line{% endif %}">
+                    {% if current_step > 1 %}
+                        {% include 'partials/icon.html' with name='check' class='w-4 h-4' %}
+                    {% else %}
+                        1
+                    {% endif %}
+                </div>
+                <span class="text-xs sm:text-sm">1. Data diri</span>
+            </a>
+
+            <!-- Langkah 2: Unggah KTM -->
+            <a href="/verifikasi-ktm/?step=2"
+               class="flex flex-col items-center justify-center min-h-[44px] group {% if current_step == 2 %}text-brand font-bold{% elif current_step > 2 %}text-pine font-medium{% else %}text-ink-muted{% endif %}">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 transition-colors
+                    {% if current_step == 2 %}bg-brand text-white ring-4 ring-brand-tint
+                    {% elif current_step > 2 %}bg-pine text-white
+                    {% else %}bg-paper text-ink-muted border border-line{% endif %}">
+                    {% if current_step > 2 %}
+                        {% include 'partials/icon.html' with name='check' class='w-4 h-4' %}
+                    {% else %}
+                        2
+                    {% endif %}
+                </div>
+                <span class="text-xs sm:text-sm">2. Unggah KTM</span>
+            </a>
+
+            <!-- Langkah 3: Menunggu Tinjauan -->
+            <div class="flex flex-col items-center justify-center min-h-[44px] {% if current_step == 3 %}text-brand font-bold{% else %}text-ink-muted{% endif %}">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 transition-colors
+                    {% if current_step == 3 %}bg-brand text-white ring-4 ring-brand-tint
+                    {% elif user.is_verified_student %}bg-pine text-white
+                    {% else %}bg-paper text-ink-muted border border-line{% endif %}">
+                    {% if user.is_verified_student %}
+                        {% include 'partials/icon.html' with name='check' class='w-4 h-4' %}
+                    {% else %}
+                        3
+                    {% endif %}
+                </div>
+                <span class="text-xs sm:text-sm">3. Status &amp; tinjauan</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- KONTEN STEP 1: DATA DIRI -->
+    {% if current_step == 1 %}
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-line">
+            <h2 class="font-heading text-lg font-bold text-ink flex items-center gap-2">
+                {% include 'partials/icon.html' with name='graduation-cap' class='w-5 h-5 text-brand' %}
+                <span>Konfirmasi data kemahasiswaan</span>
+            </h2>
+            <span class="text-xs text-ink-muted">Langkah 1 dari 3</span>
+        </div>
+
+        <p class="text-xs sm:text-sm text-ink-muted mb-6 leading-relaxed">
+            Pastikan data di bawah ini sesuai dengan identitas fisik yang tercetak pada Kartu Tanda Mahasiswa (KTM) Anda.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-paper p-5 rounded-xl border border-line mb-6">
+            <div>
+                <span class="block text-[11px] font-semibold text-ink-muted">Nama lengkap</span>
+                <span class="text-sm font-bold text-ink">{{ user.full_name|default:user.username }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold text-ink-muted">NIM</span>
+                <span class="text-sm font-bold text-ink">{{ profile.nim|default:"-" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold text-ink-muted">Nama kampus</span>
+                <span class="text-sm font-bold text-ink">{{ profile.campus_name|default:"-" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold text-ink-muted">Program studi</span>
+                <span class="text-sm font-bold text-ink">{{ profile.major|default:"-" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold text-ink-muted">Tahun angkatan</span>
+                <span class="text-sm font-bold text-ink">{{ profile.entry_year|default:"-" }}</span>
+            </div>
+            <div>
+                <span class="block text-[11px] font-semibold text-ink-muted">Nomor WhatsApp</span>
+                <span class="text-sm font-bold text-ink">{{ user.phone_whatsapp|default:"-" }}</span>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+            <a href="/verifikasi-ktm/?step=2"
+               class="bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors inline-flex items-center gap-2">
+                <span>Lanjut ke unggah KTM</span>
+                <span>&rarr;</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- KONTEN STEP 2: UNGGAH KTM -->
+    {% if current_step == 2 %}
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-line">
+            <h2 class="font-heading text-lg font-bold text-ink flex items-center gap-2">
+                {% include 'partials/icon.html' with name='camera' class='w-5 h-5 text-brand' %}
+                <span>Unggah foto kartu tanda mahasiswa</span>
+            </h2>
+            <span class="text-xs text-ink-muted">Langkah 2 dari 3</span>
+        </div>
+
+        <!-- Petunjuk Foto (design.md 5.8) -->
+        <div class="bg-paper p-4 rounded-xl border border-line mb-6 flex items-start gap-3">
+            <div class="text-brand mt-0.5 flex-shrink-0">
+                {% include 'partials/icon.html' with name='shield-check' class='w-5 h-5' %}
+            </div>
+            <div>
+                <h3 class="text-xs font-bold text-ink">Petunjuk pengambilan foto KTM:</h3>
+                <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                    Foto tegak, terang, tulisan terbaca, tanpa pantulan cahaya. Pastikan NIM, nama lengkap, dan logo atau nama universitas terlihat jelas.
+                </p>
+            </div>
+        </div>
+
+        <form method="post" action="/verifikasi-ktm/" enctype="multipart/form-data" class="space-y-6" x-data="{ fileName: '', previewUrl: '' }">
+            {% csrf_token %}
+
+            {% if form.ktm_image.errors %}
+                <div class="p-3.5 rounded-xl bg-brick-tint border border-brick/30 text-brick text-xs space-y-1">
+                    {% for error in form.ktm_image.errors %}
+                        <p class="flex items-center gap-1.5">
+                            {% include 'partials/icon.html' with name='x' class='w-3.5 h-3.5 flex-shrink-0' %}
+                            <span>{{ error }}</span>
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Dropzone Area Tarik-dan-Lepas -->
+            <div class="border-2 border-dashed border-line hover:border-brand/50 rounded-2xl p-6 sm:p-10 text-center bg-paper transition-colors cursor-pointer"
+                 @click="$refs.fileInput.click()"
+                 @dragover.prevent
+                 @drop.prevent="
+                    const file = $event.dataTransfer.files[0];
+                    if (file) {
+                        $refs.fileInput.files = $event.dataTransfer.files;
+                        fileName = file.name;
+                        previewUrl = URL.createObjectURL(file);
+                    }
+                 ">
+                
+                <input type="file"
+                       name="ktm_image"
+                       x-ref="fileInput"
+                       id="id_ktm_image"
+                       accept="image/jpeg,image/png,image/jpg"
+                       class="hidden"
+                       @change="
+                          if ($refs.fileInput.files.length) {
+                              fileName = $refs.fileInput.files[0].name;
+                              previewUrl = URL.createObjectURL($refs.fileInput.files[0]);
+                          }
+                       ">
+
+                <!-- Pratinjau Gambar Jika Dipilih -->
+                <template x-if="previewUrl">
+                    <div class="space-y-3">
+                        <div class="max-w-sm mx-auto rounded-xl overflow-hidden border border-line shadow-sm bg-card p-1">
+                            <img :src="previewUrl" alt="Pratinjau KTM" class="w-full h-auto max-h-56 object-contain rounded-lg">
+                        </div>
+                        <p class="text-xs font-semibold text-ink" x-text="fileName"></p>
+                        <button type="button" @click.stop="previewUrl = ''; fileName = ''; $refs.fileInput.value = ''"
+                                class="text-xs text-brick hover:underline">
+                            Ganti foto lain
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Tampilan Default Jika Belum Ada Foto -->
+                <template x-if="!previewUrl">
+                    <div class="space-y-3">
+                        <div class="w-12 h-12 rounded-full bg-brand-tint text-brand flex items-center justify-center mx-auto">
+                            {% include 'partials/icon.html' with name='camera' class='w-6 h-6' %}
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-ink">
+                                Klik untuk memilih foto atau seret berkas ke sini
+                            </p>
+                            <p class="text-xs text-ink-muted mt-1">
+                                Format JPG atau PNG. Ukuran maksimal 5 MB.
+                            </p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Pernyataan Privasi Data -->
+            <div class="p-3.5 rounded-xl bg-paper-deep border border-line text-xs text-ink-muted flex items-start gap-2">
+                {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-pine flex-shrink-0 mt-0.5' %}
+                <span>
+                    <strong>Jaminan privasi:</strong> Berkas foto KTM disimpan di folder privat yang tidak dapat diakses publik. Hanya admin yang dapat meninjau dan berkas akan dihapus otomatis setelah keputusan verifikasi.
+                </span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                <a href="/verifikasi-ktm/?step=1" class="text-xs text-ink-muted hover:text-ink">
+                    &larr; Kembali ke data diri
+                </a>
+                <button type="submit"
+                        class="w-full sm:w-auto bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-7 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                    Unggah KTM
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- KONTEN STEP 3: STATUS & TINJAUAN / HASIL OCR -->
+    {% if current_step == 3 %}
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="flex items-center justify-between pb-3 border-b border-line">
+            <h2 class="font-heading text-lg font-bold text-ink flex items-center gap-2">
+                {% include 'partials/icon.html' with name='shield-check' class='w-5 h-5 text-brand' %}
+                <span>Status verifikasi mahasiswa</span>
+            </h2>
+            <span class="text-xs text-ink-muted">Langkah 3 dari 3</span>
+        </div>
+
+        {% if user.is_verified_student %}
+            <!-- Kondisi 1: Disetujui / Terverifikasi -->
+            <div class="p-6 rounded-2xl bg-pine-tint border border-pine/30 text-center sm:text-left flex flex-col sm:flex-row items-center gap-5">
+                <div class="w-14 h-14 rounded-2xl bg-pine text-white flex items-center justify-center flex-shrink-0">
+                    {% include 'partials/icon.html' with name='check' class='w-8 h-8' %}
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-pine-dark">Selamat! Akun mahasiswa Anda telah terverifikasi</h3>
+                    <p class="text-xs sm:text-sm text-ink-muted mt-1 leading-relaxed">
+                        Identitas Anda sebagai mahasiswa aktif telah tervalidasi. Seluruh fitur penyewaan barang dan pemasangan listing kini aktif sepenuhnya.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <a href="/dashboard/" class="bg-card hover:bg-paper text-ink border border-line text-xs font-bold px-5 py-2.5 rounded-xl transition-colors">
+                    Ke dashboard
+                </a>
+                <a href="/barang/baru/" class="bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition-colors">
+                    Pasang barang sekarang
+                </a>
+            </div>
+
+        {% elif latest_verification %}
+            <!-- Kondisi 2: Menunggu / Sedang Ditinjau / Ditolak -->
+            <div class="p-5 rounded-2xl border
+                {% if latest_verification.status == 'ditolak' %}bg-brick-tint border-brick/30
+                {% elif latest_verification.status == 'perlu_tinjauan' %}bg-amber-tint border-amber-text/30
+                {% else %}bg-paper-deep border-line{% endif %}">
+                
+                <div class="flex items-start gap-3">
+                    <div class="mt-0.5 flex-shrink-0">
+                        {% if latest_verification.status == 'ditolak' %}
+                            <div class="w-6 h-6 rounded-full bg-brick text-white flex items-center justify-center">
+                                {% include 'partials/icon.html' with name='x' class='w-4 h-4' %}
+                            </div>
+                        {% else %}
+                            <div class="w-6 h-6 rounded-full bg-amber-text text-white flex items-center justify-center">
+                                {% include 'partials/icon.html' with name='clock' class='w-4 h-4' %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <h3 class="text-sm font-bold text-ink">
+                                Status: {{ latest_verification.get_status_display }}
+                            </h3>
+                            <span class="text-[11px] text-ink-muted">
+                                Diunggah: {{ latest_verification.created_at|date:"d M Y, H:i" }} WIB
+                            </span>
+                        </div>
+
+                        {% if latest_verification.status == 'ditolak' %}
+                            <p class="text-xs text-brick mt-1">
+                                Verifikasi ditolak. Catatan admin: {{ latest_verification.admin_note|default:"Foto KTM tidak terbaca atau data tidak cocok." }}
+                            </p>
+                        {% else %}
+                            <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                                Foto KTM Anda berhasil disimpan di server privat dan sedang dalam antrean tinjauan admin. Admin memvalidasi berkas secara berkala.
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hasil Pembacaan Otomatis OCR (Transparan kepada Pengguna) -->
+            <div class="bg-paper p-5 rounded-xl border border-line space-y-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-ink flex items-center gap-1.5">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-brand' %}
+                        <span>Hasil pembacaan otomatis (OCR)</span>
+                    </h4>
+                    {% if latest_verification.match_score %}
+                        <span class="text-xs font-bold px-2 py-0.5 rounded bg-brand-tint text-brand">
+                            Skor kecocokan: {{ latest_verification.match_score }}/100
+                        </span>
+                    {% endif %}
+                </div>
+
+                <p class="text-xs text-ink-muted leading-relaxed">
+                    Sistem mendeteksi informasi berikut dari foto KTM Anda untuk mempermudah verifikasi:
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div class="p-3 bg-card rounded-lg border border-line">
+                        <span class="block text-[11px] text-ink-muted">NIM terbaca:</span>
+                        <div class="flex items-center justify-between mt-0.5">
+                            <span class="text-xs font-bold text-ink font-mono">
+                                {{ latest_verification.ocr_nim|default:"(Belum terdeteksi)" }}
+                            </span>
+                            {% if latest_verification.nim_match %}
+                                <span class="text-[11px] font-bold text-pine flex items-center gap-1">
+                                    {% include 'partials/icon.html' with name='check' class='w-3 h-3' %}
+                                    <span>Cocok</span>
+                                </span>
+                            {% else %}
+                                <span class="text-[11px] text-ink-muted">NIM akun: {{ profile.nim|mask_nim }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-card rounded-lg border border-line">
+                        <span class="block text-[11px] text-ink-muted">Nama terbaca:</span>
+                        <div class="flex items-center justify-between mt-0.5">
+                            <span class="text-xs font-bold text-ink truncate max-w-[180px]">
+                                {{ latest_verification.ocr_name|default:"(Belum terdeteksi)" }}
+                            </span>
+                            <span class="text-[11px] text-ink-muted">
+                                Kemiripan: {{ latest_verification.name_similarity }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if latest_verification.admin_note and latest_verification.status != 'ditolak' %}
+                    <p class="text-[11px] text-ink-muted italic pt-1">
+                        Catatan sistem: {{ latest_verification.admin_note }}
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Tombol Aksi Step 3 -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <a href="/dashboard/" class="text-xs text-brand font-semibold hover:underline">
+                    &larr; Kembali ke dashboard
+                </a>
+                <a href="/verifikasi-ktm/?step=2" class="bg-card hover:bg-paper-deep text-ink border border-line text-xs font-bold px-5 py-2.5 rounded-xl transition-colors">
+                    Unggah ulang foto KTM
+                </a>
+            </div>
+
+        {% else %}
+            <!-- Belum ada verifikasi yang diunggah -->
+            <div class="text-center py-8">
+                <p class="text-sm text-ink-muted mb-4">Anda belum mengunggah foto KTM.</p>
+                <a href="/verifikasi-ktm/?step=2" class="bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-5 py-2.5 rounded-xl">
+                    Mulai unggah KTM
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

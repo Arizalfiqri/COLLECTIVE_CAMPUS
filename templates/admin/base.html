@@ -1,0 +1,854 @@
+{% load static i18n formatters %}<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ SITE_SHORT_NAME }} Admin{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+
+    <!-- Tipografi Resmi {{ SITE_NAME }}: Bricolage Grotesque & Plus Jakarta Sans (AGENT.md 6) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Compiled Styles (AGENT.md Tokens) -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=7e_v2">
+    <style>[x-cloak]{display:none!important}</style>
+
+    <!-- HTMX & Alpine.js dengan Focus Plugin -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://unpkg.com/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Gaya Kerangka Admin Terpadu & Override Django Standar (AGENT.md 5A) -->
+    <style>
+        :root {
+            --paper: #F8F5EE;
+            --paper-deep: #F0EBDD;
+            --card: #FFFFFF;
+            --line: #E4DECF;
+            --ink: #141B34;
+            --ink-muted: #566074;
+            --brand: #1F45C4;
+            --brand-hover: #17369F;
+            --brand-tint: #E6ECFB;
+            --saffron: #F2A900;
+            --pine: #0E7C5A;
+            --pine-dark: #0A5C43;
+            --pine-tint: #DDF1E8;
+            --amber-text: #9A5B00;
+            --amber-tint: #FFF0D1;
+            --brick: #B42318;
+            --brick-tint: #FDE7E4;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background-color: var(--paper);
+            color: var(--ink);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hilangkan kapitalisasi berlebihan pada django admin bawaan */
+        caption, th, label, .module h2, .breadcrumbs, button, input[type=submit] {
+            text-transform: none !important;
+            letter-spacing: normal !important;
+        }
+
+        /* Formulir Django Admin Standar */
+        .aligned label {
+            color: var(--ink) !important;
+            font-weight: 600 !important;
+            font-size: 0.85rem !important;
+        }
+
+        .form-row {
+            padding: 12px 16px !important;
+            border-bottom: 1px solid var(--line) !important;
+        }
+
+        fieldset.module {
+            background: var(--card) !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 12px !important;
+            margin-bottom: 24px !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+        }
+
+        fieldset.module h2 {
+            background: var(--paper-deep) !important;
+            color: var(--ink) !important;
+            font-size: 0.9rem !important;
+            font-weight: 700 !important;
+            padding: 12px 16px !important;
+            border-bottom: 1px solid var(--line) !important;
+            margin: 0 !important;
+        }
+
+        input[type=text], input[type=password], input[type=email], input[type=url],
+        input[type=number], input[type=tel], textarea, select {
+            border: 1px solid var(--line) !important;
+            border-radius: 8px !important;
+            padding: 8px 12px;
+            background: #FFFFFF !important;
+            color: var(--ink) !important;
+            font-family: inherit !important;
+            font-size: 0.875rem !important;
+            outline: none !important;
+        }
+
+        #searchbar {
+            padding-left: 2.5rem !important;
+            padding-right: 1rem !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+            font-size: 0.8125rem !important;
+            border-radius: 0.75rem !important;
+            line-height: 1.25rem !important;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--brand) !important;
+            box-shadow: 0 0 0 3px var(--brand-tint) !important;
+        }
+
+        /* Normalisasi & Gaya Tabel Django Admin Saledash */
+        #changelist, .results {
+            background: transparent !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #changelist table, #result_list, .results table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            border-spacing: 0 !important;
+            background: #FFFFFF !important;
+            border: none !important;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+            font-size: 13px !important;
+        }
+
+        #changelist table caption, #result_list caption {
+            display: none !important;
+        }
+
+        #changelist thead th, #result_list thead th {
+            background: #F8F5EE !important;
+            color: #566074 !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            letter-spacing: 0.04em !important;
+            text-transform: uppercase !important;
+            padding: 12px 16px !important;
+            border-bottom: 1px solid #E4DECF !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+            vertical-align: middle !important;
+        }
+
+        #changelist thead th a, #result_list thead th a {
+            color: #566074 !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+
+        #changelist thead th a:hover, #result_list thead th a:hover {
+            color: #1F45C4 !important;
+        }
+
+        #changelist thead th.action-checkbox-column,
+        #result_list thead th.action-checkbox-column,
+        #changelist tbody td.action-checkbox,
+        #result_list tbody td.action-checkbox {
+            width: 44px !important;
+            min-width: 44px !important;
+            max-width: 44px !important;
+            text-align: center !important;
+            padding: 12px 10px !important;
+        }
+
+        #changelist table tbody tr, #result_list tbody tr {
+            border-bottom: 1px solid #F0EBDD !important;
+            transition: background-color 0.15s ease !important;
+        }
+
+        #changelist table tbody tr:last-child, #result_list tbody tr:last-child {
+            border-bottom: none !important;
+        }
+
+        #changelist table tbody tr:hover, #result_list tbody tr:hover {
+            background-color: #F8F5EE !important;
+        }
+
+        #changelist table tbody tr.selected, #result_list tbody tr.selected {
+            background-color: #E6ECFB !important;
+        }
+
+        #changelist table tbody td,
+        #changelist table tbody th,
+        #result_list tbody td,
+        #result_list tbody th {
+            padding: 12px 16px !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+            color: #141B34 !important;
+            border: none !important;
+            border-bottom: 1px solid #F0EBDD !important;
+            text-align: left !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            font-family: inherit !important;
+            font-weight: 400 !important;
+        }
+
+        #changelist table tbody th, #result_list tbody th {
+            font-weight: 600 !important;
+        }
+
+        #changelist table tbody th a, #result_list tbody th a {
+            color: #1F45C4 !important;
+            text-decoration: none !important;
+            font-weight: 600 !important;
+        }
+
+        #changelist table tbody th a:hover, #result_list tbody th a:hover {
+            text-decoration: underline !important;
+        }
+
+        #changelist input[type=checkbox], #result_list input[type=checkbox] {
+            width: 16px !important;
+            height: 16px !important;
+            border-radius: 4px !important;
+            border: 1.5px solid #CBD5E1 !important;
+            cursor: pointer !important;
+            accent-color: #1F45C4 !important;
+            vertical-align: middle !important;
+        }
+
+        #changelist table td img[src*="icon-yes"], #result_list td img[src*="icon-yes"] {
+            filter: invert(34%) sepia(87%) saturate(447%) hue-rotate(113deg) brightness(91%) contrast(92%);
+            width: 16px !important;
+            height: 16px !important;
+            vertical-align: middle !important;
+        }
+
+        #changelist table td img[src*="icon-no"], #result_list td img[src*="icon-no"] {
+            filter: invert(21%) sepia(82%) saturate(3472%) hue-rotate(349deg) brightness(91%) contrast(95%);
+            width: 16px !important;
+            height: 16px !important;
+            vertical-align: middle !important;
+        }
+
+        /* Bilah Aksi Massal */
+        .actions select {
+            height: 34px !important;
+            padding: 4px 10px !important;
+            font-size: 12px !important;
+            border-radius: 8px !important;
+            border: 1px solid #E4DECF !important;
+            background: #FFFFFF !important;
+            color: #141B34 !important;
+            outline: none !important;
+        }
+
+        /* Bilah Paginasi Django */
+        .paginator {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 12px 16px !important;
+            font-size: 12px !important;
+            color: #566074 !important;
+            background: #FFFFFF !important;
+            border-top: 1px solid #E4DECF !important;
+        }
+
+        .paginator a {
+            padding: 5px 12px !important;
+            border: 1px solid #E4DECF !important;
+            border-radius: 8px !important;
+            color: #141B34 !important;
+            text-decoration: none !important;
+            font-weight: 600 !important;
+            margin: 0 2px !important;
+            transition: background-color 0.15s ease !important;
+        }
+
+        .paginator a:hover {
+            background: #F8F5EE !important;
+        }
+
+        .paginator .this-page {
+            padding: 5px 12px !important;
+            background: #1F45C4 !important;
+            color: #FFFFFF !important;
+            border-radius: 8px !important;
+            font-weight: 700 !important;
+            margin: 0 2px !important;
+        }
+
+        /* Bilah Aksi Submit */
+        .submit-row {
+            background: var(--card) !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 12px !important;
+            padding: 14px 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            margin-top: 24px !important;
+        }
+
+        .submit-row input[type=submit] {
+            background: var(--brand) !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 9px 20px !important;
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            cursor: pointer !important;
+            transition: background-color 0.15s ease !important;
+        }
+
+        .submit-row input[type=submit]:hover {
+            background: var(--brand-hover) !important;
+        }
+
+        .submit-row a.deletelink {
+            background: var(--brick-tint) !important;
+            color: var(--brick) !important;
+            border: 1px solid var(--brick) !important;
+            border-radius: 8px !important;
+            padding: 8px 16px !important;
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            text-decoration: none !important;
+            margin-left: auto !important;
+        }
+
+        /* Jaminan Tampilan Sidebar Saledash Desktop & Drawer Responsif */
+        .admin-sidebar {
+            display: none;
+            width: 16rem;
+        }
+        @media (min-width: 1024px) {
+            .admin-sidebar:not(.sidebar-hidden) {
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            .admin-sidebar.sidebar-hidden {
+                display: none !important;
+            }
+            .admin-mobile-toggle {
+                display: none !important;
+            }
+            .admin-desktop-toggle.admin-toggle-visible {
+                display: inline-flex !important;
+            }
+            .admin-desktop-toggle.admin-toggle-hidden {
+                display: none !important;
+            }
+            .admin-date-chip {
+                display: inline-flex !important;
+            }
+        }
+        @media (max-width: 1023.98px) {
+            .admin-sidebar {
+                display: none !important;
+            }
+            .admin-mobile-toggle {
+                display: inline-flex !important;
+            }
+            .admin-desktop-toggle {
+                display: none !important;
+            }
+            .admin-date-chip {
+                display: none !important;
+            }
+        }
+    </style>
+    
+    {% block extrahead %}{% endblock %}
+    {% block extrastyle %}{% endblock %}
+</head>
+<body class="bg-paper text-ink antialiased min-h-screen">
+
+{% if user.is_authenticated and user.is_staff %}
+<!-- ========================================== -->
+<!-- KERANGKA UTAMA ADMIN SALEDASH (STAF AKTIF) -->
+<!-- ========================================== -->
+<div id="admin-shell"
+     data-admin-shell
+     x-data="{
+        activeGroup: '{{ admin_active_group_id|default:'' }}',
+        collapsed: localStorage.getItem('admin_sidebar_collapsed') === 'true',
+        drawerOpen: false,
+        notifOpen: false,
+        avatarOpen: false,
+        toggleGroup(id) {
+            if (this.activeGroup === id) {
+                this.activeGroup = null;
+            } else {
+                this.activeGroup = id;
+            }
+        },
+        toggleCollapse() {
+            this.collapsed = !this.collapsed;
+            localStorage.setItem('admin_sidebar_collapsed', this.collapsed);
+        }
+     }"
+     class="min-h-screen flex flex-col bg-paper">
+
+    <!-- LACI RESPONSIVE MOBILE (< 1024px) -->
+    <div x-show="drawerOpen"
+         x-cloak
+         class="fixed inset-0 z-50 lg:hidden"
+         role="dialog"
+         aria-modal="true"
+         aria-label="Menu navigasi staf"
+         @keydown.escape.window="drawerOpen = false">
+        
+        <!-- Lapisan Penutup (Backdrop) -->
+        <div class="fixed inset-0 bg-ink/40 transition-opacity"
+             @click="drawerOpen = false"
+             x-show="drawerOpen"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"></div>
+
+        <!-- Panel Laci -->
+        <div class="fixed inset-y-0 left-0 w-72 bg-card border-r border-line flex flex-col shadow-lg z-10"
+             x-show="drawerOpen"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="-translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="-translate-x-full">
+            
+            <!-- Kepala Laci -->
+            <div class="h-16 px-5 border-b border-line flex items-center justify-between">
+                <a href="{% url 'admin:index' %}" class="flex items-center gap-2.5">
+                    <img src="{% static 'img/logo-mark.svg' %}" alt="Logo {{ SITE_NAME }}" class="w-8 h-8 select-none" />
+                    <div>
+                        <span class="text-lg font-bold text-ink">{{ SITE_LOGOTYPE_DARK }}<span class="text-brand">{{ SITE_LOGOTYPE_ACCENT }}</span></span>
+                        <span class="ml-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-brand-tint text-brand">Staf</span>
+                    </div>
+                </a>
+                <button type="button"
+                        @click="drawerOpen = false"
+                        class="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-muted hover:text-ink hover:bg-paper"
+                        aria-label="Tutup menu laci">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Daftar Menu Navigasi Akordeon Mobile -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                {% for group in admin_nav_groups %}
+                    {% if group.is_single %}
+                    <!-- Tautan Tunggal (Ikhtisar) -->
+                    <a href="{{ group.url }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-colors {% if group.is_active %}bg-brand text-white shadow-sm{% else %}text-ink hover:bg-paper font-medium{% endif %}">
+                        {% include 'partials/icon.html' with name=group.icon class="w-4 h-4 flex-shrink-0" %}
+                        <span>{{ group.title }}</span>
+                    </a>
+                    {% else %}
+                    <!-- Grup Akordeon -->
+                    <div class="pt-1">
+                        <button type="button"
+                                @click="toggleGroup('{{ group.id }}')"
+                                :aria-expanded="activeGroup === '{{ group.id }}'"
+                                :class="activeGroup === '{{ group.id }}' ? 'bg-paper text-ink font-bold' : 'text-ink-muted hover:text-ink hover:bg-paper font-medium'"
+                                class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] transition-colors">
+                            <span class="flex items-center gap-3">
+                                {% include 'partials/icon.html' with name=group.icon class="w-4 h-4 text-ink-muted flex-shrink-0" %}
+                                <span>{{ group.title }}</span>
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                {% if group.badge > 0 %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brick text-white">
+                                    {{ group.badge }}
+                                </span>
+                                {% endif %}
+                                <svg class="w-3.5 h-3.5 text-ink-muted transition-transform duration-150"
+                                     :class="{ 'rotate-180': activeGroup === '{{ group.id }}' }"
+                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </button>
+
+                        <div x-show="activeGroup === '{{ group.id }}'"
+                             x-cloak
+                             class="ml-5 pl-3.5 my-1.5 space-y-1 border-l-2 border-line">
+                            {% for item in group.items %}
+                            <a href="{{ item.url }}"
+                               class="block py-1.5 px-3 rounded-lg text-xs transition-colors {% if item.is_active %}bg-brand-tint text-brand font-bold shadow-sm{% else %}text-ink-muted hover:text-ink hover:bg-paper font-medium{% endif %}">
+                                {{ item.title }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </nav>
+        </div>
+    </div>
+
+    <!-- TATA LETAK DESKTOP: SIDEBAR + AREA KONTEN -->
+    <div class="flex flex-1 min-h-screen">
+        
+        <!-- SIDEBAR DESKTOP SALEDASH (AKORDEON EKSPLISIT) -->
+        <aside :class="collapsed ? 'sidebar-hidden' : 'w-64'"
+               class="admin-sidebar hidden lg:flex flex-col bg-card border-r border-line transition-all duration-200 select-none flex-shrink-0 z-20">
+            
+            <!-- Kepala Sidebar -->
+            <div class="h-16 px-4 border-b border-line flex items-center justify-between">
+                <a href="{% url 'admin:index' %}" class="flex items-center gap-2.5 overflow-hidden">
+                    <img src="{% static 'img/logo-mark.svg' %}" alt="Logo {{ SITE_NAME }}" class="w-8 h-8 flex-shrink-0" />
+                    <div class="whitespace-nowrap transition-opacity">
+                        <span class="text-base font-bold text-ink">{{ SITE_LOGOTYPE_DARK }}<span class="text-brand">{{ SITE_LOGOTYPE_ACCENT }}</span></span>
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-tint text-brand">Staf</span>
+                    </div>
+                </a>
+
+                <!-- Tombol Sembunyikan Sidebar -->
+                <button type="button"
+                        @click="toggleCollapse()"
+                        title="Sembunyikan bilah samping"
+                        class="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-paper transition-colors"
+                        aria-label="Sembunyikan bilah samping">
+                    <svg class="w-4 h-4 text-ink-muted hover:text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Daftar Menu Navigasi Akordeon Eksplisit -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Menu navigasi admin">
+                {% for group in admin_nav_groups %}
+                    {% if group.is_single %}
+                    <!-- Tautan Tunggal (Ikhtisar) -->
+                    <a href="{{ group.url }}"
+                       class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-colors {% if group.is_active %}bg-brand text-white shadow-sm{% else %}text-ink hover:bg-paper font-medium{% endif %}">
+                        {% include 'partials/icon.html' with name=group.icon class="w-4 h-4 flex-shrink-0" %}
+                        <span class="truncate">{{ group.title }}</span>
+                    </a>
+                    {% else %}
+                    <!-- Grup Akordeon (Hanya satu terbuka pada satu waktu) -->
+                    <div class="pt-0.5">
+                        <button type="button"
+                                @click="toggleGroup('{{ group.id }}')"
+                                :aria-expanded="activeGroup === '{{ group.id }}'"
+                                :class="activeGroup === '{{ group.id }}' ? 'bg-paper text-ink font-bold' : 'text-ink-muted hover:text-ink hover:bg-paper font-medium'"
+                                class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] transition-colors group">
+                            <span class="flex items-center gap-3 truncate">
+                                {% include 'partials/icon.html' with name=group.icon class="w-4 h-4 text-ink-muted group-hover:text-ink flex-shrink-0" %}
+                                <span class="truncate">{{ group.title }}</span>
+                            </span>
+                            <span class="flex items-center gap-1.5 flex-shrink-0">
+                                {% if group.badge > 0 %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brick text-white">
+                                    {{ group.badge }}
+                                </span>
+                                {% endif %}
+                                <svg class="w-3.5 h-3.5 text-ink-muted transition-transform duration-150"
+                                     :class="{ 'rotate-180': activeGroup === '{{ group.id }}' }"
+                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </button>
+
+                        <!-- Submenu Item (Hanya tampil saat grup aktif) -->
+                        <div x-show="activeGroup === '{{ group.id }}'"
+                             x-cloak
+                             class="ml-5 pl-3.5 my-1.5 space-y-1 border-l-2 border-line">
+                            {% for item in group.items %}
+                            <a href="{{ item.url }}"
+                               class="block py-1.5 px-3 rounded-lg text-xs transition-colors {% if item.is_active %}bg-brand-tint text-brand font-bold shadow-sm{% else %}text-ink-muted hover:text-ink hover:bg-paper font-medium{% endif %}">
+                                {{ item.title }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </nav>
+
+            <!-- Kaki Sidebar: Pengguna Staf Singkat -->
+            <div class="p-3 border-t border-line">
+                <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-paper border border-line">
+                    <div class="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div class="overflow-hidden flex-1">
+                        <div class="text-xs font-bold text-ink truncate">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="text-[10px] text-ink-muted">Staf {{ SITE_NAME }}</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- AREA KANAN: BILAH ATAS + KONTEN UTAMA -->
+        <div class="flex-1 flex flex-col min-w-0">
+            
+            <!-- BILAH ATAS SALEDASH -->
+            <header class="sticky top-0 z-30 h-16 bg-card border-b border-line px-4 sm:px-8 flex items-center justify-between">
+                
+                <!-- Sisi Kiri: Tombol Menu, Judul Halaman, Subjudul -->
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <!-- Tombol Laci Mobile (< 1024px) -->
+                    <button type="button"
+                            @click="drawerOpen = true"
+                            class="admin-mobile-toggle lg:hidden p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-line text-ink hover:bg-paper focus:outline-none focus:ring-2 focus:ring-brand"
+                            aria-label="Buka menu navigasi staf">
+                        {% include 'partials/icon.html' with name="menu" class="w-5 h-5" %}
+                    </button>
+
+                    <!-- Tombol Buka Sidebar Desktop (Saat Sidebar Tersembunyi) -->
+                    <button type="button"
+                            @click="toggleCollapse()"
+                            :class="collapsed ? 'admin-toggle-visible' : 'admin-toggle-hidden'"
+                            class="admin-desktop-toggle items-center gap-2 px-3 py-1.5 rounded-xl border border-line bg-card hover:bg-paper text-ink focus:outline-none focus:ring-2 focus:ring-brand transition-colors shadow-sm mr-2 font-sans cursor-pointer"
+                            title="Buka bilah samping"
+                            aria-label="Buka bilah samping">
+                        <img src="{% static 'img/logo-mark.svg' %}" alt="Logo {{ SITE_NAME }}" class="w-5 h-5 flex-shrink-0" />
+                        <span class="text-xs font-bold text-ink">Menu</span>
+                        <svg class="w-3.5 h-3.5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Header Halaman Tunggal (Tanpa Duplikasi di Breadcrumbs/Kartu) -->
+                    <div class="min-w-0">
+                        <h1 class="text-base sm:text-lg font-bold text-ink truncate font-heading leading-tight">
+                            {% block page_title %}{{ title|default:"Panel staf" }}{% endblock %}
+                        </h1>
+                        <p class="text-xs text-ink-muted truncate hidden sm:block">
+                            {% block page_subtitle %}{{ subtitle|default:"Ringkasan operasional dan audit sistem" }}{% endblock %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Sisi Kanan: Chip Tanggal, Lonceng Tindakan, Menu Avatar -->
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    
+                    <!-- Chip Tanggal Indonesia -->
+                    <div class="admin-date-chip hidden md:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-paper border border-line text-ink-muted tabular-nums">
+                        {{ admin_date_chip }}
+                    </div>
+
+                    <!-- Lonceng Antrean Tindakan Staf -->
+                    <div class="relative" x-data="{ notifOpen: false }" @click.outside="notifOpen = false">
+                        <button type="button"
+                                @click="notifOpen = !notifOpen"
+                                :aria-expanded="notifOpen"
+                                class="relative p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-line text-ink hover:bg-paper focus:outline-none focus:ring-2 focus:ring-brand transition-colors"
+                                aria-label="Buka antrean tindakan staf">
+                            {% include 'partials/icon.html' with name="bell" class="w-4 h-4" %}
+                            {% if staff_stats.total_queue > 0 %}
+                            <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brick text-white text-[10px] font-bold flex items-center justify-center">
+                                {{ staff_stats.total_queue }}
+                            </span>
+                            {% endif %}
+                        </button>
+
+                        <!-- Dropdown Antrean Tindakan -->
+                        <div x-show="notifOpen"
+                             x-cloak
+                             x-transition:enter="ease-out duration-100"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="ease-in duration-75"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-80 bg-card border border-line rounded-2xl shadow-md p-3 z-50 text-xs">
+                            
+                            <div class="flex items-center justify-between pb-2 mb-2 border-b border-line">
+                                <span class="font-bold text-ink">Antrean tindakan staf</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if staff_stats.total_queue > 0 %}bg-brick-tint text-brick{% else %}bg-pine-tint text-pine-dark{% endif %}">
+                                    {{ staff_stats.total_queue }} menunggu
+                                </span>
+                            </div>
+
+                            <div class="space-y-1">
+                                <a href="/admin/verification/ktmverification/?status__in=menunggu,perlu_tinjauan"
+                                   class="flex items-center justify-between p-2 rounded-lg hover:bg-paper transition-colors">
+                                    <span class="text-ink">Verifikasi KTM</span>
+                                    <span class="font-bold text-ink tabular-nums">{{ staff_stats.ktm_queue_count|default:"0" }}</span>
+                                </a>
+                                <a href="/admin/penarikan/"
+                                   class="flex items-center justify-between p-2 rounded-lg hover:bg-paper transition-colors">
+                                    <span class="text-ink">Penarikan dana</span>
+                                    <span class="font-bold text-ink tabular-nums">{{ staff_stats.withdrawal_queue_count|default:"0" }}</span>
+                                </a>
+                                <a href="/admin/rentals/dispute/?status__exact=terbuka"
+                                   class="flex items-center justify-between p-2 rounded-lg hover:bg-paper transition-colors">
+                                    <span class="text-ink">Sengketa terbuka</span>
+                                    <span class="font-bold text-ink tabular-nums">{{ staff_stats.dispute_queue_count|default:"0" }}</span>
+                                </a>
+                                <a href="/admin/rentals/rental/?status__exact=menunggu_persetujuan"
+                                   class="flex items-center justify-between p-2 rounded-lg hover:bg-paper transition-colors">
+                                    <span class="text-ink">Sewa tertunda (&gt;48 jam)</span>
+                                    <span class="font-bold text-ink tabular-nums">{{ staff_stats.rental_stale_count|default:"0" }}</span>
+                                </a>
+                                <a href="/admin/sales/saleorder/?status__in=sengketa"
+                                   class="flex items-center justify-between p-2 rounded-lg hover:bg-paper transition-colors">
+                                    <span class="text-ink">Pesanan jual beli bermasalah</span>
+                                    <span class="font-bold text-ink tabular-nums">{{ staff_stats.sale_problematic_count|default:"0" }}</span>
+                                </a>
+                            </div>
+
+                            <div class="pt-2 mt-2 border-t border-line text-center">
+                                <a href="/admin/rekonsiliasi/" class="text-[11px] font-semibold text-brand hover:underline">
+                                    Buka audit rekonsiliasi keuangan &rarr;
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menu Avatar Pengguna -->
+                    <div class="relative" x-data="{ avatarOpen: false }" @click.outside="avatarOpen = false">
+                        <button type="button"
+                                @click="avatarOpen = !avatarOpen"
+                                :aria-expanded="avatarOpen"
+                                class="flex items-center gap-2 p-1 pl-2.5 min-h-[44px] rounded-full border border-line hover:bg-paper focus:outline-none focus:ring-2 focus:ring-brand transition-colors"
+                                aria-label="Buka menu profil akun">
+                            <span class="text-xs font-semibold text-ink hidden sm:inline max-w-[120px] truncate">
+                                {{ user.first_name|default:user.username }}
+                            </span>
+                            <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs select-none">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                        </button>
+
+                        <!-- Dropdown Menu Avatar -->
+                        <div x-show="avatarOpen"
+                             x-cloak
+                             x-transition:enter="ease-out duration-100"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="ease-in duration-75"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-56 bg-card border border-line rounded-2xl shadow-md p-2 z-50 text-xs">
+                            
+                            <div class="px-3 py-2 border-b border-line mb-1">
+                                <div class="font-bold text-ink truncate">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-[11px] text-ink-muted truncate">{{ user.email }}</div>
+                            </div>
+
+                            <a href="/"
+                               class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink hover:bg-paper transition-colors font-medium">
+                                {% include 'partials/icon.html' with name="external-link" class="w-4 h-4 text-ink-muted" %}
+                                <span>Lihat situs</span>
+                            </a>
+
+                            <a href="{% url 'admin:password_change' %}"
+                               class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink hover:bg-paper transition-colors font-medium">
+                                {% include 'partials/icon.html' with name="key" class="w-4 h-4 text-ink-muted" %}
+                                <span>Ganti kata sandi</span>
+                            </a>
+
+                            <div class="border-t border-line my-1"></div>
+
+                            <form method="post" action="{% url 'admin:logout' %}">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-brick hover:bg-brick-tint transition-colors font-semibold text-left">
+                                    {% include 'partials/icon.html' with name="log-out" class="w-4 h-4 text-brick" %}
+                                    <span>Keluar</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </header>
+
+            <!-- KONTEN UTAMA HALAMAN -->
+            <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto" id="main-content">
+                
+                <!-- Notifikasi / Flash Messages Sistem -->
+                {% block messages %}
+                {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for message in messages %}
+                    <div class="px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center justify-between {% if message.tags == 'error' %}bg-brick-tint border-brick text-brick{% elif message.tags == 'success' %}bg-pine-tint border-pine text-pine-dark{% else %}bg-brand-tint border-brand text-brand{% endif %}">
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endblock messages %}
+
+                <!-- Konten Halaman Spesifik -->
+                {% block content %}{% endblock %}
+
+            </main>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- ============================================== -->
+<!-- LAYOUT MASUK (LOGIN) ADMIN BERMEREK & KONSISTEN -->
+<!-- ============================================== -->
+<div id="admin-shell"
+     data-admin-shell
+     class="min-h-screen bg-paper flex flex-col justify-center items-center p-4">
+    
+    <div class="w-full max-w-md">
+        <!-- Logo & Identitas {{ SITE_NAME }} -->
+        <div class="text-center mb-8">
+            <a href="/" class="inline-flex items-center gap-2.5 focus:outline-none">
+                <img src="{% static 'img/logo-mark.svg' %}" alt="Logo {{ SITE_NAME }}" class="w-10 h-10 select-none" />
+                <span class="text-2xl font-bold text-ink">{{ SITE_LOGOTYPE_DARK }}<span class="text-brand">{{ SITE_LOGOTYPE_ACCENT }}</span></span>
+            </a>
+            <h1 class="text-lg font-bold text-ink mt-3">Panel staf dan administrasi</h1>
+            <p class="text-xs text-ink-muted mt-1">Masuk menggunakan kredensial staf atau administrator terdaftar</p>
+        </div>
+
+        <!-- Kartu Putih Bersudut Membulat dengan Border Tipis (AGENT.md) -->
+        <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm">
+            {% block login_content %}{% endblock %}
+        </div>
+
+        <div class="text-center mt-6">
+            <a href="/" class="text-xs font-semibold text-brand hover:underline">
+                &larr; Kembali ke beranda publik {{ SITE_NAME }}
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

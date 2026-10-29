@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#6C8EF5"/>
+  <!-- Proyektor: lebar ~280px (70% lebar ubin), garis ink 2.5px, lensa proyektor ink -->
+  <!-- Kaki -->
+  <rect x="95" y="325" width="20" height="15" rx="3" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <rect x="285" y="325" width="20" height="15" rx="3" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Badan proyektor -->
+  <rect x="60" y="195" width="280" height="135" rx="16" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Ventilasi samping -->
+  <line x1="85" y1="230" x2="85" y2="295" stroke="#141B34" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="97" y1="230" x2="97" y2="295" stroke="#141B34" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="109" y1="230" x2="109" y2="295" stroke="#141B34" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Tombol atas -->
+  <circle cx="280" cy="225" r="7" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <circle cx="305" cy="225" r="7" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Lensa bulat besar -->
+  <circle cx="195" cy="262" r="46" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Detail isi ink: fokus lensa proyektor -->
+  <circle cx="195" cy="262" r="24" fill="#141B34" stroke="none"/>
+</svg>

@@ -1,0 +1,11 @@
+{# Komponen Panel Kain Tapis Lampung dengan Ilustrasi Kapal / Siger — FASE 7B-NUSANTARA 2 #}
+{# Parameter: type ('kapal' [default] atau 'siger'), height (default: 'h-44 sm:h-52'), class (string) #}
+<div class="w-full flex items-center justify-center overflow-hidden rounded-[12px] border border-line shadow-sm {{ height|default:'h-44 sm:h-52' }} {{ class|default:'' }}"
+     style="background-color: #141B34; background-image: url('/static/img/tapis-tile.svg'); background-repeat: repeat;"
+     aria-hidden="true">
+    {% if type == 'siger' %}
+        <img src="/static/img/siger.svg" alt="" class="h-16 sm:h-20 w-auto object-contain select-none" />
+    {% else %}
+        <img src="/static/img/kapal.svg" alt="" class="h-16 sm:h-20 w-auto object-contain select-none" />
+    {% endif %}
+</div>

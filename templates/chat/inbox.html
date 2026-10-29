@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Kotak Masuk Pesan | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[900px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    <!-- Header Kotak Masuk -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-line">
+        <div>
+            <h1 class="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight flex items-center gap-2.5">
+                <span>Kotak masuk pesan</span>
+                {% if total_unread_count > 0 %}
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-brick text-white text-xs font-bold tabular-nums">
+                        {{ total_unread_count }}
+                    </span>
+                {% endif %}
+            </h1>
+            <p class="text-xs sm:text-sm text-ink-muted mt-1">
+                Komunikasi langsung antarmahasiswa seputar ketersediaan dan serah terima barang sewa maupun jual beli.
+            </p>
+        </div>
+
+        <a href="/barang/" class="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-xl border border-line bg-card hover:bg-paper text-xs font-semibold text-ink transition-colors self-start sm:self-auto">
+            {% include 'partials/icon.html' with name='search' class='w-3.5 h-3.5' %}
+            <span>Jelajahi barang</span>
+        </a>
+    </div>
+
+    <!-- Peringatan Keamanan & Transaksi Resmi -->
+    <div class="mt-6 p-4 rounded-xl bg-card border border-line flex items-start gap-3 shadow-sm">
+        <div class="w-8 h-8 rounded-lg bg-pine-tint text-pine flex items-center justify-center flex-shrink-0 mt-0.5">
+            {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4' %}
+        </div>
+        <div class="text-xs space-y-1">
+            <h4 class="font-bold text-ink">Privasi dan perlindungan escrow</h4>
+            <p class="text-ink-muted leading-relaxed">
+                Nomor WhatsApp, email, dan tautan luar disamarkan otomatis sampai pembayaran sewa atau jual beli berhasil. Riwayat pesan tersimpan aman dan dapat ditinjau oleh admin saat mediasi sengketa.
+            </p>
+        </div>
+    </div>
+
+    <!-- Filter Tabs (Sentence Case) -->
+    <div class="flex items-center gap-2 pb-1 mt-6 no-scrollbar" style="overflow-x: auto;">
+        <a href="?tab=semua"
+           class="px-3.5 py-2 min-h-[40px] inline-flex items-center rounded-xl text-xs font-semibold whitespace-nowrap transition-colors {% if active_tab == 'semua' %}bg-brand text-white border border-brand{% else %}bg-card text-ink-muted border border-line hover:border-brand/40 hover:text-ink{% endif %}">
+            <span>Semua</span>
+            {% if total_active_count > 0 %}
+                <span class="ml-1.5 opacity-80 tabular-nums">({{ total_active_count }})</span>
+            {% endif %}
+        </a>
+        <a href="?tab=sewa"
+           class="px-3.5 py-2 min-h-[40px] inline-flex items-center rounded-xl text-xs font-semibold whitespace-nowrap transition-colors {% if active_tab == 'sewa' %}bg-brand text-white border border-brand{% else %}bg-card text-ink-muted border border-line hover:border-brand/40 hover:text-ink{% endif %}">
+            <span>Sewa</span>
+            {% if sewa_count > 0 %}
+                <span class="ml-1.5 opacity-80 tabular-nums">({{ sewa_count }})</span>
+            {% endif %}
+        </a>
+        <a href="?tab=jual_beli"
+           class="px-3.5 py-2 min-h-[40px] inline-flex items-center rounded-xl text-xs font-semibold whitespace-nowrap transition-colors {% if active_tab == 'jual_beli' %}bg-brand text-white border border-brand{% else %}bg-card text-ink-muted border border-line hover:border-brand/40 hover:text-ink{% endif %}">
+            <span>Jual beli</span>
+            {% if jual_count > 0 %}
+                <span class="ml-1.5 opacity-80 tabular-nums">({{ jual_count }})</span>
+            {% endif %}
+        </a>
+        <a href="?tab=belum_dibaca"
+           class="px-3.5 py-2 min-h-[40px] inline-flex items-center rounded-xl text-xs font-semibold whitespace-nowrap transition-colors {% if active_tab == 'belum_dibaca' %}bg-brand text-white border border-brand{% else %}bg-card text-ink-muted border border-line hover:border-brand/40 hover:text-ink{% endif %}">
+            <span>Belum dibaca</span>
+            {% if unread_conversations_count > 0 %}
+                <span class="ml-1.5 px-2 py-0.5 rounded-full bg-brick text-white text-[10px] font-bold tabular-nums">
+                    {{ unread_conversations_count }}
+                </span>
+            {% endif %}
+        </a>
+    </div>
+
+    <!-- Ringkasan Percakapan Tanpa Pesan (Grouped & Summarized in One Row) -->
+    {% if empty_conversations %}
+        <div class="mt-4">
+            <details class="bg-paper border border-line rounded-2xl p-4 sm:p-5" style="list-style: none;">
+                <summary class="flex items-center justify-between gap-3" style="cursor: pointer; list-style: none;">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-card border border-line text-ink-muted flex items-center justify-center flex-shrink-0">
+                            {% include 'partials/icon.html' with name='package' class='w-4 h-4' %}
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-xs sm:text-sm text-ink truncate">
+                                {{ empty_count }} percakapan baru tanpa pesan
+                            </h4>
+                            <p class="text-xs text-ink-muted truncate">
+                                Percakapan dimulai tapi belum ada pesan terkirim. Klik untuk membuka daftar.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-line bg-card text-xs font-semibold text-ink flex-shrink-0">
+                        <span>Lihat</span>
+                        {% include 'partials/icon.html' with name='chevron-down' class='w-3.5 h-3.5' %}
+                    </div>
+                </summary>
+
+                <div class="mt-4 pt-3 border-t border-line space-y-2">
+                    {% for item in empty_conversations %}
+                        {% with conv=item.conversation other=item.other_user %}
+                            <a href="{% url 'chat:conversation' conv.id %}"
+                               class="flex items-center justify-between p-2.5 rounded-xl bg-card hover:bg-paper-deep border border-line transition-colors text-xs">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="font-semibold text-ink truncate">{{ other.full_name|default:other.username }}</span>
+                                    <span class="text-ink-muted">&bull;</span>
+                                    <span class="text-ink-muted truncate">
+                                        {% if conv.sale_item %}{{ conv.sale_item.title }} (Dijual){% else %}{{ conv.item.title }} (Disewa){% endif %}
+                                    </span>
+                                </div>
+                                <span class="text-brand font-semibold flex items-center gap-1 flex-shrink-0">
+                                    <span>Buka</span>
+                                    {% include 'partials/icon.html' with name='chevron-down' class='w-3.5 h-3.5' %}
+                                </span>
+                            </a>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+    {% endif %}
+
+    <!-- Daftar Percakapan Aktif -->
+    <div class="mt-6 space-y-3">
+        {% if conversations %}
+            {% for item in conversations %}
+                {% with conv=item.conversation other=item.other_user unread=item.unread_count last=item.last_message %}
+                    <a href="{% url 'chat:conversation' conv.id %}"
+                       class="block bg-card border border-line hover:border-brand/50 rounded-2xl p-4 sm:p-5 transition-all shadow-sm hover:shadow relative group">
+                        
+                        <div class="flex items-start sm:items-center justify-between gap-4">
+                            <!-- Informasi Lawan Bicara & Barang -->
+                            <div class="flex items-center gap-3.5 min-w-0">
+                                <!-- Avatar -->
+                                <div class="w-12 h-12 rounded-full bg-brand-tint border border-line text-brand font-bold text-sm flex items-center justify-center flex-shrink-0 select-none">
+                                    {{ other.full_name|default:other.username|slice:":2"|upper }}
+                                </div>
+
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-bold text-sm sm:text-base text-ink truncate group-hover:text-brand transition-colors">
+                                            {{ other.full_name|default:other.username }}
+                                        </h3>
+                                        {% if conv.sale_item %}
+                                            <span class="text-[10px] bg-amber-tint text-amber-text border border-line px-1.5 py-0.5 rounded font-semibold">
+                                                Dijual
+                                            </span>
+                                        {% else %}
+                                            <span class="text-[10px] bg-brand-tint text-brand px-1.5 py-0.5 rounded font-medium">
+                                                Disewa
+                                            </span>
+                                        {% endif %}
+                                        {% if conv.renter == request.user %}
+                                            <span class="text-[10px] bg-paper-deep text-ink-muted px-1.5 py-0.5 rounded font-medium">
+                                                {% if conv.sale_item %}Penjual{% else %}Pemilik{% endif %}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-[10px] bg-paper-deep text-ink-muted px-1.5 py-0.5 rounded font-medium">
+                                                {% if conv.sale_item %}Calon Pembeli{% else %}Calon Penyewa{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Judul Barang Terkait -->
+                                    <p class="text-xs text-ink-muted truncate mt-0.5 flex items-center gap-1">
+                                        {% if conv.sale_item %}
+                                            {% include 'partials/icon.html' with name='tag' class='w-3 h-3 text-amber-text flex-shrink-0' %}
+                                            <span class="font-medium text-ink truncate">{{ conv.sale_item.title }}</span>
+                                            <span>&bull;</span>
+                                            <span class="text-amber-text font-semibold">{{ conv.sale_item.price|rupiah }}</span>
+                                        {% else %}
+                                            {% include 'partials/icon.html' with name='package' class='w-3 h-3 text-ink-muted flex-shrink-0' %}
+                                            <span class="font-medium text-ink truncate">{{ conv.item.title }}</span>
+                                            <span>&bull;</span>
+                                            <span class="text-brand font-semibold">{{ conv.item.price_per_day|rupiah }}/hari</span>
+                                        {% endif %}
+                                    </p>
+
+                                    <!-- Cuplikan Pesan Terakhir -->
+                                    <p class="text-xs text-ink-muted truncate mt-1">
+                                        {% if last %}
+                                            <span class="{% if unread > 0 %}font-bold text-ink{% endif %}">
+                                                {% if last.sender == request.user %}Anda: {% endif %}
+                                                {{ last.get_display_body|truncatechars:65 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="italic text-ink-muted/80">Belum ada pesan terkirim. Klik untuk memulai percakapan.</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Waktu & Badge Belum Dibaca -->
+                            <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                                <span class="text-[11px] text-ink-muted tabular-nums whitespace-nowrap">
+                                    {{ conv.last_message_at|date:"d M H:i" }}
+                                </span>
+
+                                {% if unread > 0 %}
+                                    <span class="px-2 py-0.5 rounded-full bg-brick text-white text-[10px] font-bold tabular-nums">
+                                        {{ unread }} baru
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    </a>
+                {% endwith %}
+            {% endfor %}
+        {% elif not empty_conversations %}
+            <!-- Keadaan Kosong (Empty State) Sesuai AGENT.md -->
+            <div class="bg-card border border-line rounded-2xl p-10 text-center my-6">
+                <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-paper-deep flex items-center justify-center text-ink-muted">
+                    {% include 'partials/icon.html' with name='package' class='w-7 h-7' %}
+                </div>
+                <h3 class="font-heading text-lg font-bold text-ink">
+                    Belum ada percakapan
+                </h3>
+                <p class="text-xs sm:text-sm text-ink-muted mt-1 max-w-md mx-auto leading-relaxed">
+                    Jelajahi barang di katalog dan gunakan tombol <strong>"Tanya Pemilik"</strong> di halaman detail barang untuk memulai percakapan.
+                </p>
+                <div class="mt-5">
+                    <a href="/barang/" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                        {% include 'partials/icon.html' with name='search' class='w-3.5 h-3.5' %}
+                        <span>Jelajahi barang</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

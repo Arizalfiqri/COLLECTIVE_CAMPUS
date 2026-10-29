@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: #F8F5EE;
+    color: #141B34;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Mencegah iOS Safari auto-zoom pada fokus input: minimal 16px */
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Styling responsif untuk input type date dan select */
+  input[type="date"],
+  input[type="datetime-local"] {
+    min-height: 42px;
+    max-width: 100%;
+  }
+
+  select {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  /* Pembungkus tabel dengan gulir internal responsif */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Target sentuh minimal 44x44 px untuk aksi dan tautan sentuh */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .htmx-indicator {
+    display: none;
+  }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator {
+    display: block;
+  }
+
+  /* Safe Area Insets (iPhone Notch & Dynamic Island) */
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  .safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  /* Sistem Jarak Tunggal (Fase 7I) */
+  /* Navbar ke konten pertama: 16px mobile, 24px tablet, 32px desktop */
+  .spacing-navbar-to-content {
+    margin-top: 1rem;
+  }
+  @media (min-width: 640px) {
+    .spacing-navbar-to-content {
+      margin-top: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .spacing-navbar-to-content {
+      margin-top: 2rem;
+    }
+  }
+
+  /* Kontainer seksi utama: antar seksi 40px mobile, 48px tablet, 64px desktop */
+  .spacing-sections > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2.5rem;
+  }
+  @media (min-width: 640px) {
+    .spacing-sections > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 3rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .spacing-sections > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 4rem;
+    }
+  }
+
+  /* Judul seksi ke isi: 16px mobile, 20px tablet, 24px desktop */
+  .spacing-title-to-content {
+    margin-bottom: 1rem;
+  }
+  @media (min-width: 640px) {
+    .spacing-title-to-content {
+      margin-bottom: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .spacing-title-to-content {
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  /* Breadcrumb: 24px di bawah navbar lalu 24px ke isi */
+  .spacing-breadcrumb {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Bagian sebelum footer: 64px */
+  .spacing-before-footer {
+    margin-bottom: 4rem;
+  }
+
+  /* Hero: padding atas 32px dan bawah 48px, tanpa tinggi minimal */
+  .spacing-hero {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    min-height: 0 !important;
+  }
+}
+

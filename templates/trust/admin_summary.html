@@ -1,0 +1,221 @@
+{% extends 'admin/base_site.html' %}
+{% load formatters %}
+
+{% block title %}Ringkasan operasional dan metrik ML | {{ SITE_NAME }} Admin{% endblock %}
+{% block page_title %}Ringkasan Operasional &amp; Metrik ML{% endblock %}
+{% block page_subtitle %}Audit status platform, kesehatan keuangan escrow, dan performa model machine learning{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    {# BILAH AKSI ATAS #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <span class="text-xs text-ink-muted">Pemantauan kesehatan platform, perolehan komisi, dan metrik risiko ML</span>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'admin:index' %}" class="bg-card hover:bg-paper text-ink font-semibold text-xs px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl border border-line transition-colors">
+                &larr; Ikhtisar admin
+            </a>
+            <a href="/skor-kepercayaan/" class="bg-brand hover:bg-brand-hover text-white font-semibold text-xs px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors">
+                Halaman publik skor &rarr;
+            </a>
+        </div>
+    </div>
+
+    {# 1. KARTU STATISTIK OPERASIONAL & KEUANGAN PLATFORM #}
+    <section class="space-y-4">
+        <h2 class="text-base font-heading font-bold text-ink">1. Statistik Operasional &amp; Keuangan Platform</h2>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {# Kartu 1: Pengguna #}
+            <div class="bg-card p-5 rounded-2xl border border-line shadow-sm space-y-1">
+                <span class="text-xs font-bold text-ink-muted block">Total Pengguna</span>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-ink tabular-nums">{{ total_users }}</span>
+                    <span class="text-xs text-pine-dark font-medium">({{ verified_users }} terverifikasi)</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">KTM terverifikasi oleh admin</span>
+            </div>
+
+            {# Kartu 2: Barang Aktif #}
+            <div class="bg-card p-5 rounded-2xl border border-line shadow-sm space-y-1">
+                <span class="text-xs font-bold text-ink-muted block">Barang Terdaftar</span>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-ink tabular-nums">{{ total_items }}</span>
+                    <span class="text-xs text-pine-dark font-medium">({{ active_items }} aktif)</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">Siap disewa antarmahasiswa</span>
+            </div>
+
+            {# Kartu 3: Transaksi Sewa #}
+            <div class="bg-card p-5 rounded-2xl border border-line shadow-sm space-y-1">
+                <span class="text-xs font-bold text-ink-muted block">Transaksi Sewa</span>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-ink tabular-nums">{{ total_rentals }}</span>
+                    <span class="text-xs text-pine-dark font-medium">({{ completed_rentals }} selesai)</span>
+                </div>
+                <span class="text-[11px] text-ink-muted block">{{ active_rentals }} sedang berjalan, {{ disputed_rentals }} sengketa</span>
+            </div>
+
+            {# Kartu 4: Komisi Platform #}
+            <div class="bg-card p-5 rounded-2xl border border-line shadow-sm space-y-1">
+                <span class="text-xs font-bold text-ink-muted block">Komisi Platform (8%)</span>
+                <div class="text-2xl font-bold text-brand tabular-nums">
+                    {{ commission|rupiah }}
+                </div>
+                <span class="text-[11px] text-ink-muted block">GMV: {{ gmv|rupiah }}</span>
+            </div>
+        </div>
+
+        {# Rincian Escrow #}
+        <div class="p-4 bg-paper rounded-xl border border-line text-xs flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-text"></span>
+                <span class="font-bold text-ink">Dana Deposit Escrow yang Sedang Ditahan:</span>
+                <span class="font-mono text-ink font-bold tabular-nums">{{ deposit_held|rupiah }}</span>
+            </div>
+            <span class="text-ink-muted">Setiap rupiah tercatat dalam audit log tabel LedgerEntry</span>
+        </div>
+    </section>
+
+    {# 2. METRIK MODEL MACHINE LEARNING TRUST SCORE #}
+    <section class="bg-card border border-line rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-line pb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="text-base sm:text-lg font-heading font-bold text-ink">2. Status &amp; Kinerja Model Machine Learning</h2>
+                <p class="text-xs text-ink-muted mt-0.5">Ringkasan artefak model aktif: <code class="text-brand font-mono">{{ metrics.version|default:"v1.0-logreg-calibrated" }}</code></p>
+            </div>
+            <span class="text-xs font-mono bg-paper-deep text-ink-muted px-2.5 py-1 rounded border border-line">
+                Dilatih: {{ metrics.trained_at|slice:":10" }} (Seed: 42)
+            </span>
+        </div>
+
+        {# Ringkasan Kunci #}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-1">
+                <span class="text-[11px] font-bold text-ink-muted uppercase block">ROC-AUC Test Set</span>
+                <span class="text-xl font-bold text-brand font-mono tabular-nums">
+                    {{ metrics.all_models_test_metrics.logistic_regression_calibrated.roc_auc|floatformat:4|default:"0.8292" }}
+                </span>
+                <span class="text-[10px] text-ink-muted block">vs Baseline acak 0.5000</span>
+            </div>
+
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-1">
+                <span class="text-[11px] font-bold text-ink-muted uppercase block">PR-AUC Test Set</span>
+                <span class="text-xl font-bold text-brand font-mono tabular-nums">
+                    {{ metrics.all_models_test_metrics.logistic_regression_calibrated.pr_auc|floatformat:4|default:"0.5139" }}
+                </span>
+                <span class="text-[10px] text-ink-muted block">vs Prevalensi dasar 0.1538</span>
+            </div>
+
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-1">
+                <span class="text-[11px] font-bold text-ink-muted uppercase block">Kalibrasi Brier Score</span>
+                <div class="flex items-baseline gap-1.5 font-mono">
+                    <span class="text-xl font-bold text-pine-dark tabular-nums">
+                        {{ metrics.probability_calibration.brier_score_after|floatformat:4|default:"0.1001" }}
+                    </span>
+                    <span class="text-[10px] text-pine-dark">(-39.0%)</span>
+                </div>
+                <span class="text-[10px] text-ink-muted block">Sebelum kalibrasi: 0.1641</span>
+            </div>
+
+            <div class="p-4 bg-paper rounded-xl border border-line space-y-1">
+                <span class="text-[11px] font-bold text-ink-muted uppercase block">Ambang Keputusan</span>
+                <span class="text-xl font-bold text-ink font-mono tabular-nums">
+                    {{ metrics.threshold_selection.selected_threshold|floatformat:3|default:"0.209" }}
+                </span>
+                <span class="text-[10px] text-ink-muted block">Recall risiko target &ge; 70%</span>
+            </div>
+        </div>
+
+        {# Matriks Perbandingan #}
+        <div class="space-y-3">
+            <h3 class="font-bold text-xs sm:text-sm text-ink">Perbandingan Lengkap Seluruh Model pada Test Set:</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border border-line rounded-lg overflow-hidden">
+                    <thead class="bg-paper text-ink font-bold border-b border-line">
+                        <tr>
+                            <th class="p-2.5">Model</th>
+                            <th class="p-2.5">ROC-AUC</th>
+                            <th class="p-2.5">PR-AUC</th>
+                            <th class="p-2.5">Presisi</th>
+                            <th class="p-2.5">Recall</th>
+                            <th class="p-2.5">F1-Score</th>
+                            <th class="p-2.5">Brier</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line bg-card">
+                        <tr>
+                            <td class="p-2.5 text-ink-muted">Dummy (kelas mayoritas)</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.5000</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.1538</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.0000</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.0000</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.0000</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.1301</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5 text-amber-text font-medium">Baseline aturan (tepat waktu &lt; 0.70)</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.7951</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.4197</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.2783</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.7805</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.4103</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.1349</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5 text-ink">Regresi logistik (tanpa kalibrasi, 0.50)</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.8293</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.5152</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.3705</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.7561</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.4973</td>
+                            <td class="p-2.5 font-mono tabular-nums text-brick">0.1641</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2.5 text-ink">Gradient boosting (ambang 0.50)</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.8135</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.4494</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.5161</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.2602</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.3459</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.1071</td>
+                        </tr>
+                        <tr class="bg-brand-tint/30 font-bold border-l-4 border-l-brand">
+                            <td class="p-2.5 text-brand">Regresi logistik terkalibrasi (terpilih, ambang 0.209)</td>
+                            <td class="p-2.5 font-mono tabular-nums text-brand">0.8292</td>
+                            <td class="p-2.5 font-mono tabular-nums text-brand">0.5139</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.4301</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.6504</td>
+                            <td class="p-2.5 font-mono tabular-nums">0.5178</td>
+                            <td class="p-2.5 font-mono tabular-nums text-pine-dark">0.1001</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Tautan Grafik Visualisasi #}
+        <div class="pt-2 border-t border-line">
+            <span class="text-xs font-bold text-ink block mb-3">Arsip Visualisasi Evaluasi Model:</span>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <a href="/static/ml/roc_curve.png" target="_blank" class="p-2.5 bg-paper hover:bg-paper-deep rounded-lg border border-line text-center font-medium text-ink block transition-colors">
+                    Kurva ROC &rarr;
+                </a>
+                <a href="/static/ml/pr_curve.png" target="_blank" class="p-2.5 bg-paper hover:bg-paper-deep rounded-lg border border-line text-center font-medium text-ink block transition-colors">
+                    Kurva PR &rarr;
+                </a>
+                <a href="/static/ml/confusion_matrix.png" target="_blank" class="p-2.5 bg-paper hover:bg-paper-deep rounded-lg border border-line text-center font-medium text-ink block transition-colors">
+                    Confusion matrix &rarr;
+                </a>
+                <a href="/static/ml/calibration_curve.png" target="_blank" class="p-2.5 bg-paper hover:bg-paper-deep rounded-lg border border-line text-center font-medium text-ink block transition-colors">
+                    Kurva kalibrasi &rarr;
+                </a>
+                <a href="/static/ml/feature_importance.png" target="_blank" class="p-2.5 bg-paper hover:bg-paper-deep rounded-lg border border-line text-center font-medium text-ink block transition-colors">
+                    Feature weights &rarr;
+                </a>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#FF8A6B"/>
+  <!-- Tenda Camping Dome: lebar ~280px (70% lebar ubin), garis ink 2.5px, pintu tenda ink -->
+  <!-- Lengkung tenda luar -->
+  <path d="M 60 340 Q 200 130 340 340 Z" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Tiang silang melengkung -->
+  <path d="M 60 340 Q 200 130 200 340" fill="none" stroke="#141B34" stroke-width="2"/>
+  <path d="M 340 340 Q 200 130 200 340" fill="none" stroke="#141B34" stroke-width="2"/>
+  <!-- Kanopi atas -->
+  <path d="M 130 210 Q 200 185 270 210" fill="none" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Detail isi ink: pintu masuk tenda terbuka -->
+  <path d="M 155 340 Q 200 230 245 340 Z" fill="#141B34" stroke="none"/>
+  <!-- Pasak tenda bawah -->
+  <line x1="45" y1="340" x2="355" y2="340" stroke="#141B34" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

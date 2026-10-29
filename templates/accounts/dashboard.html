@@ -1,0 +1,878 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Dashboard Mahasiswa | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16 space-y-6" x-data="{ activeTab: 'rentals' }">
+    <!-- Header Dashboard: Kartu Profil dengan Tepi Atas Pita Kain Tumpal 16px -->
+    <div class="bg-card border border-line rounded-2xl overflow-hidden shadow-sm">
+        {% include 'partials/kain_border.html' with variant='ink' size='sm' %}
+        <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-brand text-white font-bold text-xl flex items-center justify-center uppercase select-none shadow-sm flex-shrink-0">
+                    {{ user.full_name|default:user.username|slice:":2" }}
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <h1 class="font-heading text-2xl font-bold text-ink">
+                            Halo, {{ user.full_name|default:user.username|first_name_only }}
+                        </h1>
+                        {% if user.is_verified_student %}
+                            <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-1 rounded-full text-xs font-bold" title="Status mahasiswa terverifikasi">
+                                {% include 'partials/icon.html' with name='check' class='w-3.5 h-3.5 text-pine' %}
+                                <span>Terverifikasi KTM</span>
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center bg-amber-tint text-amber-text px-2.5 py-1 rounded-full text-xs font-semibold" title="Verifikasi KTM diperlukan">
+                                KTM belum terverifikasi
+                            </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs sm:text-sm text-ink-muted mt-0.5">
+                        {{ profile.campus_name|default:"Mahasiswa" }} &bull; {{ profile.major|default:"Akademik" }} &bull; Angkatan {{ profile.entry_year|default:"-" }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+                <a href="/dompet/" class="inline-flex items-center gap-2 bg-card hover:bg-paper text-ink border border-line text-xs sm:text-sm font-semibold px-3.5 py-2.5 rounded-xl transition-colors shadow-sm" title="Dompet dan penarikan dana">
+                    {% include 'partials/icon.html' with name='wallet' class='w-4 h-4 text-brand' %}
+                    <span>Dompet</span>
+                    <span class="bg-paper-deep px-2 py-0.5 rounded-md border border-line text-xs font-bold text-pine-dark tabular-nums">{{ wallet_balance|default:0|rupiah }}</span>
+                </a>
+                {% if not user.is_verified_student %}
+                    <a href="/verifikasi-ktm/" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4' %}
+                        <span>Verifikasi KTM</span>
+                    </a>
+                {% else %}
+                    <a href="/barang/baru/" class="inline-flex items-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                        {% include 'partials/icon.html' with name='package' class='w-4 h-4' %}
+                        <span>Pasang barang</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Peringatan Tagihan Terutang -->
+    {% if unpaid_extra_charges %}
+        <div class="mt-6 p-4 sm:p-5 rounded-2xl bg-brick-tint border border-brick/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <div class="text-brick mt-0.5 flex-shrink-0">
+                    {% include 'partials/icon.html' with name='alert-circle' class='w-5 h-5' %}
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-brick">Anda memiliki {{ unpaid_extra_charges|length }} tagihan tambahan yang belum dilunasi (Total: Rp{{ total_unpaid_extra_charges|ribuan }})</h2>
+                    <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                        Anda tidak dapat mengajukan sewa baru sampai seluruh tagihan diselesaikan. Harap segera melunasi tagihan denda keterlambatan atau ganti rugi kerusakan melalui halaman detail sewa terkait.
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'rentals:rental_detail' unpaid_extra_charges.0.rental.code %}" class="bg-brick hover:bg-brick/90 text-white text-xs font-bold px-4 py-2 rounded-xl flex-shrink-0 transition-colors shadow-sm">
+                Lihat tagihan
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Peringatan Jika Belum Terverifikasi KTM -->
+    {% if not user.is_verified_student %}
+        <div class="mt-6 p-4 sm:p-5 rounded-2xl bg-amber-tint border border-amber-text/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <div class="text-amber-text mt-0.5 flex-shrink-0">
+                    {% include 'partials/icon.html' with name='clock' class='w-5 h-5' %}
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-ink">Akun Anda belum terverifikasi KTM</h2>
+                    <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                        Verifikasi KTM dulu untuk transaksi sewa dan jual beli. Proses hanya butuh foto KTM dan ditinjau sistem secara otomatis.
+                    </p>
+                </div>
+            </div>
+            <a href="/verifikasi-ktm/" class="bg-card hover:bg-paper-deep text-ink border border-line text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0 transition-colors">
+                Mulai verifikasi
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Grid Kartu Ringkas Atas: Tinggi Mengikuti Isi (items-start) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6 items-start">
+        <!-- Kartu 1: Status Verifikasi KTM -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-ink-muted">Status KTM</span>
+                {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-brand' %}
+            </div>
+            {% if user.is_verified_student %}
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-pine"></span>
+                    <h2 class="text-sm font-bold text-ink">Terverifikasi penuh</h2>
+                </div>
+                <div class="space-y-1 text-xs text-ink-muted leading-relaxed">
+                    <p>Kampus: <strong class="text-ink font-semibold">{% if profile and profile.campus %}{{ profile.campus.name }}{% elif profile and profile.campus_name %}{{ profile.campus_name }}{% else %}-{% endif %}</strong></p>
+                    <p>Terverifikasi: <span class="text-ink font-medium">{% if latest_ktm and latest_ktm.reviewed_at %}{{ latest_ktm.reviewed_at|date:"d M Y" }}{% elif latest_ktm and latest_ktm.created_at %}{{ latest_ktm.created_at|date:"d M Y" }}{% else %}Aktif{% endif %}</span></p>
+                    <p>NIM: <span class="font-mono text-ink">{% if profile and profile.nim %}{{ profile.nim|mask_nim }}{% else %}-{% endif %}</span></p>
+                </div>
+            {% elif latest_ktm %}
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-text"></span>
+                    <h2 class="text-sm font-bold text-ink">{{ latest_ktm.get_status_display }}</h2>
+                </div>
+                <div class="space-y-1 text-xs text-ink-muted leading-relaxed">
+                    <p>Kampus: <strong class="text-ink font-semibold">{% if profile and profile.campus %}{{ profile.campus.name }}{% elif profile and profile.campus_name %}{{ profile.campus_name }}{% else %}-{% endif %}</strong></p>
+                    <p>Diajukan: <span class="text-ink font-medium">{{ latest_ktm.created_at|date:"d M Y" }}</span></p>
+                    <p>NIM: <span class="font-mono text-ink">{% if profile and profile.nim %}{{ profile.nim|mask_nim }}{% else %}-{% endif %}</span></p>
+                </div>
+            {% else %}
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brick"></span>
+                    <h2 class="text-sm font-bold text-ink">Belum verifikasi</h2>
+                </div>
+                <p class="text-xs text-ink-muted leading-relaxed mb-1">
+                    Unggah foto KTM untuk mengaktifkan seluruh fitur sewa, jual beli, dan pasang barang.
+                </p>
+                <p class="text-xs text-ink-muted">
+                    Kampus: <strong class="text-ink font-semibold">{% if profile and profile.campus %}{{ profile.campus.name }}{% elif profile and profile.campus_name %}{{ profile.campus_name }}{% else %}-{% endif %}</strong>
+                </p>
+            {% endif %}
+            <div class="mt-4 pt-3 border-t border-line">
+                <a href="/verifikasi-ktm/" class="text-xs font-semibold text-brand hover:underline inline-flex items-center min-h-[44px] py-2 gap-1">
+                    <span>Lihat detail verifikasi</span>
+                    <span>&rarr;</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Kartu 2: Skor Kepercayaan (Hanya Satu Label, Satu Tautan Pelajari Skor) -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm"
+             title="Skor dihitung dari riwayat sewamu">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-ink-muted">Skor kepercayaan</span>
+                {% include 'partials/icon.html' with name='award' class='w-4 h-4 text-brand' %}
+            </div>
+            <div class="mb-3">
+                {% include 'partials/trust_ring.html' with trust=trust_score size='lg' %}
+            </div>
+
+            {% if trust_score.top_factors %}
+                <div class="mt-2 space-y-1.5 pt-2 border-t border-line/60">
+                    <p class="text-[11px] font-bold text-ink mb-1">Faktor penjelas utama:</p>
+                    {% for factor in trust_score.top_factors %}
+                        <div class="flex items-start gap-1.5 text-xs text-ink-muted leading-tight">
+                            <span class="text-brand font-bold mt-0.5">•</span>
+                            <span>{{ factor }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-xs text-ink-muted leading-relaxed">
+                    Skor meningkat seiring transaksi sewa selesai tepat waktu tanpa sengketa.
+                </p>
+            {% endif %}
+
+            <div class="mt-4 pt-3 border-t border-line">
+                <a href="/bantuan/#skor-kepercayaan" class="text-xs font-semibold text-brand hover:underline inline-flex items-center min-h-[44px] py-2 gap-1">
+                    <span>Pelajari skor</span>
+                    <span>&rarr;</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Kartu 3: Ringkasan Aktivitas dengan Pintasan Berguna -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-ink-muted">Aktivitas saya</span>
+                {% include 'partials/icon.html' with name='activity' class='w-4 h-4 text-brand' %}
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center py-1">
+                <div class="p-2 rounded-xl bg-paper">
+                    <span class="block text-lg font-bold text-ink tabular-nums">{{ items_count }}</span>
+                    <span class="text-[10px] text-ink-muted">Barang</span>
+                </div>
+                <div class="p-2 rounded-xl bg-paper">
+                    <span class="block text-lg font-bold text-ink tabular-nums">{{ rentals_count }}</span>
+                    <span class="text-[10px] text-ink-muted">Disewa</span>
+                </div>
+                <div class="p-2 rounded-xl bg-paper">
+                    <span class="block text-lg font-bold text-ink tabular-nums">{{ orders_count }}</span>
+                    <span class="text-[10px] text-ink-muted">Pesanan</span>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-line flex items-center justify-between text-xs">
+                <button type="button"
+                        @click="activeTab = 'items'"
+                        class="font-semibold text-brand hover:underline inline-flex items-center min-h-[44px] py-2 px-1 gap-1">
+                    <span>Barang saya</span>
+                    <span>&rarr;</span>
+                </button>
+                <button type="button"
+                        @click="activeTab = 'requests'"
+                        class="font-semibold text-ink-muted hover:text-ink inline-flex items-center min-h-[44px] py-2 px-1 gap-1">
+                    <span>Permintaan masuk ({{ orders_count }})</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Kartu 4: Ringkasan Penjualan Jual Beli (Fase 8C) -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold text-ink-muted">Penjualan saya</span>
+                {% include 'partials/icon.html' with name='tag' class='w-4 h-4 text-brand' %}
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center py-1">
+                <div class="p-2 rounded-xl bg-paper">
+                    <span class="block text-lg font-bold text-ink tabular-nums">{{ sales_sold_count|default:0 }}</span>
+                    <span class="text-[10px] text-ink-muted">Terjual</span>
+                </div>
+                <div class="p-2 rounded-xl bg-paper">
+                    <span class="block text-xs font-bold text-brand tabular-nums mt-1">{{ sales_revenue_total|rupiah }}</span>
+                    <span class="text-[10px] text-ink-muted">Pendapatan</span>
+                </div>
+                <div class="p-2 rounded-xl bg-paper">
+                    <span class="block text-lg font-bold text-ink tabular-nums">{{ active_sale_orders_count|default:0 }}</span>
+                    <span class="text-[10px] text-ink-muted">Pesanan aktif</span>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-line flex items-center justify-between text-xs">
+                <a href="{% url 'sales:my_items' %}" class="font-semibold text-brand hover:underline inline-flex items-center min-h-[44px] py-2 px-1 gap-1">
+                    <span>Barang jualan</span>
+                    <span>&rarr;</span>
+                </a>
+                <button type="button"
+                        @click="activeTab = 'sales'"
+                        class="font-semibold text-ink-muted hover:text-ink inline-flex items-center min-h-[44px] py-2 px-1 gap-1">
+                    <span>Pesanan jual ({{ sale_orders_count }})</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bagian Navigasi Tab: Sewa saya, Permintaan masuk, Barang saya, Ulasan -->
+    <div class="mt-8 bg-card border border-line rounded-2xl p-4 sm:p-7 shadow-sm min-w-0 max-w-full overflow-hidden">
+        
+        <!-- Header Tab Buttons: Sentence Case (Bisa Digeser) -->
+        <div class="flex items-center gap-2 sm:gap-3 border-b border-line pb-4 overflow-x-auto no-scrollbar whitespace-nowrap w-full min-w-0 max-w-full">
+            <button type="button"
+                    @click="activeTab = 'rentals'"
+                    :class="activeTab === 'rentals' ? 'bg-brand text-white' : 'bg-paper text-ink hover:bg-paper-deep border border-line'"
+                    class="px-4 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0">
+                {% include 'partials/icon.html' with name='calendar' class='w-4 h-4' %}
+                <span>Sewa saya</span>
+                <span :class="activeTab === 'rentals' ? 'bg-white/20 text-white' : 'bg-card text-ink-muted border border-line'"
+                      class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums">
+                    {{ rentals_count }}
+                </span>
+            </button>
+
+            <button type="button"
+                    @click="activeTab = 'requests'"
+                    :class="activeTab === 'requests' ? 'bg-brand text-white' : 'bg-paper text-ink hover:bg-paper-deep border border-line'"
+                    class="px-4 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0">
+                {% include 'partials/icon.html' with name='inbox' class='w-4 h-4' %}
+                <span>Permintaan masuk</span>
+                <span :class="activeTab === 'requests' ? 'bg-white/20 text-white' : 'bg-card text-ink-muted border border-line'"
+                      class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums">
+                    {{ orders_count }}
+                </span>
+            </button>
+
+            <button type="button"
+                    @click="activeTab = 'items'"
+                    :class="activeTab === 'items' ? 'bg-brand text-white' : 'bg-paper text-ink hover:bg-paper-deep border border-line'"
+                    class="px-4 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0">
+                {% include 'partials/icon.html' with name='package' class='w-4 h-4' %}
+                <span>Barang saya</span>
+                <span :class="activeTab === 'items' ? 'bg-white/20 text-white' : 'bg-card text-ink-muted border border-line'"
+                      class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums">
+                    {{ items_count }}
+                </span>
+            </button>
+
+            <button type="button"
+                    @click="activeTab = 'sales'"
+                    :class="activeTab === 'sales' ? 'bg-brand text-white' : 'bg-paper text-ink hover:bg-paper-deep border border-line'"
+                    class="px-4 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0">
+                {% include 'partials/icon.html' with name='tag' class='w-4 h-4' %}
+                <span>Jual beli</span>
+                {% if sale_items_count > 0 %}
+                <span :class="activeTab === 'sales' ? 'bg-white/20 text-white' : 'bg-card text-ink-muted border border-line'"
+                      class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums">
+                    {{ sale_items_count }}
+                </span>
+                {% endif %}
+            </button>
+
+            <button type="button"
+                    @click="activeTab = 'reviews'"
+                    :class="activeTab === 'reviews' ? 'bg-brand text-white' : 'bg-paper text-ink hover:bg-paper-deep border border-line'"
+                    class="px-4 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0">
+                {% include 'partials/icon.html' with name='message-square' class='w-4 h-4' %}
+                <span>Ulasan</span>
+                <span :class="activeTab === 'reviews' ? 'bg-white/20 text-white' : 'bg-card text-ink-muted border border-line'"
+                      class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums">
+                    {{ reviews_received|length }}
+                </span>
+            </button>
+        </div>
+
+
+        <!-- TAB 1: SEWA SAYA (Sebagai Penyewa) -->
+        <div x-show="activeTab === 'rentals'" class="mt-6 space-y-4">
+            {% if my_rentals %}
+                <div class="space-y-3">
+                    {% for r in my_rentals %}
+                        <div class="p-4 sm:p-5 rounded-2xl bg-paper border border-line hover:border-brand/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                                <div class="w-16 h-16 rounded-xl bg-paper-deep border border-line overflow-hidden flex-shrink-0">
+                                    {% if r.item.photos.exists %}
+                                        <img src="{{ r.item.photos.first.image.url }}" alt="{{ r.item.title }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <img src="{{ r.item.fallback_illustration_url }}" alt="{{ r.item.title }}" class="w-full h-full object-cover">
+                                    {% endif %}
+                                </div>
+
+                                <div class="space-y-1 min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-sm font-bold text-ink truncate">{{ r.item.title }}</h3>
+                                        <span class="text-[10px] font-mono bg-card px-1.5 py-0.5 rounded border border-line text-ink-muted">
+                                            {{ r.code }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-ink-muted">
+                                        {{ r.start_date|date:"d M Y" }} s/d {{ r.end_date|date:"d M Y" }} ({{ r.days }} hari)
+                                    </p>
+                                    <div class="flex items-center gap-2 text-[11px] text-ink-muted">
+                                        <span>Pemilik: <strong class="text-ink">{{ r.owner.full_name|default:r.owner.username }}</strong></span>
+                                        <span>&bull;</span>
+                                        <span>Total: <strong class="text-brand tabular-nums">{{ r.grand_total|rupiah }}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
+                                <!-- Status Badge -->
+                                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1
+                                    {% if r.status == 'menunggu_persetujuan' %}
+                                        bg-amber-tint text-amber-text
+                                    {% elif r.status == 'menunggu_pembayaran' %}
+                                        bg-brand-tint text-brand
+                                    {% elif r.status == 'dibayar' or r.status == 'sedang_disewa' or r.status == 'selesai' %}
+                                        bg-pine-tint text-pine-dark
+                                    {% elif r.status == 'ditolak' or r.status == 'dibatalkan' %}
+                                        bg-brick-tint text-brick
+                                    {% else %}
+                                        bg-paper-deep text-ink-muted
+                                    {% endif %}">
+                                    {{ r.get_status_display }}
+                                </span>
+
+                                <a href="/sewa/{{ r.code }}/"
+                                   class="w-full sm:w-auto inline-flex items-center justify-center gap-1 bg-card hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                                    <span>Lihat detail</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10 space-y-3">
+                    <img src="{% static 'img/kapal.svg' %}" alt="Belum ada transaksi" class="w-20 h-10 mx-auto object-contain">
+                    <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                        Anda belum memiliki riwayat sewa barang di {{ SITE_NAME }}.
+                    </p>
+                    <div class="pt-1">
+                        <a href="/barang/" class="inline-flex items-center gap-2 bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-hover transition-colors">
+                            {% include 'partials/icon.html' with name='search' class='w-3.5 h-3.5' %}
+                            <span>Jelajahi katalog</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 2: PERMINTAAN MASUK (Sebagai Pemilik) -->
+        <div x-show="activeTab === 'requests'" class="mt-6 space-y-4" x-cloak>
+            {% if incoming_requests %}
+                <div class="space-y-3">
+                    {% for req in incoming_requests %}
+                        <div class="p-4 sm:p-5 rounded-2xl bg-paper border border-line hover:border-brand/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                                <div class="w-16 h-16 rounded-xl bg-paper-deep border border-line overflow-hidden flex-shrink-0">
+                                    {% if req.item.photos.exists %}
+                                        <img src="{{ req.item.photos.first.image.url }}" alt="{{ req.item.title }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <img src="{{ req.item.fallback_illustration_url }}" alt="{{ req.item.title }}" class="w-full h-full object-cover">
+                                    {% endif %}
+                                </div>
+
+                                <div class="space-y-1 min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-sm font-bold text-ink truncate">{{ req.item.title }}</h3>
+                                        <span class="text-[10px] font-mono bg-card px-1.5 py-0.5 rounded border border-line text-ink-muted">
+                                            {{ req.code }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-ink-muted">
+                                        Dari: <strong class="text-ink">{{ req.renter.full_name|default:req.renter.username }}</strong>
+                                        ({{ req.renter.student_profile.campus.short_name|default:"Mahasiswa" }}) &bull;
+                                        {{ req.start_date|date:"d M Y" }} s/d {{ req.end_date|date:"d M Y" }} ({{ req.days }} hari)
+                                    </p>
+                                    <div class="flex items-center gap-2 text-[11px] text-ink-muted">
+                                        <span>Total sewa: <strong class="text-ink tabular-nums">{{ req.rent_total|rupiah }}</strong></span>
+                                        {% if req.deposit_total > 0 %}
+                                        <span>&bull;</span>
+                                        <span>Deposit: <strong class="text-ink tabular-nums">{{ req.deposit_total|rupiah }}</strong></span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
+                                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1
+                                    {% if req.status == 'menunggu_persetujuan' %}
+                                        bg-amber-tint text-amber-text
+                                    {% elif req.status == 'menunggu_pembayaran' %}
+                                        bg-brand-tint text-brand
+                                    {% elif req.status == 'dibayar' or req.status == 'sedang_disewa' or req.status == 'selesai' %}
+                                        bg-pine-tint text-pine-dark
+                                    {% elif req.status == 'ditolak' or req.status == 'dibatalkan' %}
+                                        bg-brick-tint text-brick
+                                    {% else %}
+                                        bg-paper-deep text-ink-muted
+                                    {% endif %}">
+                                    {{ req.get_status_display }}
+                                </span>
+
+                                {% if req.status == 'menunggu_persetujuan' %}
+                                    <!-- Aksi Langsung Setujui Permintaan -->
+                                    <form action="/sewa/{{ req.code }}/setujui/" method="POST" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2 min-h-[44px] rounded-lg transition-colors">
+                                            Setujui
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                <a href="/sewa/{{ req.code }}/"
+                                   class="bg-card hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2 min-h-[44px] inline-flex items-center justify-center rounded-lg transition-colors">
+                                    Detail
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10 space-y-3">
+                    <img src="{% static 'img/kapal.svg' %}" alt="Belum ada permintaan" class="w-20 h-10 mx-auto object-contain">
+                    <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                        Belum ada permintaan sewa yang masuk untuk barang Anda.
+                    </p>
+                    <div class="pt-1">
+                        <a href="/barang/baru/" class="inline-flex items-center gap-2 bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-hover transition-colors">
+                            {% include 'partials/icon.html' with name='package' class='w-3.5 h-3.5' %}
+                            <span>Pasang barang</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 3: BARANG SAYA (Barang Milik Sendiri) -->
+        <div x-show="activeTab === 'items'" class="mt-6 space-y-4" x-cloak>
+            {% if my_items %}
+                <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for item in my_items %}
+                        <div class="bg-paper border border-line rounded-xl p-4 flex flex-col justify-between space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-12 h-12 rounded-lg bg-paper-deep border border-line overflow-hidden flex-shrink-0">
+                                    {% if item.photos.exists %}
+                                        <img src="{{ item.photos.first.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="text-xs font-bold text-ink truncate">{{ item.title }}</h4>
+                                    <p class="text-[11px] text-ink-muted mt-0.5">{{ item.price_per_day|rupiah }} / hari</p>
+                                    <span class="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded {% if item.is_active %}bg-pine-tint text-pine-dark{% else %}bg-paper-deep text-ink-muted{% endif %}">
+                                        {% if item.is_active %}Aktif disewakan{% else %}Nonaktif{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="pt-2 border-t border-line flex items-center justify-between text-xs">
+                                <a href="/barang/{{ item.slug }}/" class="text-brand font-semibold hover:underline">
+                                    Lihat publik
+                                </a>
+                                <a href="/barang/{{ item.slug }}/ubah/" class="text-ink-muted hover:text-ink font-medium">
+                                    Ubah data
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10 space-y-3">
+                    <img src="{% static 'img/kapal.svg' %}" alt="Belum ada barang" class="w-20 h-10 mx-auto object-contain">
+                    <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                        Anda belum mendaftarkan barang untuk disewakan ke sesama mahasiswa.
+                    </p>
+                    <div class="pt-1">
+                        <a href="/barang/baru/" class="inline-flex items-center gap-2 bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-hover transition-colors">
+                            {% include 'partials/icon.html' with name='package' class='w-3.5 h-3.5' %}
+                            <span>Pasang barang</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 4: ULASAN SAYA -->
+        <div x-show="activeTab === 'reviews'" class="mt-6 space-y-4" x-cloak>
+            {% if reviews_received %}
+                <div class="space-y-3">
+                    {% for r in reviews_received %}
+                        <div class="p-4 sm:p-5 rounded-2xl bg-paper border border-line text-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-brand-tint text-brand font-bold text-xs flex items-center justify-center">
+                                        {{ r.reviewer.full_name|default:r.reviewer.username|slice:":2" }}
+                                    </div>
+                                    <div>
+                                        <span class="font-bold text-ink block text-sm">{{ r.reviewer.full_name|default:r.reviewer.username }}</span>
+                                        <span class="text-[11px] text-ink-muted">Sebagai {{ r.get_as_role_display|lower }} &bull; Transaksi {{ r.rental.code }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-amber-text font-bold text-xs">{{ r.rating }}★</span>
+                                    <span class="text-[10px] text-ink-muted block">{{ r.created_at|date:"d M Y" }}</span>
+                                </div>
+                            </div>
+                            <p class="text-ink leading-relaxed">
+                                {{ r.comment|default:"(Pengguna tidak memberikan komentar tambahan)" }}
+                            </p>
+                            <div class="pt-1 text-[11px] text-ink-muted flex items-center justify-between border-t border-line">
+                                <span>Barang: <strong class="text-ink">{{ r.rental.item.title }}</strong></span>
+                                <a href="{% url 'rentals:rental_detail' code=r.rental.code %}" class="text-brand font-semibold hover:underline">
+                                    Lihat transaksi
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-10 space-y-3">
+                    <img src="{% static 'img/kapal.svg' %}" alt="Belum ada ulasan" class="w-20 h-10 mx-auto object-contain">
+                    <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                        Belum ada ulasan yang diterima dari transaksi sewa Anda.
+                    </p>
+                    <div class="pt-1">
+                        <a href="/barang/" class="inline-flex items-center gap-2 bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-hover transition-colors">
+                            {% include 'partials/icon.html' with name='search' class='w-3.5 h-3.5' %}
+                            <span>Mulai sewa</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 5: JUAL BELI (Fase 8B Butir 7) -->
+        <div x-show="activeTab === 'sales'" class="mt-6 space-y-4" x-data="{ salesSubTab: 'barang' }" x-cloak>
+            <!-- Sub-tab Bar -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 border-b border-line">
+                <button type="button"
+                        @click="salesSubTab = 'barang'"
+                        :class="salesSubTab === 'barang' ? 'border-brand text-brand font-bold border-b-2 pb-2' : 'text-ink-muted hover:text-ink pb-2 font-medium'"
+                        class="text-xs sm:text-sm px-2 transition-colors flex items-center gap-1.5 whitespace-nowrap min-h-[44px]">
+                    {% include 'partials/icon.html' with name='tag' class='w-3.5 h-3.5' %}
+                    <span>Barang jualan</span>
+                    {% if sale_items_count > 0 %}
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums"
+                          :class="salesSubTab === 'barang' ? 'bg-brand/10 text-brand' : 'bg-paper-deep text-ink-muted border border-line'">
+                        {{ sale_items_count }}
+                    </span>
+                    {% endif %}
+                </button>
+                <button type="button"
+                        @click="salesSubTab = 'pembelian'"
+                        :class="salesSubTab === 'pembelian' ? 'border-brand text-brand font-bold border-b-2 pb-2' : 'text-ink-muted hover:text-ink pb-2 font-medium'"
+                        class="text-xs sm:text-sm px-2 transition-colors flex items-center gap-1.5 whitespace-nowrap min-h-[44px]">
+                    {% include 'partials/icon.html' with name='shopping-bag' class='w-3.5 h-3.5' %}
+                    <span>Pembelian</span>
+                    {% if sale_purchases_count > 0 %}
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums"
+                          :class="salesSubTab === 'pembelian' ? 'bg-brand/10 text-brand' : 'bg-paper-deep text-ink-muted border border-line'">
+                        {{ sale_purchases_count }}
+                    </span>
+                    {% endif %}
+                </button>
+                <button type="button"
+                        @click="salesSubTab = 'penjualan'"
+                        :class="salesSubTab === 'penjualan' ? 'border-brand text-brand font-bold border-b-2 pb-2' : 'text-ink-muted hover:text-ink pb-2 font-medium'"
+                        class="text-xs sm:text-sm px-2 transition-colors flex items-center gap-1.5 whitespace-nowrap min-h-[44px]">
+                    {% include 'partials/icon.html' with name='trending-up' class='w-3.5 h-3.5' %}
+                    <span>Penjualan</span>
+                    {% if sale_orders_count > 0 %}
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums"
+                          :class="salesSubTab === 'penjualan' ? 'bg-brand/10 text-brand' : 'bg-paper-deep text-ink-muted border border-line'">
+                        {{ sale_orders_count }}
+                    </span>
+                    {% endif %}
+                </button>
+            </div>
+
+            <!-- SUB-TAB 1: BARANG JUALAN SAYA -->
+            <div x-show="salesSubTab === 'barang'" class="space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 pb-2">
+                    <div>
+                        <h3 class="font-bold text-sm text-ink">Daftar barang jualan Anda</h3>
+                        <p class="text-xs text-ink-muted">Kelola barang thrift dan jualan yang Anda pasang ke sesama mahasiswa.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/jual/saya/" class="px-3.5 py-2 min-h-[40px] rounded-xl border border-line bg-paper hover:bg-card text-xs font-semibold text-ink transition-colors inline-flex items-center gap-1.5">
+                            {% include 'partials/icon.html' with name='sliders' class='w-3.5 h-3.5' %}
+                            <span>Kelola semua listing</span>
+                        </a>
+                        <a href="/jual/baru/" class="px-4 py-2 min-h-[40px] rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors inline-flex items-center gap-1.5">
+                            {% include 'partials/icon.html' with name='plus' class='w-3.5 h-3.5' %}
+                            <span>Pasang barang jualan</span>
+                        </a>
+                    </div>
+                </div>
+
+                {% if my_sale_items %}
+                    <div class="space-y-3">
+                        {% for item in my_sale_items %}
+                            <div class="p-4 sm:p-5 rounded-2xl bg-paper border border-line hover:border-brand/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div class="flex items-center gap-3.5 flex-1 min-w-0">
+                                    <div class="w-14 h-14 rounded-xl overflow-hidden {{ item.tile_bg }} flex-shrink-0 flex items-center justify-center border border-line">
+                                        {% if item.primary_photo %}
+                                            <img src="{{ item.primary_photo.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                            <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 mb-0.5">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-tint text-amber-text border border-line">
+                                                Dijual
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-card border border-line text-ink-muted">
+                                                {{ item.get_status_display }}
+                                            </span>
+                                        </div>
+                                        <h4 class="font-bold text-sm text-ink truncate">
+                                            <a href="{% url 'sales:item_detail' item.slug %}" class="hover:text-brand transition-colors">
+                                                {{ item.title }}
+                                            </a>
+                                        </h4>
+                                        <div class="flex items-center gap-2 text-xs text-ink-muted mt-0.5">
+                                            <span class="font-semibold text-brand">{{ item.price|rupiah }}</span>
+                                            <span>&bull;</span>
+                                            <span>{{ item.pickup_area }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+                                    <a href="{% url 'sales:item_edit' item.slug %}"
+                                       class="px-3 py-1.5 min-h-[36px] rounded-lg border border-line bg-card hover:bg-paper-deep text-xs font-semibold text-ink transition-colors inline-flex items-center gap-1">
+                                        {% include 'partials/icon.html' with name='file-text' class='w-3 h-3' %}
+                                        <span>Ubah</span>
+                                    </a>
+                                    <a href="{% url 'sales:item_detail' item.slug %}"
+                                       class="px-3 py-1.5 min-h-[36px] rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors inline-flex items-center gap-1">
+                                        <span>Lihat</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-10 space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-tint text-amber-text border border-line flex items-center justify-center mx-auto">
+                            {% include 'partials/icon.html' with name='tag' class='w-6 h-6' %}
+                        </div>
+                        <h4 class="text-sm font-bold text-ink">Belum ada barang jualan</h4>
+                        <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                            Punya buku kuliah, pakaian, perlengkapan kos, atau perangkat elektronik yang tidak terpakai? Jual kepada sesama mahasiswa kampus.
+                        </p>
+                        <div class="pt-1">
+                            <a href="/jual/baru/" class="inline-flex items-center gap-2 bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-hover transition-colors">
+                                {% include 'partials/icon.html' with name='plus' class='w-3.5 h-3.5' %}
+                                <span>Pasang barang jualan pertama</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- SUB-TAB 2: PEMBELIAN SAYA -->
+            <div x-show="salesSubTab === 'pembelian'" class="space-y-4" x-cloak>
+                <div class="pt-1 pb-2">
+                    <h3 class="font-bold text-sm text-ink">Pesanan pembelian barang Anda</h3>
+                    <p class="text-xs text-ink-muted">Pantau status pembayaran, serah terima, dan masa pemeriksaan barang thrift yang Anda beli.</p>
+                </div>
+
+                {% if my_sale_purchases %}
+                    <div class="space-y-3">
+                        {% for o in my_sale_purchases %}
+                            <div class="p-4 sm:p-5 rounded-2xl bg-paper border border-line hover:border-brand/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                                    <div class="w-14 h-14 rounded-xl bg-paper-deep border border-line overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                        {% if o.item.photos.first %}
+                                            <img src="{{ o.item.photos.first.image.url }}" alt="{{ o.listing_snapshot.title|default:o.item.title }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                            {% include 'partials/icon.html' with name='package' class='w-6 h-6 text-ink-muted' %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="space-y-1 min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h4 class="text-sm font-bold text-ink truncate">{{ o.listing_snapshot.title|default:o.item.title }}</h4>
+                                            <span class="text-[10px] font-mono bg-card px-1.5 py-0.5 rounded border border-line text-ink-muted">
+                                                {{ o.code }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-ink-muted">
+                                            <span>Penjual: <strong class="text-ink">{{ o.seller.full_name|default:o.seller.username }}</strong></span>
+                                            <span>&bull;</span>
+                                            <span>Total: <strong class="text-brand tabular-nums">{{ o.price_snapshot|rupiah }}</strong></span>
+                                        </div>
+                                        <p class="text-[11px] text-ink-muted">
+                                            Dipesan: {{ o.created_at|date:"d M Y, H:i" }} WIB
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
+                                    <!-- Badge Status -->
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1
+                                        {% if o.status == 'menunggu_pembayaran' %}
+                                            bg-amber-tint text-amber-text
+                                        {% elif o.status == 'dibayar' %}
+                                            bg-brand-tint text-brand
+                                        {% elif o.status == 'diserahkan' %}
+                                            bg-brand-tint text-brand
+                                        {% elif o.status == 'selesai' %}
+                                            bg-pine-tint text-pine-dark
+                                        {% elif o.status == 'sengketa' %}
+                                            bg-brick-tint text-brick
+                                        {% elif o.status == 'dibatalkan' %}
+                                            bg-brick-tint text-brick
+                                        {% else %}
+                                            bg-paper-deep text-ink-muted
+                                        {% endif %}">
+                                        {{ o.get_status_display }}
+                                    </span>
+                                    <a href="{% url 'sales:order_detail' o.code %}"
+                                       class="w-full sm:w-auto inline-flex items-center justify-center gap-1 bg-card hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                                        <span>Lihat detail</span>
+                                        <span>&rarr;</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-10 space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-paper-deep text-ink-muted border border-line flex items-center justify-center mx-auto">
+                            {% include 'partials/icon.html' with name='shopping-bag' class='w-6 h-6' %}
+                        </div>
+                        <h4 class="text-sm font-bold text-ink">Belum ada pembelian</h4>
+                        <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                            Cari buku kuliah bekas, kalkulator, pakaian, atau barang elektronik yang dijual mahasiswa kampus Anda.
+                        </p>
+                        <div class="pt-1">
+                            <a href="/jual-beli/" class="inline-flex items-center gap-2 bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-hover transition-colors">
+                                {% include 'partials/icon.html' with name='search' class='w-3.5 h-3.5' %}
+                                <span>Jelajahi barang jualan</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- SUB-TAB 3: PENJUALAN SAYA -->
+            <div x-show="salesSubTab === 'penjualan'" class="space-y-4" x-cloak>
+                <div class="pt-1 pb-2">
+                    <h3 class="font-bold text-sm text-ink">Pesanan penjualan barang Anda</h3>
+                    <p class="text-xs text-ink-muted">Pesanan masuk dari mahasiswa yang membeli barang jualan Anda.</p>
+                </div>
+
+                {% if my_sale_orders %}
+                    <div class="space-y-3">
+                        {% for o in my_sale_orders %}
+                            <div class="p-4 sm:p-5 rounded-2xl bg-paper border border-line hover:border-brand/40 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                                    <div class="w-14 h-14 rounded-xl bg-paper-deep border border-line overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                        {% if o.item.photos.first %}
+                                            <img src="{{ o.item.photos.first.image.url }}" alt="{{ o.listing_snapshot.title|default:o.item.title }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                            {% include 'partials/icon.html' with name='package' class='w-6 h-6 text-ink-muted' %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="space-y-1 min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h4 class="text-sm font-bold text-ink truncate">{{ o.listing_snapshot.title|default:o.item.title }}</h4>
+                                            <span class="text-[10px] font-mono bg-card px-1.5 py-0.5 rounded border border-line text-ink-muted">
+                                                {{ o.code }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-ink-muted">
+                                            <span>Pembeli: <strong class="text-ink">{{ o.buyer.full_name|default:o.buyer.username }}</strong></span>
+                                            <span>&bull;</span>
+                                            <span>Hasil bersih: <strong class="text-pine-dark tabular-nums">{{ o.net_to_seller|rupiah }}</strong></span>
+                                        </div>
+                                        <p class="text-[11px] text-ink-muted">
+                                            Dipesan: {{ o.created_at|date:"d M Y, H:i" }} WIB
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
+                                    <!-- Badge Status -->
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1
+                                        {% if o.status == 'menunggu_pembayaran' %}
+                                            bg-amber-tint text-amber-text
+                                        {% elif o.status == 'dibayar' %}
+                                            bg-brand-tint text-brand
+                                        {% elif o.status == 'diserahkan' %}
+                                            bg-brand-tint text-brand
+                                        {% elif o.status == 'selesai' %}
+                                            bg-pine-tint text-pine-dark
+                                        {% elif o.status == 'sengketa' %}
+                                            bg-brick-tint text-brick
+                                        {% elif o.status == 'dibatalkan' %}
+                                            bg-brick-tint text-brick
+                                        {% else %}
+                                            bg-paper-deep text-ink-muted
+                                        {% endif %}">
+                                        {{ o.get_status_display }}
+                                    </span>
+                                    <a href="{% url 'sales:order_detail' o.code %}"
+                                       class="w-full sm:w-auto inline-flex items-center justify-center gap-1 bg-card hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                                        <span>Kelola pesanan</span>
+                                        <span>&rarr;</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-10 space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-paper-deep text-ink-muted border border-line flex items-center justify-center mx-auto">
+                            {% include 'partials/icon.html' with name='trending-up' class='w-6 h-6' %}
+                        </div>
+                        <h4 class="text-sm font-bold text-ink">Belum ada pesanan penjualan</h4>
+                        <p class="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
+                            Pesanan yang masuk saat mahasiswa lain membeli barang jualan Anda akan muncul di sini.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+
+    </div>
+</div>
+{% endblock %}

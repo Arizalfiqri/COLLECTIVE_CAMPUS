@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Chat dengan {{ other_user.full_name|default:other_user.username }} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[850px] mx-auto px-3 sm:px-6 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    
+    <!-- Kartu Ruang Percakapan -->
+    <div class="bg-card border border-line rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+        
+        <!-- Header Chat: Info Lawan Bicara & Pintasan Barang -->
+        <div class="p-4 sm:p-5 border-b border-line bg-paper/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'chat:inbox' %}"
+                   class="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-line bg-card hover:bg-paper text-ink transition-colors"
+                   title="Kembali ke Kotak Masuk">
+                    {% include 'partials/icon.html' with name='arrow-left' class='w-4 h-4' %}
+                </a>
+
+                <div class="w-10 h-10 rounded-full bg-brand-tint border border-line text-brand font-bold text-sm flex items-center justify-center flex-shrink-0 uppercase select-none">
+                    {{ other_user.full_name|default:other_user.username|slice:":2" }}
+                </div>
+
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-bold text-sm sm:text-base text-ink truncate">
+                            {{ other_user.full_name|default:other_user.username }}
+                        </h2>
+                        {% if conversation.sale_item %}
+                            <span class="text-[10px] bg-amber-tint text-amber-text border border-line px-1.5 py-0.5 rounded font-semibold">
+                                Dijual
+                            </span>
+                        {% else %}
+                            <span class="text-[10px] bg-brand-tint text-brand px-1.5 py-0.5 rounded font-medium">
+                                Disewa
+                            </span>
+                        {% endif %}
+                        {% if conversation.renter == request.user %}
+                            <span class="text-[10px] bg-paper-deep text-ink-muted px-1.5 py-0.5 rounded font-medium">
+                                {% if conversation.sale_item %}Penjual{% else %}Pemilik Barang{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="text-[10px] bg-paper-deep text-ink-muted px-1.5 py-0.5 rounded font-medium">
+                                {% if conversation.sale_item %}Calon Pembeli{% else %}Calon Penyewa{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-ink-muted truncate">
+                        {% if other_user.student_profile %}
+                            {{ other_user.student_profile.campus.short_name|default:other_user.student_profile.campus_name }}
+                        {% else %}
+                            Mahasiswa Terdaftar
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Kartu Mini Barang Terkait -->
+            {% if conversation.sale_item %}
+                <a href="{% url 'sales:item_detail' conversation.sale_item.slug %}"
+                   class="flex items-center gap-2.5 p-2 rounded-xl bg-card border border-line hover:border-brand/50 transition-colors text-xs self-start sm:self-auto max-w-full sm:max-w-xs">
+                    <div class="w-9 h-9 rounded-lg bg-paper-deep overflow-hidden flex-shrink-0">
+                        {% if conversation.sale_item.photos.first %}
+                            <img src="{{ conversation.sale_item.photos.first.image.url }}" alt="{{ conversation.sale_item.title }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <img src="{{ conversation.sale_item.fallback_illustration_url }}" alt="{{ conversation.sale_item.title }}" class="w-full h-full object-cover">
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="font-bold text-ink truncate">{{ conversation.sale_item.title }}</p>
+                        <p class="text-amber-text font-semibold tabular-nums text-[11px]">{{ conversation.sale_item.price|rupiah }}</p>
+                    </div>
+                    <span class="text-ink-muted hover:text-brand pl-1">
+                        {% include 'partials/icon.html' with name='chevron-right' class='w-3.5 h-3.5' %}
+                    </span>
+                </a>
+            {% else %}
+                <a href="{% url 'catalog:item_detail' conversation.item.slug %}"
+                   class="flex items-center gap-2.5 p-2 rounded-xl bg-card border border-line hover:border-brand/50 transition-colors text-xs self-start sm:self-auto max-w-full sm:max-w-xs">
+                    <div class="w-9 h-9 rounded-lg bg-paper-deep overflow-hidden flex-shrink-0">
+                        {% if conversation.item.photos.first %}
+                            <img src="{{ conversation.item.photos.first.image.url }}" alt="{{ conversation.item.title }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <img src="{{ conversation.item.fallback_illustration_url }}" alt="{{ conversation.item.title }}" class="w-full h-full object-cover">
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="font-bold text-ink truncate">{{ conversation.item.title }}</p>
+                        <p class="text-brand font-semibold tabular-nums text-[11px]">{{ conversation.item.price_per_day|rupiah }}/hari</p>
+                    </div>
+                    <span class="text-ink-muted hover:text-brand pl-1">
+                        {% include 'partials/icon.html' with name='chevron-right' class='w-3.5 h-3.5' %}
+                    </span>
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Banner Keamanan & Aturan Sengketa Sesuai SPEC v2 Bagian E -->
+        <div class="bg-paper-deep/60 px-4 py-2.5 border-b border-line text-[11px] text-ink-muted flex items-start gap-2">
+            {% include 'partials/icon.html' with name='shield' class='w-3.5 h-3.5 text-pine flex-shrink-0 mt-0.5' %}
+            <div>
+                <span class="text-ink font-semibold">Keamanan Platform:</span>
+                Riwayat pesan dicatat untuk keamanan transaksi dan dapat ditinjau oleh admin saat mediasi sengketa.
+                {% if not has_paid %}
+                    <span class="text-brick font-medium">Nomor kontak, email, dan tautan disamarkan otomatis sampai pembayaran {% if conversation.sale_item %}dikonfirmasi{% else %}sewa berhasil{% endif %}.</span>
+                {% else %}
+                    <span class="text-pine font-medium">Transaksi telah dibayar, kontak langsung tidak lagi disamarkan.</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Wadah Pesan Chat (HTMX Polling 5 Detik) -->
+        <div id="chat-messages-container"
+             hx-get="{% url 'chat:messages_partial' conversation.id %}"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML"
+             class="flex-1 overflow-y-auto p-4 sm:p-6 bg-card space-y-3 min-h-[360px] max-h-[520px]">
+            {% include 'chat/partials/message_list.html' %}
+        </div>
+
+        <!-- Formulir Kirim Pesan (HTMX Reactive) -->
+        <div class="p-3.5 sm:p-4 bg-paper/40 border-t border-line">
+            <form id="chat-send-form"
+                  hx-post="{% url 'chat:send_message' conversation.id %}"
+                  hx-target="#chat-messages-container"
+                  hx-swap="innerHTML"
+                  hx-on::after-request="if(event.detail.successful){ this.reset(); scrollToBottom(); }"
+                  class="space-y-2">
+                {% csrf_token %}
+
+                <div class="relative flex items-end gap-2">
+                    <div class="flex-1 relative">
+                        <textarea name="body"
+                                  id="chat-message-input"
+                                  rows="2"
+                                  maxlength="500"
+                                  required
+                                  placeholder="Ketik pesan Anda di sini (maks. 500 karakter)..."
+                                  class="w-full bg-paper px-3.5 py-2.5 rounded-xl border border-line text-xs sm:text-sm text-ink placeholder-ink-muted/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand resize-none transition-colors"
+                                  onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.requestSubmit(); }"></textarea>
+                        
+                        <div class="absolute bottom-2 right-2.5 text-[10px] text-ink-muted pointer-events-none select-none"
+                             x-data="{ chars: 0 }"
+                             x-init="$el.previousElementSibling.addEventListener('input', e => chars = e.target.value.length)">
+                            <span x-text="chars">0</span>/500
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            id="btn-kirim-pesan"
+                            class="inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors flex-shrink-0 h-[48px]">
+                        <span>Kirim</span>
+                        {% include 'partials/icon.html' with name='send' class='w-3.5 h-3.5' %}
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between text-[10px] text-ink-muted px-1">
+                    <span>Tekan <strong>Enter</strong> untuk kirim, <strong>Shift+Enter</strong> untuk baris baru</span>
+                    <span>Batas 20 pesan / menit</span>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    function scrollToBottom() {
+        const container = document.getElementById('chat-messages-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    // Scroll ke bawah saat pertama kali dibuka
+    document.addEventListener('DOMContentLoaded', scrollToBottom);
+
+    // Scroll ke bawah setiap kali HTMX selesai swap pesan baru
+    document.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'chat-messages-container') {
+            scrollToBottom();
+        }
+    });
+</script>
+{% endblock %}

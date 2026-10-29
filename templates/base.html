@@ -1,0 +1,461 @@
+{% load static %}
+{% load formatters %}
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ SITE_NAME }}: sewa dan jual beli barang antarmahasiswa{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Saling sewa, saling bantu. Saling jual, saling bantu. {{ SITE_NAME }} adalah platform sewa-menyewa dan jual beli thrift perlengkapan kuliah antarmahasiswa berbasis verifikasi KTM dan pembayaran aman.{% endblock %}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+
+    <!-- Open Graph & Social Meta -->
+    <meta property="og:site_name" content="{{ SITE_NAME }}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}{{ SITE_NAME }}: sewa dan jual beli barang antarmahasiswa{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Sewa dan beli perlengkapan kuliah, barang thrift, kamera, dan buku antarmahasiswa dengan aman, pembayaran aman terproteksi, dan verifikasi KTM resmi.{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta name="twitter:card" content="summary">
+
+    <!-- Google Fonts: Bricolage Grotesque (Heading) & Plus Jakarta Sans (Body) — AGENT.md 6 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>[x-cloak]{display:none!important}</style>
+    <!-- Tailwind Compiled CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=5a2">
+    <!-- HTMX & Alpine.js dengan Focus Plugin -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://unpkg.com/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {% block extra_head %}{% endblock %}
+
+</head>
+<body class="bg-paper text-ink font-sans antialiased min-h-screen flex flex-col">
+    <!-- Navbar Sticky — Bersih & Tanpa Bilah Atas Palsu (AGENT.md 2 & 7) -->
+    <header class="sticky top-0 z-40 bg-card border-b border-line shadow-sm" x-data="{ mobileMenuOpen: false, notifModalOpen: false, pasangModalOpen: false }">
+        <div class="max-w-[1200px] mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 lg:gap-4">
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-2 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 rounded">
+                <img src="{% static 'img/logo-mark.svg' %}" alt="Logo {{ SITE_SHORT_NAME }}" class="w-8 h-8 sm:w-9 sm:h-9 select-none shrink-0" />
+                <span class="text-base sm:text-xl font-semibold text-ink tracking-tight whitespace-nowrap">{{ SITE_SHORT_NAME }}</span>
+            </a>
+
+            <!-- Nav Links Desktop (Dengan Active Indicator & Gap Memadai) -->
+            <nav class="hidden md:flex items-center gap-5 lg:gap-6 text-sm shrink-0">
+                <a href="/barang/" class="min-h-[44px] inline-flex items-center transition-colors {% if '/barang/' in request.path and request.path != '/barang/baru/' and request.path != '/barang/saya/' %}text-brand font-bold border-b-2 border-brand -mb-[2px]{% else %}text-ink-muted hover:text-brand font-medium{% endif %}">Sewa</a>
+                <a href="/jual-beli/" class="min-h-[44px] inline-flex items-center transition-colors {% if '/jual-beli/' in request.path or '/jual/' in request.path and request.path != '/jual/baru/' and request.path != '/jual/saya/' %}text-brand font-bold border-b-2 border-brand -mb-[2px]{% else %}text-ink-muted hover:text-brand font-medium{% endif %}">Jual beli</a>
+                <a href="/#cara-kerja" class="min-h-[44px] inline-flex items-center transition-colors text-ink-muted hover:text-brand font-medium">Cara kerja</a>
+                <a href="/tentang/" class="min-h-[44px] inline-flex items-center transition-colors {% if request.path == '/tentang/' %}text-brand font-bold border-b-2 border-brand -mb-[2px]{% else %}text-ink-muted hover:text-brand font-medium{% endif %}">Tentang</a>
+                <a href="/bantuan/" class="min-h-[44px] inline-flex items-center transition-colors {% if request.path == '/bantuan/' %}text-brand font-bold border-b-2 border-brand -mb-[2px]{% else %}text-ink-muted hover:text-brand font-medium{% endif %}">Bantuan</a>
+            </nav>
+
+            <!-- Aksi Kanan -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {% if user.is_authenticated %}
+                    <!-- Tombol Dompet Saldo — disembunyikan di layar kecil, muncul mulai sm -->
+                    <a href="/dompet/"
+                       class="hidden sm:flex relative w-11 h-11 text-ink hover:text-brand border border-line rounded-xl bg-card hover:bg-paper transition-colors items-center justify-center shrink-0"
+                       aria-label="Dompet saldo"
+                       title="Dompet">
+                        {% include 'partials/icon.html' with name='wallet' class='w-5 h-5' %}
+                    </a>
+
+                    <!-- Tombol Kotak Masuk Chat & Badge Belum Dibaca -->
+                    <a href="/pesan/"
+                       class="relative w-10 h-10 sm:w-11 sm:h-11 text-ink hover:text-brand border border-line rounded-xl bg-card hover:bg-paper transition-colors flex items-center justify-center shrink-0"
+                       aria-label="Kotak masuk percakapan"
+                       title="Kotak Masuk Pesan">
+                        {% include 'partials/icon.html' with name='message-square' class='w-5 h-5' %}
+                        {% if unread_messages_count > 0 %}
+                            <span class="absolute -top-1 -right-1 min-w-[18px] sm:min-w-[20px] h-[18px] sm:h-[20px] px-1 bg-brick text-white rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center tabular-nums leading-none shadow-sm"
+                                  aria-label="{{ unread_messages_count }} pesan belum dibaca">
+                                {{ unread_messages_count }}
+                            </span>
+                        {% endif %}
+                    </a>
+
+                    <!-- Tombol Notifikasi Modal (HTMX Loaded) -->
+                    <button type="button"
+                            @click="notifModalOpen = !notifModalOpen; if (notifModalOpen) { htmx.ajax('GET', '/notifikasi/panel/', '#notif-panel-body'); }"
+                            class="relative w-10 h-10 sm:w-11 sm:h-11 text-ink hover:text-brand border border-line rounded-xl bg-card hover:bg-paper transition-colors flex items-center justify-center shrink-0 focus:outline-none focus:ring-2 focus:ring-brand"
+                            aria-label="Notifikasi sistem"
+                            :aria-expanded="notifModalOpen"
+                            title="Notifikasi">
+                        {% include 'partials/icon.html' with name='bell' class='w-5 h-5' %}
+                        <span id="nav-notif-badge">
+                            {% if unread_notifications_count > 0 %}
+                                <span class="absolute -top-1 -right-1 min-w-[18px] sm:min-w-[20px] h-[18px] sm:h-[20px] px-1 bg-brick text-white rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center tabular-nums leading-none shadow-sm"
+                                      aria-label="{{ unread_notifications_count }} notifikasi belum dibaca">
+                                    {{ unread_notifications_count }}
+                                </span>
+                            {% endif %}
+                        </span>
+                    </button>
+
+                    <!-- Profil User Desktop / Tablet (Tampil mulai sm) -->
+                    <a href="/dashboard/" class="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 min-h-[44px] rounded-xl border border-line bg-card hover:border-brand/40 transition-colors text-ink shrink-0">
+                        <div class="w-7 h-7 rounded-full bg-brand-tint text-brand font-bold text-xs flex items-center justify-center uppercase select-none shrink-0">
+                            {{ user.full_name|default:user.username|slice:":2" }}
+                        </div>
+                        <span class="hidden sm:inline text-xs font-semibold max-w-[80px] truncate">{{ user.full_name|default:user.username|first_name_only }}</span>
+                        {% if user.is_verified_student %}
+                            <span class="hidden sm:inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-1.5 py-0.5 rounded text-[10px] font-bold" title="Terverifikasi KTM">
+                                {% include 'partials/icon.html' with name='check' class='w-3 h-3 text-pine' %}
+                                <span class="hidden md:inline">KTM</span>
+                            </span>
+                        {% else %}
+                            <span class="hidden sm:inline-flex items-center bg-amber-tint text-amber-text px-1.5 py-0.5 rounded text-[10px] font-semibold" title="KTM Belum Terverifikasi">
+                                Belum KTM
+                            </span>
+                        {% endif %}
+                    </a>
+
+                    {% if user.is_staff %}
+                    <!-- Tautan Tunggal Panel Staf (Muncul mulai xl agar navbar 1024px lega) -->
+                    <a href="/admin/"
+                       class="hidden xl:flex items-center gap-1.5 px-3 min-h-[44px] rounded-xl border border-line bg-paper hover:bg-card text-ink font-semibold text-xs transition-colors shrink-0"
+                       title="Buka Panel Staf">
+                        <span class="w-2 h-2 rounded-full bg-brand"></span>
+                        <span>Panel staf</span>
+                        {% if staff_stats.total_queue > 0 %}
+                        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-brick rounded-full tabular-nums">
+                            {{ staff_stats.total_queue }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                    <button type="button"
+                            @click="pasangModalOpen = true"
+                            class="hidden sm:inline-flex items-center min-h-[40px] lg:min-h-[44px] bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 shrink-0">
+                        Pasang barang
+                    </button>
+                    <a href="/keluar/" class="hidden xl:flex items-center justify-center min-h-[44px] text-xs font-semibold text-ink-muted hover:text-brick px-2.5 transition-colors" title="Keluar">
+                        Keluar
+                    </a>
+                {% else %}
+                    <a href="/masuk/" class="flex items-center justify-center min-h-[40px] text-xs sm:text-sm font-semibold text-ink hover:text-brand px-3 transition-colors">
+                        Masuk
+                    </a>
+                    <a href="/daftar/" class="hidden sm:inline-flex items-center justify-center min-h-[44px] text-xs sm:text-sm font-semibold text-brand hover:underline px-3 transition-colors">
+                        Daftar
+                    </a>
+                    <button type="button"
+                            @click="pasangModalOpen = true"
+                            class="hidden sm:inline-flex items-center justify-center min-h-[44px] bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 shrink-0">
+                        Pasang barang
+                    </button>
+                {% endif %}
+
+                <!-- Mobile Menu Button - Min Touch Target 44x44px -->
+                <button @click="mobileMenuOpen = !mobileMenuOpen"
+                        class="md:hidden w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-ink border border-line rounded-xl hover:bg-paper-deep focus:outline-none focus:ring-2 focus:ring-brand shrink-0"
+                        aria-label="Toggle Menu"
+                        :aria-expanded="mobileMenuOpen">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Drawer / Panel (Dengan Touch Target 44px & Safe Area) -->
+        <div x-show="mobileMenuOpen"
+             x-cloak
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             class="md:hidden bg-card border-b border-line px-4 py-3 space-y-1 shadow-lg max-h-[85vh] overflow-y-auto safe-bottom">
+            <a href="/barang/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-semibold text-ink hover:text-brand hover:bg-paper transition-colors">
+                Sewa
+            </a>
+            <a href="/jual-beli/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-semibold text-ink hover:text-brand hover:bg-paper transition-colors">
+                Jual beli
+            </a>
+            <a href="/#cara-kerja" @click="mobileMenuOpen = false" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-medium text-ink-muted hover:text-brand hover:bg-paper transition-colors">
+                Cara kerja
+            </a>
+            <a href="/tentang/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-medium text-ink-muted hover:text-brand hover:bg-paper transition-colors">
+                Tentang {{ SITE_NAME }}
+            </a>
+            <a href="/bantuan/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-medium text-ink-muted hover:text-brand hover:bg-paper transition-colors">
+                Bantuan &amp; FAQ
+            </a>
+            <div class="border-t border-line pt-2 mt-2 space-y-1">
+                {% if user.is_authenticated %}
+                    <!-- Kartu Profil Pengguna di Drawer -->
+                    <div class="p-3 bg-paper rounded-xl border border-line flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 rounded-full bg-brand-tint text-brand font-bold text-sm flex items-center justify-center uppercase select-none shrink-0">
+                            {{ user.full_name|default:user.username|slice:":2" }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-bold text-ink truncate">{{ user.full_name|default:user.username }}</p>
+                            <p class="text-[10px] text-ink-muted truncate">
+                                {% if user.is_verified_student %}
+                                    <span class="text-pine font-semibold">✓ Mahasiswa Terverifikasi</span>
+                                {% else %}
+                                    <span class="text-amber-text font-medium">KTM Belum Terverifikasi</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            @click="mobileMenuOpen = false; pasangModalOpen = true"
+                            class="w-full flex items-center justify-center min-h-[44px] px-4 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-colors shadow-sm">
+                        + Pasang barang
+                    </button>
+                    <a href="/dashboard/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-semibold text-ink hover:text-brand hover:bg-paper transition-colors">
+                        Dashboard Mahasiswa
+                    </a>
+                    <a href="/dompet/" class="flex items-center justify-between min-h-[44px] px-3 rounded-lg text-sm font-medium text-ink hover:text-brand hover:bg-paper transition-colors">
+                        <span class="flex items-center gap-2">
+                            {% include 'partials/icon.html' with name='wallet' class='w-4 h-4 text-brand' %}
+                            <span>Dompet Saldo</span>
+                        </span>
+                        <span class="text-xs font-semibold font-mono">{{ user.wallet.balance|rupiah|default:'Rp0' }}</span>
+                    </a>
+                    <a href="/pesan/" class="flex items-center justify-between min-h-[44px] px-3 rounded-lg text-sm font-medium text-ink hover:text-brand hover:bg-paper transition-colors">
+                        <span class="flex items-center gap-2">
+                            {% include 'partials/icon.html' with name='message-square' class='w-4 h-4 text-brand' %}
+                            <span>Kotak Masuk Pesan</span>
+                        </span>
+                        {% if unread_messages_count > 0 %}
+                            <span class="bg-brick text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
+                                {{ unread_messages_count }}
+                            </span>
+                        {% endif %}
+                    </a>
+                    <a href="/verifikasi-ktm/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-medium text-ink-muted hover:text-brand hover:bg-paper transition-colors">
+                        Verifikasi KTM
+                    </a>
+
+                    {% if user.is_staff %}
+                    <div class="border-t border-line pt-2 mt-1">
+                        <a href="/admin/" class="flex items-center justify-between min-h-[44px] px-3 rounded-lg text-sm font-bold text-brand hover:bg-brand-tint transition-colors">
+                            <span>Panel Staf Admin</span>
+                            {% if staff_stats.total_queue > 0 %}
+                                <span class="bg-brick text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
+                                    {{ staff_stats.total_queue }} antrean
+                                </span>
+                            {% endif %}
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <div class="border-t border-line pt-2 mt-1">
+                        <a href="/keluar/" class="flex items-center min-h-[44px] px-3 rounded-lg text-sm font-semibold text-brick hover:bg-brick-tint transition-colors">
+                            Keluar dari Akun
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="/masuk/" class="flex items-center justify-center min-h-[44px] px-4 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-colors shadow-sm">
+                        Masuk ke Akun
+                    </a>
+                    <a href="/daftar/" class="flex items-center justify-center min-h-[44px] px-4 rounded-xl text-sm font-semibold border border-line bg-card text-ink hover:bg-paper transition-colors">
+                        Daftar Akun Baru
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Panel Notifikasi (Bottom Sheet di ponsel, Dropdown di desktop) -->
+        <div x-show="notifModalOpen"
+             x-cloak
+             x-trap.noscroll="notifModalOpen"
+             @keydown.escape.window="notifModalOpen = false"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Panel notifikasi"
+             class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl md:rounded-xl md:bottom-auto md:inset-auto md:right-4 md:top-16 md:mt-2 md:w-96 bg-card border border-line shadow-2xl flex flex-col max-h-[80vh] md:max-h-[520px] overflow-hidden safe-bottom"
+             @click.away="notifModalOpen = false">
+            
+            <!-- Header Modal / Panel -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-line bg-paper/60 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm text-ink shrink-0">Notifikasi</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            hx-post="/notifikasi/tandai-semua-dibaca/"
+                            hx-target="#notif-panel-body"
+                            class="text-xs font-semibold text-brand hover:underline min-h-[36px] flex items-center whitespace-nowrap">
+                        <span class="hidden xs:inline">Tandai semua dibaca</span>
+                        <span class="xs:hidden">Tandai dibaca</span>
+                    </button>
+                    <button type="button"
+                            @click="notifModalOpen = false"
+                            class="w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink rounded-lg hover:bg-paper focus:outline-none focus:ring-2 focus:ring-brand shrink-0"
+                            aria-label="Tutup panel notifikasi">
+                        {% include 'partials/icon.html' with name='x' class='w-5 h-5' %}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Badan Notifikasi (Dimuat lewat HTMX) -->
+            <div id="notif-panel-body" class="flex-1 overflow-y-auto min-h-0">
+                <div class="p-8 text-center text-xs text-ink-muted space-y-2">
+                    <div class="animate-spin inline-block w-5 h-5 border-2 border-brand border-t-transparent rounded-full mx-auto"></div>
+                    <p>Memuat notifikasi...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal (Desktop) / Bottom Sheet (Mobile) Pilihan Pasang Barang — Butir 8 -->
+        <div x-show="pasangModalOpen"
+             class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             x-cloak>
+            <div class="bg-card border border-line rounded-t-2xl sm:rounded-2xl p-5 sm:p-7 max-w-lg w-full shadow-xl space-y-4 max-h-[90vh] overflow-y-auto safe-bottom"
+                 @click.away="pasangModalOpen = false">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <div>
+                        <h3 class="font-heading text-lg sm:text-xl font-bold text-ink">
+                            Pasang barang di {{ SITE_NAME }}
+                        </h3>
+                        <p class="text-xs text-ink-muted mt-0.5">
+                            Pilih jenis transaksi barang yang ingin Anda tawarkan kepada mahasiswa.
+                        </p>
+                    </div>
+                    <button type="button"
+                            @click="pasangModalOpen = false"
+                            class="w-8 h-8 rounded-lg hover:bg-paper flex items-center justify-center text-ink-muted hover:text-ink transition-colors flex-shrink-0"
+                            aria-label="Tutup modal">
+                        {% include 'partials/icon.html' with name='x' class='w-5 h-5' %}
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 pt-1">
+                    <!-- Opsi 1: Sewakan Barang -->
+                    <a href="{% if user.is_authenticated %}/barang/baru/{% else %}/masuk/?next=/barang/baru/{% endif %}"
+                       @click="pasangModalOpen = false"
+                       class="group p-4 rounded-xl border border-line bg-paper hover:bg-card hover:border-brand transition-all flex items-start gap-3.5 focus:outline-none focus:ring-2 focus:ring-brand">
+                        <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand flex items-center justify-center flex-shrink-0 border border-line group-hover:scale-105 transition-transform">
+                            {% include 'partials/icon.html' with name='calendar' class='w-5 h-5' %}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="font-bold text-sm text-ink group-hover:text-brand transition-colors">
+                                    Sewakan barang
+                                </h4>
+                                <span class="text-xs text-brand font-semibold">&rarr;</span>
+                            </div>
+                            <p class="text-xs text-ink-muted leading-relaxed mt-1">
+                                Sewa harian perlengkapan praktikum, kamera, proyektor, atau jas wisuda. Aman dengan verifikasi KTM, perjanjian digital resmi, dan penahanan pembayaran platform.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Opsi 2: Jual Barang (Thrift) -->
+                    <a href="{% if user.is_authenticated %}/jual/baru/{% else %}/masuk/?next=/jual/baru/{% endif %}"
+                       @click="pasangModalOpen = false"
+                       class="group p-4 rounded-xl border border-line bg-paper hover:bg-card hover:border-brand transition-all flex items-start gap-3.5 focus:outline-none focus:ring-2 focus:ring-brand">
+                        <div class="w-10 h-10 rounded-xl bg-amber-tint text-amber-text flex items-center justify-center flex-shrink-0 border border-line group-hover:scale-105 transition-transform">
+                            {% include 'partials/icon.html' with name='tag' class='w-5 h-5' %}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="font-bold text-sm text-ink group-hover:text-brand transition-colors">
+                                    Jual barang (thrift)
+                                </h4>
+                                <span class="text-xs text-amber-text font-semibold">&rarr;</span>
+                            </div>
+                            <p class="text-xs text-ink-muted leading-relaxed mt-1">
+                                Jual putus buku kuliah, pakaian thrift, atau perabot kos yang sudah tidak terpakai kepada sesama mahasiswa kampus. Transaksi aman tanpa biaya tersembunyi.
+                            </p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="pt-2 border-t border-line text-center">
+                    <button type="button"
+                            @click="pasangModalOpen = false"
+                            class="text-xs text-ink-muted hover:text-ink font-medium py-1">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Pita Ornamen Tumpal di Atas Footer (Fase 7B-Nusantara 2: kunyit di atas tinta, 24px desktop / 16px mobile) -->
+    {% include 'partials/kain_border.html' with variant='ink' size='responsive' class='mt-16' %}
+
+    <!-- Footer Ringkas: Navigasi, Bantuan, Legal (Sentence Case, Tanpa Garis Bawah Berlebihan) -->
+    <footer class="bg-card text-ink-muted text-sm">
+        <div class="max-w-[1200px] mx-auto px-4 sm:px-8 py-10">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+                <!-- Kolom 1: Brand & Keterangan Singkat -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <img src="{% static 'img/logo-mark.svg' %}" alt="Logo {{ SITE_NAME }}" class="w-7 h-7 select-none" />
+                        <span class="text-base font-bold tracking-tight whitespace-nowrap"><span class="text-ink">{{ SITE_LOGOTYPE_DARK }}</span> <span class="text-brand">{{ SITE_LOGOTYPE_ACCENT }}</span></span>
+                    </div>
+                    <p class="text-xs font-semibold text-ink">Saling sewa, saling jual, saling bantu.</p>
+                    <p class="text-xs leading-relaxed text-ink-muted max-w-xs">
+                        Saling sewa, saling bantu. Platform sewa dan jual beli barang mahasiswa terverifikasi. Transaksi aman dengan sistem pembayaran ditahan platform sampai barang diterima atau dikembalikan.
+                    </p>
+                </div>
+
+                <!-- Kolom 2: Navigasi (Sentence Case) -->
+                <div class="space-y-2.5">
+                    <h4 class="text-ink font-semibold text-xs tracking-normal">Navigasi</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="/barang/" class="hover:text-brand transition-colors">Sewa barang</a></li>
+                        <li><a href="/jual-beli/" class="hover:text-brand transition-colors">Jual beli barang</a></li>
+                        <li><a href="/#cara-kerja" class="hover:text-brand transition-colors">Cara kerja</a></li>
+                        <li><a href="/tentang/" class="hover:text-brand transition-colors">Tentang {{ SITE_NAME }}</a></li>
+                    </ul>
+                </div>
+
+                <!-- Kolom 3: Bantuan (Sentence Case) -->
+                <div class="space-y-2.5">
+                    <h4 class="text-ink font-semibold text-xs tracking-normal">Bantuan</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="/bantuan/" class="hover:text-brand transition-colors">Pusat bantuan &amp; FAQ</a></li>
+                        <li><a href="/verifikasi-ktm/" class="hover:text-brand transition-colors">Panduan verifikasi KTM</a></li>
+                        <li><a href="/kontak/" class="hover:text-brand transition-colors">Kontak pengelola</a></li>
+                    </ul>
+                </div>
+
+                <!-- Kolom 4: Legal (Sentence Case) -->
+                <div class="space-y-2.5">
+                    <h4 class="text-ink font-semibold text-xs tracking-normal">Legal</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="/syarat-ketentuan/" class="hover:text-brand transition-colors">Syarat dan ketentuan</a></li>
+                        <li><a href="/kebijakan-privasi/" class="hover:text-brand transition-colors">Kebijakan privasi</a></li>
+                        <li><a href="/panduan-komunitas/" class="hover:text-brand transition-colors">Panduan komunitas</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-line mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center text-xs text-ink-muted gap-2">
+                <p>&copy; 2026 {{ SITE_NAME }}. Terbuka antarmahasiswa kampus.</p>
+                <p>Pembukuan berimbang internal &amp; verifikasi identitas aman dan terisolasi.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% include 'partials/toast.html' %}
+    <script src="{% static 'js/custom-select.js' %}"></script>
+    <script src="{% static 'js/custom-datepicker.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

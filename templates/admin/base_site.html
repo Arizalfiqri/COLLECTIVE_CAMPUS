@@ -1,0 +1,6 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:SITE_NAME }}{% endblock %}
+
+{% block page_title %}{{ title|default:'Panel staf' }}{% endblock %}
+{% block page_subtitle %}{{ subtitle|default:'Ringkasan operasional dan audit sistem' }}{% endblock %}

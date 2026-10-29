@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Kebijakan Privasi | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[840px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    <!-- Header -->
+    <div class="mb-6 border-b border-line pb-4">
+        <h1 class="text-2xl sm:text-3xl font-bold text-ink mt-1 tracking-tight">Kebijakan privasi</h1>
+        <p class="text-xs sm:text-sm text-ink-muted mt-2">
+            Disusun selaras dengan Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Pelindungan Data Pribadi (UU PDP). Ditulis secara lugas dan transparan sesuai perilaku nyata sistem {{ SITE_NAME }}.
+        </p>
+    </div>
+
+    <!-- Konten Dokumen -->
+    <div class="space-y-8 text-xs sm:text-sm text-ink leading-relaxed">
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">1. Data pribadi yang kami kumpulkan</h2>
+            <p>
+                {{ SITE_NAME }} hanya mengumpulkan data yang benar-benar dibutuhkan untuk menjamin keamanan transaksi sewa dan jual beli antarmahasiswa:
+            </p>
+            <div class="bg-paper p-4 rounded-xl border border-line space-y-2 text-xs">
+                <p><strong>a. Data Akun &amp; Kontak:</strong> Nama lengkap, username, alamat email, nomor WhatsApp aktif.</p>
+                <p><strong>b. Data Kemahasiswaan:</strong> Nama perguruan tinggi, Nomor Induk Mahasiswa (NIM), program studi, tahun angkatan, dan email kampus (.ac.id jika diisi).</p>
+                <p><strong>c. Berkas Verifikasi Identitas (KTM):</strong> Foto Kartu Tanda Mahasiswa yang Anda unggah untuk keperluan verifikasi status mahasiswa aktif.</p>
+                <p><strong>d. Dokumentasi Fisik Transaksi:</strong> Foto kondisi fisik barang saat serah terima awal, pengembalian barang sewa, atau serah terima barang jual beli di titik temu kampus.</p>
+                <p><strong>e. Data Percakapan &amp; Transaksi:</strong> Pesan obrolan di ruang obrolan internal, catatan jadwal temu, dan mutasi saldo dompet transaksi.</p>
+                <p><strong>f. Jejak Audit Perjanjian Digital:</strong> Alamat IP, identitas peramban (User Agent), stempel waktu persetujuan, dan ringkasan kriptografis perjanjian digital sewa maupun jual beli untuk validitas hukum perikatan elektronik.</p>
+            </div>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">2. Tujuan pemrosesan data</h2>
+            <p>
+                Data pribadi Anda diproses secara ketat untuk tujuan:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li>Memverifikasi bahwa setiap pengguna adalah mahasiswa aktif yang sah guna mencegah penipuan dan penggelapan barang.</li>
+                <li>Memfasilitasi koordinasi titik temu serah terima barang di area kampus.</li>
+                <li>Menjadi alat pembuktian objektif apabila terjadi selisih kondisi barang (sengketa lecet, kerusakan, atau keterlambatan).</li>
+                <li>Memenuhi kewajiban pembukuan berimbang internal platform atas penahanan dan pencairan dana sewa maupun jual beli escrow.</li>
+                <li>Menyediakan bukti persetujuan perikatan digital yang sah apabila diperlukan dalam proses mediasi atau penegakan kepatuhan antarmahasiswa.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">3. Masa retensi dan penghapusan data (perilaku nyata sistem)</h2>
+            <p>
+                Kami menerapkan prinsip pembatasan penyimpanan data (storage limitation):
+            </p>
+            <div class="space-y-2 text-ink-muted">
+                <div class="flex items-start gap-2">
+                    <span class="font-bold text-ink">Foto KTM:</span>
+                    <span>Disimpan di direktori privat yang terisolasi dari akses publik. <strong>Berkas foto fisik KTM dihapus secara permanen dari server</strong> segera setelah keputusan verifikasi (disetujui atau ditolak) diambil oleh administrator platform demi melindungi privasi identitas Anda.</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="font-bold text-ink">Foto Serah Terima Barang:</span>
+                    <span>Hanya dapat dilihat oleh peserta transaksi terkait dan staf pemeriksa sengketa. Berkas disimpan selama transaksi berlangsung dan otomatis dibersihkan setelah masa retensi klaim (30 hari setelah status transaksi selesai).</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="font-bold text-ink">Catatan Pembukuan Finansial:</span>
+                    <span>Riwayat transaksi dan kuitansi disimpan dalam basis data yang aman dan terisolasi untuk kebutuhan audit transparansi keuangan.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">4. Hak-hak Anda sebagai subjek data (UU PDP)</h2>
+            <p>
+                Sesuai UU No. 27 Tahun 2022, Anda memiliki hak-hak fundamental berikut:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li><strong>Hak Mengakses:</strong> Anda berhak melihat data profil, riwayat transaksi, dan status verifikasi Anda kapan saja melalui dashboard.</li>
+                <li><strong>Hak Memperbarui:</strong> Anda berhak memperbarui nomor kontak atau data profil jika terjadi kekeliruan.</li>
+                <li><strong>Hak Menghapus Akun:</strong> Anda berhak mengajukan penutupan akun dan penghapusan data pribadi, sepanjang tidak ada kewajiban transaksi sewa atau jual beli yang sedang aktif atau sengketa yang belum tuntas.</li>
+                <li><strong>Hak Menarik Persetujuan:</strong> Anda dapat menghentikan penggunaan layanan dan meminta penghentian pemrosesan data non-esensial.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">5. Keamanan data dan pembatasan akses</h2>
+            <p>
+                Data Anda dilindungi dengan standar keamanan berlapis:
+            </p>
+            <ul class="list-disc list-inside space-y-1.5 text-ink-muted">
+                <li>Berkas privat (KTM dan foto kondisi) <strong>tidak pernah dipublikasikan di web</strong> dan tidak dapat diakses melalui URL publik langsung.</li>
+                <li>Setiap akses terhadap berkas privat wajib melalui otentikasi sesi dan pemeriksaan hak akses (Anti-IDOR).</li>
+                <li>Aktivitas administratif dan peninjauan berkas dicatat dalam log audit keamanan berputar.</li>
+            </ul>
+        </section>
+    </div>
+
+    <!-- Kontak DPO / Pengelola -->
+    <div class="mt-12 p-5 rounded-xl bg-paper border border-line space-y-2 text-xs">
+        <h4 class="font-bold text-ink">Pertanyaan mengenai privasi data Anda?</h4>
+        <p class="text-ink-muted">
+            Untuk menggunakan hak subjek data Anda atau menyampaikan kendala terkait pelindungan data pribadi, silakan hubungi tim pengelola kami di:
+            <a href="/kontak/" class="text-brand font-semibold underline ml-1">Layanan Pengaduan &amp; Kontak Pengelola</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}

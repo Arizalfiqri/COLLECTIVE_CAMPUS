@@ -1,0 +1,27 @@
+{% load admin_list %}
+{% load i18n %}
+<div class="paginator flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-card border-t border-line text-xs text-ink-muted">
+    <div class="flex items-center gap-2">
+        <span class="font-medium text-ink">
+            {{ cl.result_count }} {% if cl.result_count == 1 %}{{ cl.opts.verbose_name }}{% else %}{{ cl.opts.verbose_name_plural }}{% endif %}
+        </span>
+        {% if show_all_url %}
+        <span class="text-line">|</span>
+        <a href="{{ show_all_url }}" class="showall text-brand hover:underline font-semibold">{% translate "Tampilkan semua" %}</a>
+        {% endif %}
+    </div>
+
+    {% if pagination_required %}
+    <div class="flex items-center gap-1 paginator-pages">
+        {% for i in page_range %}
+            {% paginator_number cl i %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if cl.formset and cl.result_count %}
+    <div>
+        <input type="submit" name="_save" class="default px-3 py-1.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-semibold cursor-pointer" value="{% translate 'Simpan perubahan' %}">
+    </div>
+    {% endif %}
+</div>

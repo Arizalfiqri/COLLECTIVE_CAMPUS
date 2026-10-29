@@ -1,0 +1,123 @@
+{% load formatters %}
+<div class="bg-card border-2 border-dashed border-line rounded-card overflow-hidden shadow-sm text-xs">
+    <!-- Tepi Kartu Kuitansi: Pola Tapis Geometris -->
+    <div class="h-1.5 w-full opacity-25" style="background: url('/static/patterns/tapis_geom.svg') repeat-x center / auto 100%;"></div>
+    <div class="p-5 space-y-3">
+    <!-- Header Kuitansi -->
+    <div class="flex items-center justify-between border-b border-dashed border-line pb-3">
+        <div class="space-y-0.5">
+            <span class="font-mono text-[11px] font-bold text-ink-muted uppercase tracking-wider">
+                Estimasi Rincian Sewa
+            </span>
+            <p class="text-[10px] text-ink-muted">Dihitung otomatis oleh sistem transaksi</p>
+        </div>
+        {% if summary.is_valid %}
+            <span class="bg-pine-tint text-pine-dark px-2 py-0.5 rounded text-[10px] font-bold">
+                TERSEDIA
+            </span>
+        {% else %}
+            <span class="bg-paper-deep text-ink-muted px-2 py-0.5 rounded text-[10px] font-bold">
+                BELUM FINAL
+            </span>
+        {% endif %}
+    </div>
+
+    {% if summary.errors %}
+        <!-- Peringatan Kesalahan Validasi -->
+        <div class="p-3 rounded-lg bg-brick-tint border border-brick/30 text-brick text-xs space-y-1">
+            {% for err in summary.errors %}
+                <p class="flex items-start gap-1.5 leading-snug">
+                    {% include 'partials/icon.html' with name='alert-circle' class='w-3.5 h-3.5 flex-shrink-0 mt-0.5' %}
+                    <span>{{ err }}</span>
+                </p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Rincian Biaya -->
+    <div class="space-y-2 py-1 text-ink">
+        <!-- Biaya Sewa Harian -->
+        <div class="flex items-center justify-between text-ink-muted">
+            <span>
+                Biaya Sewa
+                {% if summary.days > 0 %}
+                    <span class="text-ink font-semibold">({{ summary.days }} hari &times; {{ item.price_per_day|rupiah }})</span>
+                {% endif %}
+            </span>
+            <span class="font-semibold text-ink tabular-nums">
+                {% if summary.days > 0 %}
+                    {{ summary.rent_total|rupiah }}
+                {% else %}
+                    -
+                {% endif %}
+            </span>
+        </div>
+
+        {# Deposit / Jaminan (Hanya tampil jika mode bukan off atau jika optional > 0) #}
+        {% if platform_settings.is_deposit_optional and summary.deposit_total > 0 %}
+            <div class="flex items-center justify-between text-ink-muted">
+                <div class="flex items-center gap-1">
+                    <span>Jaminan pemilik</span>
+                    <span class="text-[10px] text-pine-dark bg-pine-tint px-1.5 py-0.5 rounded font-medium" title="Jaminan akan dikembalikan setelah barang kembali dalam kondisi baik">
+                        Dikembalikan
+                    </span>
+                </div>
+                <span class="font-semibold text-ink tabular-nums">
+                    {{ summary.deposit_total|rupiah }}
+                </span>
+            </div>
+        {% elif not platform_settings.is_deposit_off and summary.deposit_total > 0 %}
+            <div class="flex items-center justify-between text-ink-muted">
+                <div class="flex items-center gap-1">
+                    <span>Deposit jaminan</span>
+                    <span class="text-[10px] text-pine-dark bg-pine-tint px-1.5 py-0.5 rounded font-medium" title="Deposit akan dikembalikan penuh setelah barang dikembalikan dalam kondisi baik">
+                        Dikembalikan
+                    </span>
+                </div>
+                <span class="font-semibold text-ink tabular-nums">
+                    {{ summary.deposit_total|rupiah }}
+                </span>
+            </div>
+        {% endif %}
+
+        <!-- Iuran Dana Gotong Royong -->
+        {% if summary.use_protection %}
+            <div class="flex items-center justify-between text-ink-muted">
+                <div class="flex items-center gap-1.5">
+                    <span>Dana Gotong Royong</span>
+                    {% if summary.is_protection_mandatory %}
+                        <span class="text-[10px] text-brand bg-brand-tint px-1.5 py-0.5 rounded font-bold">Wajib</span>
+                    {% endif %}
+                </div>
+                <span class="font-semibold text-ink tabular-nums">
+                    {{ summary.protection_fee|rupiah }}
+                </span>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Garis Pemisah Kuitansi -->
+    <div class="pt-2 border-t-2 border-dashed border-line">
+        <div class="flex items-center justify-between text-sm font-bold text-ink">
+            <div>
+                <span>Total Dibayar di Muka</span>
+                <p class="text-[10px] font-normal text-ink-muted">Pembayaran ditahan platform sampai barang kembali</p>
+            </div>
+            <span class="text-base text-brand font-bold tabular-nums">
+                {{ summary.grand_total|rupiah }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Catatan Penjelasan Escrow -->
+    <div class="pt-2 text-[11px] text-ink-muted leading-relaxed bg-paper rounded-lg p-2.5 border border-line">
+        <p class="flex items-start gap-1.5">
+            {% include 'partials/icon.html' with name='shield-check' class='w-3.5 h-3.5 text-pine flex-shrink-0 mt-0.5' %}
+            <span>
+                Pembayaran ditahan aman oleh platform sampai proses serah terima dan pengembalian selesai dikonfirmasi kedua pihak.
+            </span>
+        </p>
+    </div>
+    </div>
+</div>
+

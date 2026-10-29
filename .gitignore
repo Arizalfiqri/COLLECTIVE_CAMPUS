@@ -1,0 +1,50 @@
+# Python & Virtualenv
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets
+.env
+
+# Database
+*.sqlite3
+db.sqlite3-journal
+
+# Media files
+media/
+private_media/
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# ML models and artifacts (tracked for full transparency)
+# Large raw models can be ignored, but trust_model.joblib and synthetic data are committed
+!ml/artifacts/trust_model.joblib
+!ml/data/synthetic_rental_trust_data.csv
+ml/artifacts/versions/*
+!ml/artifacts/versions/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backups & Local docs & Logs & Static
+backups/
+docs/local/
+logs/
+staticfiles/
+scratch/
+*.log
+
+# Caches & Test artifacts
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+

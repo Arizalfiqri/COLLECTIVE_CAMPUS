@@ -1,0 +1,77 @@
+{% load formatters %}
+{% if admin_recent_rentals %}
+    {% for rental in admin_recent_rentals %}
+    <tr class="hover:bg-paper transition-colors border-b border-line last:border-b-0 text-xs text-ink">
+        <td class="py-3 px-4 font-mono font-semibold text-brand">
+            <a href="{% url 'admin:rentals_rental_change' rental.id %}" class="hover:underline">
+                {{ rental.code }}
+            </a>
+        </td>
+        <td class="py-3 px-4 font-medium text-ink max-w-[200px] truncate" title="{{ rental.item.title }}">
+            {{ rental.item.title }}
+        </td>
+        <td class="py-3 px-4 text-ink-muted">
+            {{ rental.renter.get_full_name|default:rental.renter.username }}
+        </td>
+        <td class="py-3 px-4 text-ink-muted">
+            {{ rental.owner.get_full_name|default:rental.owner.username }}
+        </td>
+        <td class="py-3 px-4 font-semibold text-ink tabular-nums text-right">
+            {{ rental.grand_total|rupiah }}
+        </td>
+        <td class="py-3 px-4 text-center">
+            {% if rental.status == 'selesai' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-pine-tint text-pine-dark">
+                Selesai
+            </span>
+            {% elif rental.status == 'sedang_disewa' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-tint text-brand">
+                Sedang disewa
+            </span>
+            {% elif rental.status == 'dibayar' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-tint text-brand">
+                Dibayar
+            </span>
+            {% elif rental.status == 'menunggu_persetujuan' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-tint text-amber-text">
+                Menunggu persetujuan
+            </span>
+            {% elif rental.status == 'menunggu_pembayaran' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-tint text-amber-text">
+                Menunggu pembayaran
+            </span>
+            {% elif rental.status == 'menunggu_konfirmasi_pengembalian' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-tint text-amber-text">
+                Menunggu pengembalian
+            </span>
+            {% elif rental.status == 'sengketa' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brick-tint text-brick">
+                Sengketa
+            </span>
+            {% elif rental.status == 'ditolak' or rental.status == 'dibatalkan' or rental.status == 'kedaluwarsa' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-paper-deep text-ink-muted">
+                {{ rental.get_status_display|capfirst }}
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-paper-deep text-ink-muted">
+                {{ rental.get_status_display|capfirst }}
+            </span>
+            {% endif %}
+        </td>
+        <td class="py-3 px-4 text-ink-muted text-right tabular-nums whitespace-nowrap">
+            {{ rental.created_at|date:"d M Y" }}
+        </td>
+        <td class="py-3 px-4 text-right">
+            <a href="{% url 'admin:rentals_rental_change' rental.id %}" class="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-hover hover:underline">
+                <span>Rincian</span>
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="8" class="py-8 text-center text-xs text-ink-muted">
+            Tidak ada transaksi sewa yang sesuai kriteria pencarian.
+        </td>
+    </tr>
+{% endif %}

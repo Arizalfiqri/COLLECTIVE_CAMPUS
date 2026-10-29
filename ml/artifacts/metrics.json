@@ -1,0 +1,223 @@
+{
+  "version": "v1.0-logreg-calibrated",
+  "seed": 42,
+  "trained_at": "2026-10-15T14:43:37.830231",
+  "data_source": "ml/data/synthetic_rental_trust_data.csv",
+  "data_sha256": "6c071490ca381cfc9413b6a7971e7ed61e9c300ebb6fb3f93affdbe9fc535e5d",
+  "train_samples": 3200,
+  "test_samples": 800,
+  "positive_prevalence": 0.154,
+  "features_used": [
+    "jumlah_sewa_selesai",
+    "jumlah_sebagai_pemilik",
+    "rasio_tepat_waktu",
+    "rata_rata_rating_diterima",
+    "jumlah_sengketa",
+    "rasio_sengketa",
+    "rasio_pembatalan",
+    "umur_akun_hari"
+  ],
+  "features_excluded_rationale": {
+    "status_ktm": "Dihapus karena hampir konstan (semua pengguna aktif wajib terverifikasi KTM)",
+    "gender": "Atribut sensitif, dilarang untuk mencegah bias diskriminatif",
+    "campus_name": "Atribut sensitif institusional, dilarang untuk mencegah bias antarkampus",
+    "major": "Atribut akademik, tidak relevan dan berisiko bias terhadap jurusan tertentu",
+    "region": "Atribut geografis, berpotensi diskriminasi regional"
+  },
+  "cross_validation_5fold_train": {
+    "logistic_regression": {
+      "roc_auc": 0.8478312181400336,
+      "pr_auc": 0.5107310392225642
+    },
+    "gradient_boosting": {
+      "roc_auc": 0.8347777642068381,
+      "pr_auc": 0.4844829995808177
+    }
+  },
+  "model_selection_rationale": "Logistic Regression dipilih sebagai model utama karena memiliki CV ROC-AUC (0.8485) dan PR-AUC (0.5183) yang lebih tinggi dibandingkan Gradient Boosting (0.8365 dan 0.4964), serta memberikan keunggulan kritis dalam hal interpretabilitas dan transparansi regulasi (bobot koefisien dapat langsung ditransformasikan menjadi kalimat penjelasan personal bagi pengguna).",
+  "probability_calibration": {
+    "method": "Platt Scaling (CalibratedClassifierCV sigmoid)",
+    "brier_score_before": 0.1641439853002588,
+    "brier_score_after": 0.10007758977628452,
+    "improvement_percent": 39.030608040118835
+  },
+  "threshold_selection": {
+    "criterion": "Recall kelas berisiko >= 0.70 pada data validasi dengan presisi optimal",
+    "selected_threshold": 0.2094143631026887,
+    "validation_recall": 0.7018255578093306,
+    "validation_precision": 0.4487678339818418,
+    "test_recall": 0.6504065040650406,
+    "test_precision": 0.43010752688172044,
+    "test_f1": 0.517799352750809,
+    "tradeoff_rationale": "Dalam konteks sewa barang mahasiswa bernilai jutaan rupiah, biaya False Negative (membiarkan pengguna berisiko tinggi menyewa barang tanpa peringatan hingga terjadi kehilangan/kerusakan) jauh lebih merugikan ekosistem daripada False Positive (meminta verifikasi/deposit lebih atau memberi peringatan kehati-hatian pada pengguna aman)."
+  },
+  "all_models_test_metrics": {
+    "dummy": {
+      "name": "Dummy (kelas mayoritas)",
+      "roc_auc": 0.5,
+      "pr_auc": 0.15375,
+      "accuracy": 0.84625,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "brier_score": 0.13011103515625,
+      "confusion_matrix": [
+        [
+          677,
+          0
+        ],
+        [
+          123,
+          0
+        ]
+      ]
+    },
+    "rule_baseline": {
+      "name": "Baseline aturan (tepat waktu < 0.70)",
+      "roc_auc": 0.7950547009162854,
+      "pr_auc": 0.4197074650817833,
+      "accuracy": 0.655,
+      "precision": 0.2782608695652174,
+      "recall": 0.7804878048780488,
+      "f1": 0.41025641025641024,
+      "brier_score": 0.13490983125,
+      "confusion_matrix": [
+        [
+          428,
+          249
+        ],
+        [
+          27,
+          96
+        ]
+      ]
+    },
+    "logistic_regression_uncal": {
+      "name": "Regresi logistik (tanpa kalibrasi, ambang 0.50)",
+      "roc_auc": 0.8292682926829268,
+      "pr_auc": 0.5151841179859815,
+      "accuracy": 0.765,
+      "precision": 0.3705179282868526,
+      "recall": 0.7560975609756098,
+      "f1": 0.49732620320855614,
+      "brier_score": 0.1641439853002588,
+      "confusion_matrix": [
+        [
+          519,
+          158
+        ],
+        [
+          30,
+          93
+        ]
+      ]
+    },
+    "gradient_boosting": {
+      "name": "Gradient boosting (ambang 0.50)",
+      "roc_auc": 0.8134704759159852,
+      "pr_auc": 0.44936485193828274,
+      "accuracy": 0.84875,
+      "precision": 0.5161290322580645,
+      "recall": 0.2601626016260163,
+      "f1": 0.34594594594594597,
+      "brier_score": 0.10714475704051135,
+      "confusion_matrix": [
+        [
+          647,
+          30
+        ],
+        [
+          91,
+          32
+        ]
+      ]
+    },
+    "logistic_regression_calibrated": {
+      "name": "Regresi logistik terkalibrasi (ambang terpilih 0.209)",
+      "roc_auc": 0.8292322657347696,
+      "pr_auc": 0.5139412812631186,
+      "accuracy": 0.81375,
+      "precision": 0.43010752688172044,
+      "recall": 0.6504065040650406,
+      "f1": 0.517799352750809,
+      "brier_score": 0.10007758977628452,
+      "confusion_matrix": [
+        [
+          571,
+          106
+        ],
+        [
+          43,
+          80
+        ]
+      ],
+      "at_threshold_0_5": {
+        "accuracy": 0.86,
+        "precision": 0.5964912280701754,
+        "recall": 0.2764227642276423,
+        "f1": 0.37777777777777777,
+        "confusion_matrix": [
+          [
+            654,
+            23
+          ],
+          [
+            89,
+            34
+          ]
+        ]
+      }
+    }
+  },
+  "permutation_importance": {
+    "jumlah_sewa_selesai": {
+      "mean": 0.015509601181683885,
+      "std": 0.00489978341891911
+    },
+    "jumlah_sebagai_pemilik": {
+      "mean": 0.003779226861692531,
+      "std": 0.0015012097824013235
+    },
+    "rasio_tepat_waktu": {
+      "mean": 0.08067274321192255,
+      "std": 0.013451777230623753
+    },
+    "rata_rata_rating_diterima": {
+      "mean": 0.030744196659101008,
+      "std": 0.008806933770560185
+    },
+    "jumlah_sengketa": {
+      "mean": 0.00871371786095999,
+      "std": 0.0028720867453120567
+    },
+    "rasio_sengketa": {
+      "mean": 0.00036747487120365464,
+      "std": 0.0006332321898211675
+    },
+    "rasio_pembatalan": {
+      "mean": 0.000679708421899583,
+      "std": 0.002794458024076506
+    },
+    "umur_akun_hari": {
+      "mean": 0.00013570150472552722,
+      "std": 0.00263661064952718
+    }
+  },
+  "coefficients": {
+    "jumlah_sewa_selesai": -0.2838421557809891,
+    "jumlah_sebagai_pemilik": -0.10509901674904613,
+    "rasio_tepat_waktu": -0.7642942589986987,
+    "rata_rata_rating_diterima": -0.5056804020499701,
+    "jumlah_sengketa": 0.2500624861132136,
+    "rasio_sengketa": 0.055634556705415616,
+    "rasio_pembatalan": 0.18323127432410805,
+    "umur_akun_hari": 0.16529459685451672
+  },
+  "charts_generated": [
+    "static/ml/roc_curve.png",
+    "static/ml/pr_curve.png",
+    "static/ml/confusion_matrix.png",
+    "static/ml/calibration_curve.png",
+    "static/ml/feature_importance.png"
+  ]
+}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Panduan Komunitas | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[840px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6 lg:pt-8 pb-16">
+    <!-- Header -->
+    <div class="mb-6 border-b border-line pb-4">
+        <h1 class="text-2xl sm:text-3xl font-bold text-ink mt-1 tracking-tight">Panduan komunitas {{ SITE_NAME }}</h1>
+        <p class="text-xs sm:text-sm text-ink-muted mt-2">
+            Prinsip gotong royong, kejujuran kondisi barang, dan etika interaksi transaksi di lingkungan kampus.
+        </p>
+    </div>
+
+    <!-- Konten Dokumen -->
+    <div class="space-y-8 text-xs sm:text-sm text-ink leading-relaxed">
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">1. Nilai dasar gotong royong mahasiswa</h2>
+            <p>
+                {{ SITE_NAME }} dibangun bukan atas dasar hubungan komersial transaksional semata, melainkan semangat tolong-menolong antarrekan mahasiswa kampus. Mahasiswa yang memiliki alat penunjang belajar membantu rekannya yang sedang membutuhkan tanpa membebani biaya yang mencekik.
+            </p>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">2. Tanggung jawab pemilik dan penjual barang</h2>
+            <ul class="list-disc list-inside space-y-2 text-ink-muted">
+                <li><strong>Jujur Terhadap Kondisi:</strong> Cantumkan seluruh minus fisik, lecet wajar, atau riwayat perbaikan secara transparan pada deskripsi barang dan foto serah terima.</li>
+                <li><strong>Kelayakan &amp; Kebersihan:</strong> Pastikan barang dalam kondisi berfungsi normal, bersih, dan baterai terisi secukupnya saat diserahkan.</li>
+                <li><strong>Responsif:</strong> Berikan konfirmasi persetujuan atau penolakan permohonan sewa dalam batas waktu 24 jam agar penyewa dapat mencari alternatif bila tidak memungkinkan.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">3. Tanggung jawab penyewa dan pembeli barang</h2>
+            <ul class="list-disc list-inside space-y-2 text-ink-muted">
+                <li><strong>Rawat Seperti Milik Sendiri:</strong> Gunakan barang dengan penuh kehati-hatian sesuai peruntukan wajar. Jangan meminjamkan barang kepada pihak ketiga di luar transaksi.</li>
+                <li><strong>Tepat Waktu:</strong> Hadir tepat waktu di titik temu kampus yang telah disepakati bersama dan kembalikan barang tepat sebelum tenggat masa sewa berakhir.</li>
+                <li><strong>Komunikasi Terbuka:</strong> Segera laporkan melalui fitur chat platform jika terjadi kendala operasional atau keterlambatan mendadak akibat urusan akademik darurat.</li>
+            </ul>
+        </section>
+
+        <section class="space-y-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">4. Larangan tegas dan sanksi platform</h2>
+            <p>
+                Pelanggaran terhadap ketentuan di bawah ini berakibat pembekuan akun permanen dan pencatatan NIM dalam daftar hitam:
+            </p>
+            <div class="p-4 rounded-xl bg-brick-tint border border-brick/30 text-brick text-xs space-y-1.5">
+                <p>&bull; Memasang barang tiruan ilegal, senjata, zat terlarang, atau barang inventaris kampus tanpa surat izin resmi.</p>
+                <p>&bull; Meminta transaksi tunai di luar sistem escrow platform demi menghindari biaya platform atau kepatuhan syarat &amp; ketentuan.</p>
+                <p>&bull; Berperilaku kasar, melecehkan, atau mengancam rekan mahasiswa baik di ruang chat maupun di lokasi temu.</p>
+                <p>&bull; Tidak mengembalikan barang lebih dari 48 jam tanpa kabar setelah masa sewa berakhir (dikategorikan penggelapan barang).</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Tautan Kembali -->
+    <div class="mt-12 pt-6 border-t border-line flex items-center justify-between text-xs text-ink-muted">
+        <span>Pertanyaan seputar panduan komunitas?</span>
+        <a href="/bantuan/" class="text-brand font-semibold hover:underline">Baca Pusat Bantuan &amp; FAQ &rarr;</a>
+    </div>
+</div>
+{% endblock %}

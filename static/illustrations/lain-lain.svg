@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#FF8A6B"/>
+  <!-- Paket / Perlengkapan Kampus: lebar ~270px (70% lebar ubin), garis ink 2.5px, label/lakban ink -->
+  <!-- Kotak kardus isometric / front -->
+  <rect x="70" y="160" width="260" height="200" rx="14" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Lipatan flap atas -->
+  <line x1="70" y1="210" x2="330" y2="210" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Garis lipatan vertikal -->
+  <line x1="200" y1="160" x2="200" y2="210" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Lubang pegangan samping -->
+  <rect x="85" y="240" width="30" height="15" rx="7" fill="#FFFFFF" stroke="#141B34" stroke-width="2"/>
+  <rect x="285" y="240" width="30" height="15" rx="7" fill="#FFFFFF" stroke="#141B34" stroke-width="2"/>
+  <!-- Detail isi ink: label stiker/lakban tengah -->
+  <rect x="180" y="195" width="40" height="65" rx="4" fill="#141B34" stroke="none"/>
+</svg>

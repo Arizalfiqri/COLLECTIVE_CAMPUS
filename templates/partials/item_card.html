@@ -1,0 +1,67 @@
+{% load static %}
+{% load formatters %}
+{# Kartu barang v2 — AGENT.md Bagian 8 #}
+{# Terima variabel: item #}
+<a href="/barang/{{ item.slug }}/"
+   class="group block bg-card rounded-card border border-line overflow-hidden hover:border-ink-muted transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+    
+    {# Foto 4:3 ratio dengan cadangan bidang datar brand-tint + ikon kamera (FASE 7F) #}
+    <div class="relative aspect-[4/3] bg-brand-tint overflow-hidden flex items-center justify-center">
+        {% if item.primary_photo %}
+            <img src="{{ item.primary_photo.image.url }}"
+                 alt="{{ item.title }}"
+                 class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden w-full h-full bg-brand-tint items-center justify-center">
+                {% include 'partials/icon.html' with name='camera' class='w-2/5 h-2/5 text-brand/40' %}
+            </div>
+        {% else %}
+            <div class="w-full h-full bg-brand-tint flex items-center justify-center">
+                {% include 'partials/icon.html' with name='camera' class='w-2/5 h-2/5 text-brand/40' %}
+            </div>
+        {% endif %}
+    </div>
+
+    {# Informasi Barang #}
+    <div class="p-4 space-y-2">
+        {# Nama barang (maks 2 baris, 15-16px semibold) #}
+        <h3 class="h-11 text-[15px] sm:text-base font-semibold text-ink line-clamp-2 leading-snug group-hover:text-brand transition-colors">
+            {{ item.title }}
+        </h3>
+
+        {# Harga per hari: 17-18px #}
+        <div class="flex items-baseline gap-1">
+            <span class="text-[17px] sm:text-[18px] font-bold text-ink tabular-nums">{{ item.price_per_day|rupiah }}</span>
+            <span class="text-[13px] text-ink-muted">/ hari</span>
+        </div>
+
+        {# Area pengambilan dan Status ketersediaan (Metadata 13px) #}
+        <div class="flex items-center justify-between text-[13px] text-ink-muted pt-1 border-t border-line">
+            <div class="flex items-center gap-1 min-w-0">
+                {% include 'partials/icon.html' with name='map-pin' class='w-3.5 h-3.5 flex-shrink-0 text-ink-muted' %}
+                <span class="truncate">{{ item.pickup_area }}</span>
+            </div>
+            <span class="flex-shrink-0 text-[13px] font-medium text-pine-dark bg-pine-tint px-2 py-0.5 rounded">
+                Tersedia
+            </span>
+        </div>
+
+        {# Pemilik dan Cincin Skor Kepercayaan Kecil (Metadata 13px) #}
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-line">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                {# Avatar inisial bersih (slice 1 char) pada lingkaran berwarna datar #}
+                <div class="w-6 h-6 rounded-full bg-brand-tint border border-line flex items-center justify-center text-[11px] font-bold text-brand flex-shrink-0">
+                    {{ item.owner.full_name|initial }}
+                </div>
+                <span class="text-[13px] text-ink-muted truncate font-medium" title="{{ item.owner.full_name }}">
+                    {{ item.owner.full_name|short_display_name }}
+                </span>
+            </div>
+
+            {# Cincin skor kecil dengan kata #}
+            <div class="flex-shrink-0">
+                {% include 'partials/trust_ring.html' with trust=item.owner.trust_score size='sm' %}
+            </div>
+        </div>
+    </div>
+</a>

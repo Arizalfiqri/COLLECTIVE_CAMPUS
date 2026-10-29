@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}{% if is_edit %}Ubah {{ item.title }}{% else %}Pasang Barang Sewa{% endif %} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[840px] mx-auto px-4 pt-4 sm:pt-6 lg:pt-8 pb-16"
+     x-data="{
+         estValue: '{{ form.estimated_value.value|default:'' }}',
+         depositValue: '{{ form.deposit_amount.value|default:'' }}',
+         minDeposit() {
+             const val = parseInt(this.estValue) || 0;
+             return Math.round(val * 0.20);
+         },
+         maxDeposit() {
+             const val = parseInt(this.estValue) || 0;
+             return Math.round(val * 0.30);
+         },
+         formatRp(n) {
+             return 'Rp' + (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+         },
+         setSuggestedDeposit() {
+             this.depositValue = this.minDeposit();
+         }
+     }">
+
+    <!-- Header Formulir -->
+    <div class="mb-4 sm:mb-5 lg:mb-6">
+        <h1 class="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+            {% if is_edit %}Ubah informasi barang{% else %}Pasang barang sewa baru{% endif %}
+        </h1>
+        <p class="text-sm text-ink-muted mt-1 leading-relaxed">
+            Dapatkan uang jajan tambahan dari barang menganggur Anda. Transaksi terlindungi oleh sistem escrow dan surat perjanjian digital resmi platform.
+        </p>
+    </div>
+
+    <!-- Kotak Form -->
+    <div class="bg-card border border-line rounded-2xl p-6 sm:p-8 shadow-sm">
+        {% if form.errors %}
+            <div class="mb-6 p-4 rounded-xl bg-brick-tint border border-brick/30 text-brick text-xs space-y-2">
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    {% include 'partials/icon.html' with name='alert-circle' class='w-4 h-4 flex-shrink-0' %}
+                    <span>Terdapat kendala pada isian formulir:</span>
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-xs">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6" novalidate
+              x-data="{
+                  photoPreviews: [],
+                  photoError: '',
+                  hasExistingPhotos: {% if is_edit and item.photos.exists %}true{% else %}false{% endif %},
+                  handleFiles(e) {
+                      const files = Array.from(e.target.files);
+                      this.photoPreviews = [];
+                      this.photoError = '';
+                      files.slice(0, 6).forEach(f => {
+                          this.photoPreviews.push({
+                              name: f.name,
+                              url: URL.createObjectURL(f)
+                          });
+                      });
+                  },
+                  validateSubmit(e) {
+                      if (!this.hasExistingPhotos && this.photoPreviews.length === 0) {
+                          e.preventDefault();
+                          this.photoError = 'Wajib mengunggah minimal 1 foto barang.';
+                          window.scrollTo({top: 0, behavior: 'smooth'});
+                          return false;
+                      }
+                  }
+              }"
+              @submit="validateSubmit($event)">
+            {% csrf_token %}
+
+            <!-- Seksi 1: Foto Barang (1-6 Foto) -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-bold text-ink">
+                        Foto barang <span class="text-brick">*</span>
+                    </label>
+                    <span class="text-[11px] text-ink-muted">Minimal 1 foto, maksimal 6 foto (JPG/PNG maks. 5 MB)</span>
+                </div>
+
+                <div x-show="photoError" x-cloak class="mb-3 p-3 rounded-lg bg-brick-tint border border-brick/30 text-brick text-xs font-medium flex items-center gap-2">
+                    {% include 'partials/icon.html' with name='alert-circle' class='w-4 h-4 flex-shrink-0' %}
+                    <span x-text="photoError"></span>
+                </div>
+
+                {% if is_edit and item.photos.exists %}
+                    <!-- Foto yang sudah ada saat ubah barang -->
+                    <div class="mb-4 p-4 rounded-xl bg-paper border border-line" x-data="{ deletedIds: [] }">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="block text-xs font-bold text-ink">Foto yang sudah terpasang:</span>
+                            <span class="text-[11px] text-ink-muted">Pilih "Hapus" pada foto yang ingin diganti</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                            {% for photo in item.photos.all %}
+                                <div class="rounded-xl border border-line overflow-hidden bg-card p-1 relative shadow-sm group">
+                                    <img src="{{ photo.image.url }}" alt="{{ item.title }}" class="w-full h-24 object-cover rounded-lg transition-all"
+                                         :class="deletedIds.includes('{{ photo.id }}') ? 'opacity-30 grayscale' : ''">
+                                    <label class="absolute inset-0 flex flex-col justify-between p-1.5 cursor-pointer">
+                                        <input type="checkbox"
+                                               name="delete_photo_ids"
+                                               value="{{ photo.id }}"
+                                               class="hidden"
+                                               @change="
+                                                   if ($el.checked) {
+                                                       deletedIds.push('{{ photo.id }}');
+                                                       hasExistingPhotos = ({{ item.photos.count }} - deletedIds.length) > 0;
+                                                   } else {
+                                                       deletedIds = deletedIds.filter(id => id !== '{{ photo.id }}');
+                                                       hasExistingPhotos = ({{ item.photos.count }} - deletedIds.length) > 0;
+                                                   }
+                                               ">
+                                        <span class="self-end text-[10px] font-bold px-2 py-0.5 rounded shadow border transition-colors"
+                                              :class="deletedIds.includes('{{ photo.id }}') ? 'bg-brick text-white border-brick' : 'bg-card/90 text-ink hover:bg-brick hover:text-white border-line'">
+                                            <span x-show="!deletedIds.includes('{{ photo.id }}')">Hapus</span>
+                                            <span x-show="deletedIds.includes('{{ photo.id }}')" x-cloak>Batal hapus</span>
+                                        </span>
+                                        <span class="self-start bg-ink/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                                            {% if photo.is_primary %}Utama{% else %}#{{ forloop.counter }}{% endif %}
+                                        </span>
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Area Unggah Foto Dropzone -->
+                <div class="border-2 border-dashed border-line hover:border-brand/40 rounded-xl p-5 text-center bg-paper transition-colors cursor-pointer">
+                    <input type="file"
+                           name="photos"
+                           id="id_photos"
+                           multiple
+                           accept="image/jpeg,image/png,image/jpg"
+                           class="hidden"
+                           x-ref="photoInput"
+                           {% if not is_edit and not item.photos.exists %}required{% endif %}
+                           @change="handleFiles($event)">
+
+                    <!-- Pratinjau Foto Baru -->
+                    <template x-if="photoPreviews.length > 0">
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap justify-center gap-3">
+                                <template x-for="(p, i) in photoPreviews" :key="i">
+                                    <div class="w-24 h-24 rounded-xl border border-line overflow-hidden bg-card p-1 relative shadow-sm">
+                                        <img :src="p.url" :alt="p.name" class="w-full h-full object-cover rounded-lg">
+                                        <span class="absolute top-1 left-1 bg-brand text-white text-[9px] px-1.5 py-0.5 rounded font-bold" x-text="'Foto baru ' + (i + 1)"></span>
+                                    </div>
+                                </template>
+                            </div>
+                            <p class="text-xs text-ink font-semibold" x-text="photoPreviews.length + ' foto baru dipilih'"></p>
+                            <button type="button" @click="$refs.photoInput.click()" class="text-xs text-brand hover:underline font-semibold">
+                                Ganti pilihan foto
+                            </button>
+                        </div>
+                    </template>
+
+                    <!-- Default Dropzone Text -->
+                    <template x-if="photoPreviews.length === 0">
+                        <div @click="$refs.photoInput.click()" class="space-y-2 py-3">
+                            <div class="w-10 h-10 rounded-full bg-brand-tint text-brand flex items-center justify-center mx-auto">
+                                {% include 'partials/icon.html' with name='camera' class='w-5 h-5' %}
+                            </div>
+                            <p class="text-xs sm:text-sm font-semibold text-ink">
+                                Klik untuk memilih foto barang atau seret ke sini
+                            </p>
+                            <p class="text-[11px] text-ink-muted">
+                                Foto pertama akan otomatis menjadi foto utama kartu barang.
+                                {% if form.errors and not is_edit %}
+                                    <span class="block mt-1 font-semibold text-amber-text">Perhatian: Silakan pilih kembali berkas foto barang Anda setelah memperbaiki isian formulir.</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <hr class="border-line">
+
+            <!-- Seksi 2: Informasi Dasar -->
+            <div class="space-y-4">
+                <h2 class="text-xs font-bold text-ink">Detail barang</h2>
+
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                        Judul Barang <span class="text-brick">*</span>
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <p class="text-xs text-brick mt-1">{{ form.title.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.category.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Kategori <span class="text-brick">*</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.category.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.condition.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Kondisi Fisik &amp; Fungsi <span class="text-brick">*</span>
+                        </label>
+                        {{ form.condition }}
+                        {% if form.condition.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.condition.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                        Deskripsi Lengkap <span class="text-brick">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <p class="text-xs text-brick mt-1">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="border-line">
+
+            <!-- Seksi 3: Harga & Pengaturan -->
+            <div class="space-y-4">
+                <h2 class="text-xs font-bold text-ink">Harga sewa{% if not is_deposit_off %} &amp; deposit{% endif %}</h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Estimasi Nilai -->
+                    <div>
+                        <label for="{{ form.estimated_value.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Estimasi Nilai Barang <span class="text-brick">*</span>
+                        </label>
+                        <input type="number"
+                               name="estimated_value"
+                               id="id_estimated_value"
+                               x-model="estValue"
+                               value="{{ form.estimated_value.value|default:'' }}"
+                               placeholder="Misal: 5000000"
+                               class="w-full bg-card border border-line rounded-lg px-4 py-2.5 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                               required>
+                        {% if form.estimated_value.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.estimated_value.errors.0 }}</p>
+                        {% else %}
+                            <p class="text-[10px] text-ink-muted mt-1">Harga beli/pasar saat ini.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Harga Sewa per Hari -->
+                    <div>
+                        <label for="{{ form.price_per_day.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Harga Sewa / Hari <span class="text-brick">*</span>
+                        </label>
+                        {{ form.price_per_day }}
+                        {% if form.price_per_day.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.price_per_day.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    {% if is_deposit_off %}
+                        {{ form.deposit_amount }}
+                    {% else %}
+                        <!-- Deposit Amount (Mode Opsional) -->
+                        <div>
+                            <label for="{{ form.deposit_amount.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                                Jaminan (Rp) <span class="text-ink-muted font-normal">(opsional, bawaan Rp0)</span>
+                            </label>
+                            <input type="number"
+                                   name="deposit_amount"
+                                   id="id_deposit_amount"
+                                   x-model="depositValue"
+                                   value="{{ form.deposit_amount.value|default:'0' }}"
+                                   placeholder="0"
+                                   class="w-full bg-card border border-line rounded-lg px-4 py-2.5 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+                            {% if form.deposit_amount.errors %}
+                                <p class="text-xs text-brick mt-1">{{ form.deposit_amount.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if not is_deposit_off %}
+                <!-- Banner Bantuan Rekomendasi Deposit Platform (Hanya jika mode deposit bukan off) -->
+                <div x-show="estValue > 0" class="p-3.5 rounded-xl bg-paper border border-line flex items-start justify-between gap-3 text-xs">
+                    <div class="flex items-start gap-2 text-ink-muted">
+                        {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-pine flex-shrink-0 mt-0.5' %}
+                        <span>
+                            Saran deposit platform: <strong class="text-ink" x-text="formatRp(minDeposit()) + ' – ' + formatRp(maxDeposit())"></strong>
+                            (bawaan Rp0 jika tanpa jaminan).
+                        </span>
+                    </div>
+                    <button type="button" @click="setSuggestedDeposit()" class="text-brand font-bold whitespace-nowrap hover:underline">
+                        Gunakan minimal
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <hr class="border-line">
+
+            <!-- Seksi 4: Durasi Sewa & Lokasi Pengambilan -->
+            <div class="space-y-4">
+                <h2 class="text-xs font-bold text-ink">Ketentuan pengambilan &amp; durasi</h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.min_days.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Minimum hari sewa <span class="text-brick">*</span>
+                        </label>
+                        {{ form.min_days }}
+                        {% if form.min_days.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.min_days.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.max_days.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Maksimum hari sewa <span class="text-brick">*</span>
+                        </label>
+                        {{ form.max_days }}
+                        {% if form.max_days.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.max_days.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.pickup_area.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                        Area pengambilan kampus <span class="text-brick">*</span>
+                    </label>
+                    {{ form.pickup_area }}
+                    {% if form.pickup_area.errors %}
+                        <p class="text-xs text-brick mt-1">{{ form.pickup_area.errors.0 }}</p>
+                    {% else %}
+                        <p class="text-[11px] text-ink-muted mt-1">
+                            Sebutkan gedung kampus atau area publik netral (misal: "Perpustakaan Pusat", "Gedung A FMIPA").
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="border-line">
+
+            <!-- Seksi 5: Syarat Keamanan Tambahan -->
+            <div class="space-y-4">
+                <div>
+                    <h2 class="text-xs font-bold text-ink">Syarat keamanan tambahan (opsional)</h2>
+                    <p class="text-[11px] text-ink-muted mt-0.5">Atur kualifikasi penyewa dan syarat fisik KTM demi kenyamanan Anda.</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                    <div>
+                        <label for="{{ form.min_renter_tier.id_for_label }}" class="block text-xs font-semibold text-ink mb-1.5">
+                            Tingkat penyewa minimum
+                        </label>
+                        {{ form.min_renter_tier }}
+                        {% if form.min_renter_tier.errors %}
+                            <p class="text-xs text-brick mt-1">{{ form.min_renter_tier.errors.0 }}</p>
+                        {% else %}
+                            <p class="text-[11px] text-ink-muted mt-1">
+                                Bawaan: "Penyewa baru" (semua mahasiswa dapat menyewa).
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="p-3.5 bg-paper rounded-xl border border-line flex items-start gap-3">
+                        <div class="pt-0.5">
+                            {{ form.require_ktm_held }}
+                        </div>
+                        <div>
+                            <label for="{{ form.require_ktm_held.id_for_label }}" class="block text-xs font-semibold text-ink cursor-pointer">
+                                Syarat fisik KTM ditahan
+                            </label>
+                            <p class="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
+                                Jika dicentang, penyewa wajib menitipkan fisik KTM aslinya kepada Anda selama masa sewa dan wajib Anda kembalikan saat barang dikembalikan.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S&K Pemilik Saat Memasang Barang -->
+            <div class="p-4 rounded-xl bg-paper border border-line text-xs space-y-2">
+                <span class="font-bold text-ink flex items-center gap-1.5">
+                    {% include 'partials/icon.html' with name='file-text' class='w-4 h-4 text-brand' %}
+                    Pernyataan &amp; syarat ketentuan pemilik barang
+                </span>
+                <p class="text-[11px] text-ink-muted leading-relaxed">
+                    Dengan memasang atau memperbarui barang ini, Anda menyatakan dan menyetujui bahwa:
+                </p>
+                <ul class="list-disc list-inside space-y-1 text-[11px] text-ink-muted leading-relaxed">
+                    <li>Barang yang didaftarkan adalah <strong class="text-ink">milik sah</strong> Anda secara hukum.</li>
+                    <li><strong class="text-ink">Deskripsi dan foto</strong> yang diunggah adalah benar, akurat, dan mencerminkan kondisi fisik terkini.</li>
+                    <li><strong class="text-ink">Nilai taksiran barang</strong> diisi dengan jujur sesuai harga pasar wajar saat ini.</li>
+                    <li>Tidak menyewakan <strong class="text-ink">barang terlarang</strong>, ilegal, berbahaya, atau melanggar peraturan perundang-undangan serta tata tertib kampus.</li>
+                </ul>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line">
+                <a href="{% if is_edit %}/barang/{{ item.slug }}/{% else %}/barang/saya/{% endif %}"
+                   class="inline-flex items-center justify-center min-h-[44px] px-4 text-xs font-semibold text-ink-muted hover:text-ink">
+                    Batal
+                </a>
+                <button type="submit"
+                        class="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-8 py-3 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                    {% if is_edit %}Simpan perubahan{% else %}Pasang barang sekarang{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

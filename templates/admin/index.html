@@ -1,0 +1,271 @@
+{% extends "admin/base_site.html" %}
+{% load static formatters %}
+
+{% block page_title %}{{ admin_time_greeting|default:"Panel staf" }}{% endblock %}
+{% block page_subtitle %}Ringkasan metrik operasional, laporan sewa, dan antrean tindakan platform{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- BARIS 1: 4 KARTU RINGKASAN SALEDASH (IKON, LABEL, ANGKA, CHIP PERUBAHAN) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        
+        <!-- Kartu 1: Pengguna Terverifikasi -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand flex items-center justify-center">
+                    {% include 'partials/icon.html' with name="users" class="w-5 h-5" %}
+                </div>
+                <!-- Chip Perubahan dibanding periode sebelumnya -->
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {% if admin_dashboard_summary.verified_users.change == '-' %}bg-paper text-ink-muted{% elif admin_dashboard_summary.verified_users.is_positive %}bg-pine-tint text-pine-dark{% else %}bg-brick-tint text-brick{% endif %}">
+                    {{ admin_dashboard_summary.verified_users.change }}
+                </span>
+            </div>
+            <div>
+                <span class="text-xs text-ink-muted block font-medium">Pengguna terverifikasi</span>
+                <span class="text-2xl font-bold text-ink tracking-tight tabular-nums mt-0.5 block">
+                    {{ admin_dashboard_summary.verified_users.count|default:"0" }}
+                </span>
+                <span class="text-[11px] text-ink-muted mt-1 block">Mahasiswa berstatus KTM sah</span>
+            </div>
+        </div>
+
+        <!-- Kartu 2: Sewa Aktif -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand flex items-center justify-center">
+                    {% include 'partials/icon.html' with name="shopping-bag" class="w-5 h-5" %}
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {% if admin_dashboard_summary.active_rentals.change == '-' %}bg-paper text-ink-muted{% elif admin_dashboard_summary.active_rentals.is_positive %}bg-pine-tint text-pine-dark{% else %}bg-brick-tint text-brick{% endif %}">
+                    {{ admin_dashboard_summary.active_rentals.change }}
+                </span>
+            </div>
+            <div>
+                <span class="text-xs text-ink-muted block font-medium">Sewa aktif</span>
+                <span class="text-2xl font-bold text-ink tracking-tight tabular-nums mt-0.5 block">
+                    {{ admin_dashboard_summary.active_rentals.count|default:"0" }}
+                </span>
+                <span class="text-[11px] text-ink-muted mt-1 block">Sedang disewa &amp; verifikasi serah terima</span>
+            </div>
+        </div>
+
+        <!-- Kartu 3: Transaksi Selesai -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-pine-tint text-pine flex items-center justify-center">
+                    {% include 'partials/icon.html' with name="activity" class="w-5 h-5" %}
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {% if admin_dashboard_summary.completed_rentals.change == '-' %}bg-paper text-ink-muted{% elif admin_dashboard_summary.completed_rentals.is_positive %}bg-pine-tint text-pine-dark{% else %}bg-brick-tint text-brick{% endif %}">
+                    {{ admin_dashboard_summary.completed_rentals.change }}
+                </span>
+            </div>
+            <div>
+                <span class="text-xs text-ink-muted block font-medium">Transaksi selesai</span>
+                <span class="text-2xl font-bold text-ink tracking-tight tabular-nums mt-0.5 block">
+                    {{ admin_dashboard_summary.completed_rentals.count|default:"0" }} <span class="text-xs font-normal text-ink-muted">transaksi</span>
+                </span>
+                <span class="text-[11px] text-pine-dark font-medium mt-1 block tabular-nums">
+                    Akumulasi: {{ admin_dashboard_summary.completed_rentals.value|rupiah }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Kartu 4: Dana Ditahan (Escrow) -->
+        <div class="bg-card border border-line rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand flex items-center justify-center">
+                    {% include 'partials/icon.html' with name="shield-check" class="w-5 h-5" %}
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {% if admin_dashboard_summary.escrow_held.change == '-' %}bg-paper text-ink-muted{% elif admin_dashboard_summary.escrow_held.is_positive %}bg-pine-tint text-pine-dark{% else %}bg-brick-tint text-brick{% endif %}">
+                    {{ admin_dashboard_summary.escrow_held.change }}
+                </span>
+            </div>
+            <div>
+                <span class="text-xs text-ink-muted block font-medium">Dana ditahan</span>
+                <span class="text-2xl font-bold text-ink tracking-tight tabular-nums mt-0.5 block">
+                    {{ admin_dashboard_summary.escrow_held.value|rupiah }}
+                </span>
+                <span class="text-[11px] text-ink-muted mt-1 block">Dana sewa dan escrow aman dalam platform</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BARIS 2: GRAFIK LAPORAN SEWA BESAR (KIRI) & KARTU SAMPING (KANAN) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Kartu Grafik Besar: Laporan Sewa dengan Tab Waktu HTMX -->
+        <div class="lg:col-span-2 bg-card border border-line rounded-2xl p-6 shadow-sm" id="rental-chart-container">
+            {% include "admin/partials/rental_chart.html" %}
+        </div>
+
+        <!-- Kartu Samping Kanan: Antrean Tindakan & Posisi Keuangan -->
+        <div class="space-y-6">
+            
+            <!-- Kartu Samping: Antrean Tindakan Staf -->
+            <div class="bg-card border border-line rounded-2xl p-5 shadow-sm">
+                <div class="flex items-start sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-line">
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-bold text-ink">Antrean tindakan</h2>
+                        <p class="text-[11px] text-ink-muted">Tindakan operasional yang memerlukan staf</p>
+                    </div>
+                    <span class="flex-shrink-0 whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold {% if staff_stats.total_queue > 0 %}bg-brick text-white{% else %}bg-pine-tint text-pine-dark{% endif %}">
+                        {{ staff_stats.total_queue|default:"0" }} Menunggu
+                    </span>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <!-- Item 1: Verifikasi KTM -->
+                    <a href="/admin/verification/ktmverification/?status__in=menunggu,perlu_tinjauan"
+                       class="flex items-center justify-between p-2.5 rounded-xl border border-line hover:bg-paper transition-colors group">
+                        <span class="font-medium text-ink group-hover:text-brand">Verifikasi KTM</span>
+                        <span class="font-bold tabular-nums px-2 py-0.5 rounded-lg {% if staff_stats.ktm_queue_count > 0 %}bg-amber-tint text-amber-text{% else %}bg-paper text-ink-muted{% endif %}">
+                            {{ staff_stats.ktm_queue_count|default:"0" }}
+                        </span>
+                    </a>
+
+                    <!-- Item 2: Penarikan Dana -->
+                    <a href="/admin/penarikan/"
+                       class="flex items-center justify-between p-2.5 rounded-xl border border-line hover:bg-paper transition-colors group">
+                        <span class="font-medium text-ink group-hover:text-brand">Penarikan dana</span>
+                        <span class="font-bold tabular-nums px-2 py-0.5 rounded-lg {% if staff_stats.withdrawal_queue_count > 0 %}bg-amber-tint text-amber-text{% else %}bg-paper text-ink-muted{% endif %}">
+                            {{ staff_stats.withdrawal_queue_count|default:"0" }}
+                        </span>
+                    </a>
+
+                    <!-- Item 3: Sengketa Terbuka -->
+                    <a href="/admin/rentals/dispute/?status__exact=terbuka"
+                       class="flex items-center justify-between p-2.5 rounded-xl border border-line hover:bg-paper transition-colors group">
+                        <span class="font-medium text-ink group-hover:text-brand">Sengketa terbuka</span>
+                        <span class="font-bold tabular-nums px-2 py-0.5 rounded-lg {% if staff_stats.dispute_queue_count > 0 %}bg-brick-tint text-brick{% else %}bg-paper text-ink-muted{% endif %}">
+                            {{ staff_stats.dispute_queue_count|default:"0" }}
+                        </span>
+                    </a>
+
+                    <!-- Item 4: Sewa Tertunda > 48 Jam -->
+                    <a href="/admin/rentals/rental/?status__exact=menunggu_persetujuan"
+                       class="flex items-center justify-between p-2.5 rounded-xl border border-line hover:bg-paper transition-colors group">
+                        <span class="font-medium text-ink group-hover:text-brand">Sewa tertunda (&gt;48 jam)</span>
+                        <span class="font-bold tabular-nums px-2 py-0.5 rounded-lg {% if staff_stats.rental_stale_count > 0 %}bg-brick-tint text-brick{% else %}bg-paper text-ink-muted{% endif %}">
+                            {{ staff_stats.rental_stale_count|default:"0" }}
+                        </span>
+                    </a>
+
+                    <!-- Item 5: Pesanan Jual Beli Bermasalah -->
+                    <a href="/admin/sales/saleorder/?status__in=sengketa"
+                       class="flex items-center justify-between p-2.5 rounded-xl border border-line hover:bg-paper transition-colors group">
+                        <span class="font-medium text-ink group-hover:text-brand">Pesanan jual beli bermasalah</span>
+                        <span class="font-bold tabular-nums px-2 py-0.5 rounded-lg {% if staff_stats.sale_problematic_count > 0 %}bg-brick-tint text-brick{% else %}bg-paper text-ink-muted{% endif %}">
+                            {{ staff_stats.sale_problematic_count|default:"0" }}
+                        </span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Kartu Samping: Posisi Keuangan & Rekonsiliasi -->
+            <div class="bg-card border border-line rounded-2xl p-5 shadow-sm">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-line">
+                    <div>
+                        <h2 class="text-sm font-bold text-ink">Posisi keuangan</h2>
+                        <p class="text-[11px] text-ink-muted">Keseimbangan saldo dan pool proteksi</p>
+                    </div>
+                    {% if staff_stats.recon_balanced %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pine-tint text-pine-dark">
+                        Berimbang
+                    </span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brick-tint text-brick">
+                        Ada selisih
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-ink-muted">Escrow ditahan:</span>
+                        <span class="font-bold text-ink tabular-nums">{{ staff_stats.escrow_held|rupiah }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-ink-muted">Saldo dompet pengguna:</span>
+                        <span class="font-bold text-ink tabular-nums">{{ staff_stats.user_balances_total|rupiah }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-ink-muted">Komisi platform ({{ platform_commission_percent }}%):</span>
+                        <span class="font-bold text-brand tabular-nums">{{ staff_stats.platform_commission_total|rupiah }}</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-line">
+                        <span class="text-ink-muted">Dana gotong royong:</span>
+                        <span class="font-bold text-ink tabular-nums">{{ staff_stats.gotong_royong_fund|rupiah }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-line text-center">
+                    <a href="{% url 'payments:admin_reconciliation' %}" class="text-xs font-semibold text-brand hover:underline inline-flex items-center gap-1">
+                        <span>Buka audit rekonsiliasi</span>
+                        <span>&rarr;</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- BARIS 3: TABEL TRANSAKSI TERAKHIR DENGAN PENCARIAN HTMX -->
+    <div class="bg-card border border-line rounded-2xl shadow-sm overflow-hidden">
+        
+        <!-- Header Tabel & Bilah Pencarian -->
+        <div class="p-5 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-base font-bold text-ink">Transaksi terakhir</h2>
+                <p class="text-xs text-ink-muted mt-0.5">Daftar transaksi sewa barang terbaru antar-mahasiswa</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Kolom Pencarian HTMX -->
+                <div class="relative w-full sm:w-64">
+                    <input type="text"
+                           name="q"
+                           placeholder="Cari transaksi (kode, barang, nama)..."
+                           hx-get="{% url 'admin_recent_transactions_root' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#recent-transactions-tbody"
+                           class="w-full text-xs py-2 pl-9 pr-3 rounded-xl border border-line bg-white text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand" />
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-muted">
+                        {% include 'partials/icon.html' with name="search" class="w-3.5 h-3.5" %}
+                    </div>
+                </div>
+
+                <!-- Tautan Lihat Semua -->
+                <a href="{% url 'admin:rentals_rental_changelist' %}"
+                   class="px-3.5 py-2 min-h-[44px] inline-flex items-center rounded-xl border border-line bg-card hover:bg-paper text-xs font-semibold text-ink whitespace-nowrap transition-colors">
+                    Lihat semua &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabel Transaksi Terakhir (Bisa Digulir Horizontal) -->
+        <div class="table-responsive overflow-x-auto w-full">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-paper border-b border-line text-ink font-semibold">
+                    <tr>
+                        <th class="py-3 px-4">Kode sewa</th>
+                        <th class="py-3 px-4">Barang</th>
+                        <th class="py-3 px-4">Penyewa</th>
+                        <th class="py-3 px-4">Pemilik</th>
+                        <th class="py-3 px-4 text-right">Total sewa</th>
+                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-right">Tanggal</th>
+                        <th class="py-3 px-4 text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-transactions-tbody" class="divide-y divide-line">
+                    {% include "admin/partials/recent_transactions_table.html" %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

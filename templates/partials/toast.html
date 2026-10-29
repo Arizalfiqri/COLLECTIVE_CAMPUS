@@ -1,0 +1,45 @@
+{# Toast notifikasi — AGENT.md 5A, 5.13 #}
+{% if messages %}
+<div id="toast-container" class="fixed bottom-6 right-4 sm:right-6 z-50 flex flex-col gap-2 max-w-[calc(100vw-2rem)] safe-bottom" aria-live="polite">
+    {% for message in messages %}
+    <div class="toast-item flex items-start gap-3 bg-card rounded-card shadow-sm border border-line px-4 py-3 max-w-sm w-full"
+         role="alert">
+        {# Ikon Lucide sesuai level #}
+        {% if message.tags == 'success' %}
+            <div class="text-pine mt-0.5 flex-shrink-0">
+                {% include 'partials/icon.html' with name='check' class='w-4 h-4' %}
+            </div>
+        {% elif message.tags == 'error' or message.tags == 'danger' %}
+            <div class="text-brick mt-0.5 flex-shrink-0">
+                {% include 'partials/icon.html' with name='x' class='w-4 h-4' %}
+            </div>
+        {% elif message.tags == 'warning' %}
+            <div class="text-amber-text mt-0.5 flex-shrink-0">
+                {% include 'partials/icon.html' with name='clock' class='w-4 h-4' %}
+            </div>
+        {% else %}
+            <div class="text-brand mt-0.5 flex-shrink-0">
+                {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4' %}
+            </div>
+        {% endif %}
+        <p class="text-xs text-ink flex-grow leading-relaxed">{{ message }}</p>
+        <button type="button" onclick="this.closest('.toast-item').remove()"
+                class="text-ink-muted hover:text-ink flex-shrink-0 ml-1 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2 -mt-1" aria-label="Tutup notifikasi">
+            {% include 'partials/icon.html' with name='x' class='w-4 h-4' %}
+        </button>
+    </div>
+    {% endfor %}
+</div>
+<script>
+(function() {
+    var toasts = document.querySelectorAll('.toast-item');
+    toasts.forEach(function(t) {
+        setTimeout(function() {
+            t.style.opacity = '0';
+            t.style.transition = 'opacity 0.2s';
+            setTimeout(function() { t.remove(); }, 200);
+        }, 4500);
+    });
+})();
+</script>
+{% endif %}

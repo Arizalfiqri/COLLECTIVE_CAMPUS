@@ -1,0 +1,51 @@
+{% load formatters %}
+
+{% if chat_messages %}
+    <div class="space-y-3.5 py-2">
+        {% for msg in chat_messages %}
+            {% if msg.sender == request.user %}
+                <!-- Pesan Saya (Pengirim) -->
+                <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%] ml-auto">
+                    <div class="bg-brand text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-xs sm:text-sm leading-relaxed shadow-sm break-words">
+                        {{ msg.get_display_body|safe }}
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px] text-ink-muted">
+                        <span class="tabular-nums">{{ msg.created_at|date:"H:i" }}</span>
+                        {% if msg.read_at %}
+                            <span class="text-pine font-semibold" title="Dibaca {{ msg.read_at|date:'H:i' }}">&bull; Dibaca</span>
+                        {% else %}
+                            <span class="text-ink-muted/70">&bull; Terkirim</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <!-- Pesan Lawan Bicara (Penerima) -->
+                <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%] mr-auto">
+                    <div class="flex items-center gap-1.5 mb-1 text-[11px] text-ink-muted font-medium">
+                        <span class="w-5 h-5 rounded-full bg-brand-tint text-brand text-[9px] font-bold flex items-center justify-center uppercase select-none">
+                            {{ msg.sender.full_name|default:msg.sender.username|slice:":1" }}
+                        </span>
+                        <span>{{ msg.sender.full_name|default:msg.sender.username }}</span>
+                    </div>
+                    <div class="bg-paper border border-line text-ink px-4 py-2.5 rounded-2xl rounded-tl-sm text-xs sm:text-sm leading-relaxed shadow-sm break-words">
+                        {{ msg.get_display_body|safe }}
+                    </div>
+                    <div class="mt-1 text-[10px] text-ink-muted tabular-nums">
+                        {{ msg.created_at|date:"H:i" }}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% else %}
+    <!-- Percakapan Baru Dimulai -->
+    <div class="text-center py-12 px-4 space-y-2">
+        <div class="w-10 h-10 mx-auto rounded-xl bg-paper-deep text-ink-muted flex items-center justify-center">
+            {% include 'partials/icon.html' with name='message-square' class='w-5 h-5' %}
+        </div>
+        <p class="text-xs font-semibold text-ink">Percakapan baru telah dimulai</p>
+        <p class="text-[11px] text-ink-muted max-w-sm mx-auto leading-relaxed">
+            Silakan kirim pesan untuk menanyakan spesifikasi barang, jadwal ketersediaan, atau rencana titik temu serah terima.
+        </p>
+    </div>
+{% endif %}

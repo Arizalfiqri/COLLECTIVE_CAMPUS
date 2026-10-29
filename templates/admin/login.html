@@ -1,0 +1,75 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Masuk ke panel staf | {{ SITE_NAME }} Admin{% endblock %}
+
+{% block login_content %}
+<div class="space-y-5">
+
+    {% if form.errors and not form.non_field_errors %}
+    <div class="p-3.5 rounded-xl bg-brick-tint border border-brick text-brick text-xs font-medium">
+        Periksa kembali nama pengguna dan kata sandi yang Anda masukkan.
+    </div>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+    {% for error in form.non_field_errors %}
+    <div class="p-3.5 rounded-xl bg-brick-tint border border-brick text-brick text-xs font-medium">
+        {{ error }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if user.is_authenticated %}
+    <div class="p-3.5 rounded-xl bg-amber-tint border border-amber-text text-amber-text text-xs font-medium">
+        Anda masuk sebagai <strong>{{ username }}</strong>, namun akun ini bukan staf yang berwenang membuka panel admin. Silakan masuk menggunakan akun staf terdaftar.
+    </div>
+    {% endif %}
+
+    <form action="{{ app_path }}" method="post" id="login-form" class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+            <label for="id_username" class="block text-xs font-semibold text-ink mb-1.5">
+                Nama pengguna staf:
+            </label>
+            <input type="text"
+                   name="username"
+                   id="id_username"
+                   required
+                   autocomplete="username"
+                   autofocus
+                   placeholder="Masukkan username staf"
+                   class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-line bg-white text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand" />
+            {% if form.username.errors %}
+            <div class="text-[11px] text-brick mt-1 font-semibold">{{ form.username.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div>
+            <label for="id_password" class="block text-xs font-semibold text-ink mb-1.5">
+                Kata sandi:
+            </label>
+            <input type="password"
+                   name="password"
+                   id="id_password"
+                   required
+                   autocomplete="current-password"
+                   placeholder="Masukkan kata sandi akun"
+                   class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-line bg-white text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-brand" />
+            {% if form.password.errors %}
+            <div class="text-[11px] text-brick mt-1 font-semibold">{{ form.password.errors.0 }}</div>
+            {% endif %}
+            <input type="hidden" name="next" value="{{ next }}">
+        </div>
+
+        <div class="pt-2">
+            <button type="submit"
+                    class="w-full py-2.5 px-4 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand shadow-sm">
+                Masuk ke panel staf
+            </button>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#FFC83D"/>
+  <!-- Toga Wisuda: lebar ~280px (70% lebar ubin), garis ink 2.5px, kancing topi ink -->
+  <!-- Bawah topi -->
+  <path d="M 120 235 Q 200 270 280 235 L 280 275 Q 200 315 120 275 Z" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Papan atas belah ketupat -->
+  <polygon points="200,140 340,195 200,250 60,195" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Tali kuncir rumbai -->
+  <path d="M 200 195 Q 275 190 285 240 L 290 320" fill="none" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Rumbai ujung -->
+  <polygon points="280,320 300,320 295,355 285,355" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Detail isi ink: kancing pusat topi toga -->
+  <circle cx="200" cy="195" r="10" fill="#141B34" stroke="none"/>
+</svg>

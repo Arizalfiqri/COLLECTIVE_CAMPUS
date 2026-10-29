@@ -1,0 +1,1891 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatters %}
+
+{% block title %}Detail Sewa {{ rental.code }} | {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 sm:px-6 pt-6 pb-16"
+     x-data="{
+        cancelModalOpen: false,
+        rejectModalOpen: false,
+        scheduleModalOpen: false,
+        photoModalOpen: false,
+        disputeModalOpen: false,
+        photoPhase: 'sebelum',
+        photoPhaseLabel: 'Foto Sebelum Sewa',
+        paying: false,
+        cameraStream: null,
+        cameraActive: false,
+        cameraError: '',
+        capturedBase64: '',
+        ktmReturnedCheck: false,
+        openPhotoModal(phase, label) {
+            this.photoPhase = phase;
+            this.photoPhaseLabel = label;
+            this.photoModalOpen = true;
+            this.capturedBase64 = '';
+            this.cameraError = '';
+            this.cameraActive = false;
+        },
+        startCamera() {
+            this.cameraError = '';
+            this.capturedBase64 = '';
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then(stream => {
+                        this.cameraStream = stream;
+                        this.cameraActive = true;
+                        this.$nextTick(() => {
+                            const video = document.getElementById('camera-feed');
+                            if (video) video.srcObject = stream;
+                        });
+                    })
+                    .catch(err => {
+                        console.warn('Camera access failed:', err);
+                        this.cameraError = 'Kamera tidak dapat diakses atau izin ditolak browser. Silakan gunakan cadangan unggah berkas foto di bawah.';
+                        this.cameraActive = false;
+                    });
+            } else {
+                this.cameraError = 'Browser tidak mendukung akses kamera langsung. Silakan gunakan cadangan unggah berkas.';
+            }
+        },
+        captureFrame() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('camera-canvas');
+            if (video && canvas) {
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                this.capturedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                this.stopCamera();
+            }
+        },
+        stopCamera() {
+            if (this.cameraStream) {
+                this.cameraStream.getTracks().forEach(t => t.stop());
+                this.cameraStream = null;
+            }
+            this.cameraActive = false;
+        },
+        closePhotoModal() {
+            this.stopCamera();
+            this.photoModalOpen = false;
+            this.capturedBase64 = '';
+            this.cameraError = '';
+        }
+     }">
+
+
+    <!-- Breadcrumb Navigasi -->
+    <nav class="flex items-center gap-2 text-xs text-ink-muted mb-6" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-brand transition-colors">Beranda</a>
+        <span>/</span>
+        <a href="/dashboard/" class="hover:text-brand transition-colors">Dashboard</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">{{ rental.code }}</span>
+    </nav>
+
+    <!-- Header Transaksi Sewa -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-line">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <h1 class="font-heading text-xl sm:text-2xl font-bold text-ink">
+                    Detail Sewa {{ rental.code }}
+                </h1>
+                <!-- Badge Status Utama -->
+                {% if rental.status == 'menunggu_persetujuan' %}
+                    <span class="inline-flex items-center gap-1 bg-amber-tint text-amber-text px-2.5 py-1 rounded-full text-xs font-bold border border-amber-text/20">
+                        {% include 'partials/icon.html' with name='clock' class='w-3.5 h-3.5 text-amber-text' %}
+                        <span>Menunggu Persetujuan</span>
+                    </span>
+                {% elif rental.status == 'menunggu_pembayaran' %}
+                    <span class="inline-flex items-center gap-1 bg-brand-tint text-brand px-2.5 py-1 rounded-full text-xs font-bold border border-brand/20">
+                        {% include 'partials/icon.html' with name='wallet' class='w-3.5 h-3.5 text-brand' %}
+                        <span>Menunggu Pembayaran</span>
+                    </span>
+                {% elif rental.status == 'dibayar' %}
+                    <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-1 rounded-full text-xs font-bold border border-pine/20">
+                        {% include 'partials/icon.html' with name='check' class='w-3.5 h-3.5 text-pine' %}
+                        <span>Dana ditahan (dibayar)</span>
+                    </span>
+                {% elif rental.status == 'sedang_disewa' %}
+                    <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-1 rounded-full text-xs font-bold border border-pine/20">
+                        {% include 'partials/icon.html' with name='package' class='w-3.5 h-3.5 text-pine' %}
+                        <span>Sedang disewa</span>
+                    </span>
+                {% elif rental.status == 'menunggu_konfirmasi_pengembalian' %}
+                    <span class="inline-flex items-center gap-1 bg-amber-tint text-amber-text px-2.5 py-1 rounded-full text-xs font-bold border border-amber-text/20">
+                        {% include 'partials/icon.html' with name='clock' class='w-3.5 h-3.5 text-amber-text' %}
+                        <span>Menunggu konfirmasi pengembalian</span>
+                    </span>
+                {% elif rental.status == 'selesai' %}
+                    <span class="inline-flex items-center gap-1 bg-pine-tint text-pine-dark px-2.5 py-1 rounded-full text-xs font-bold border border-pine/20">
+                        {% include 'partials/icon.html' with name='check-check' class='w-3.5 h-3.5 text-pine' %}
+                        <span>Sewa selesai</span>
+                    </span>
+                {% elif rental.status == 'ditolak' %}
+                    <span class="inline-flex items-center gap-1 bg-brick-tint text-brick px-2.5 py-1 rounded-full text-xs font-bold border border-brick/20">
+                        {% include 'partials/icon.html' with name='x' class='w-3.5 h-3.5 text-brick' %}
+                        <span>Ditolak</span>
+                    </span>
+                {% elif rental.status == 'dibatalkan' %}
+                    <span class="inline-flex items-center gap-1 bg-brick-tint text-brick px-2.5 py-1 rounded-full text-xs font-bold border border-brick/20">
+                        {% include 'partials/icon.html' with name='x-circle' class='w-3.5 h-3.5 text-brick' %}
+                        <span>Dibatalkan</span>
+                    </span>
+                {% elif rental.status == 'kedaluwarsa' %}
+                    <span class="inline-flex items-center gap-1 bg-paper-deep text-ink-muted px-2.5 py-1 rounded-full text-xs font-bold border border-line">
+                        {% include 'partials/icon.html' with name='alert-circle' class='w-3.5 h-3.5 text-ink-muted' %}
+                        <span>Kedaluwarsa</span>
+                    </span>
+                {% endif %}
+            </div>
+
+            <p class="text-xs text-ink-muted mt-1">
+                Diajukan pada {{ rental.requested_at|default:rental.created_at|date:"d M Y, H:i" }} WIB &bull; 
+                Peran Anda: <strong class="text-ink">{% if is_renter %}Penyewa{% elif is_owner %}Pemilik Barang{% else %}Administrator{% endif %}</strong>
+            </p>
+        </div>
+
+        <!-- Tombol Aksi Dokumen & Chat Internal -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+            {% if rental.agreement %}
+                <a href="{% url 'rentals:rental_agreement' rental.code %}"
+                   class="inline-flex items-center gap-2 bg-paper hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    {% include 'partials/icon.html' with name='file-text' class='w-4 h-4 text-brand' %}
+                    <span>Surat Perjanjian S&K</span>
+                </a>
+            {% endif %}
+            {% if conversation %}
+                <a href="/pesan/{{ conversation.id }}/"
+                   class="inline-flex items-center gap-2 bg-paper hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                    {% include 'partials/icon.html' with name='message-square' class='w-4 h-4 text-brand' %}
+                    <span>Buka Chat Internal</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alert / Banner Jika Status Gagal / Berhenti (Ditolak / Dibatalkan / Kedaluwarsa) -->
+    {% if is_terminal_failed %}
+        <div class="mt-6 p-4 sm:p-5 rounded-2xl bg-brick-tint border border-brick/30 text-xs sm:text-sm text-ink space-y-1">
+            <div class="flex items-center gap-2 font-bold text-brick">
+                {% include 'partials/icon.html' with name='alert-triangle' class='w-4 h-4 text-brick flex-shrink-0' %}
+                <span>
+                    {% if rental.status == 'ditolak' %}
+                        Permintaan Sewa Ditolak Pemilik
+                    {% elif rental.status == 'dibatalkan' %}
+                        Sewa Dibatalkan {% if rental.cancelled_by %}oleh {{ rental.cancelled_by.full_name|default:rental.cancelled_by.username }}{% endif %}
+                    {% else %}
+                        Sewa Kedaluwarsa
+                    {% endif %}
+                </span>
+            </div>
+            <p class="text-xs text-ink leading-relaxed">
+                Alasan: <em>{{ rental.cancel_reason|default:"Tidak ada keterangan tambahan." }}</em>
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- 1. TIMELINE STATUS SEWA (Linear Responsive: Horizontal Desktop, Vertikal Mobile) -->
+    <div class="mt-6 bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+        <h2 class="text-xs font-bold text-ink-muted mb-4 sm:mb-6">
+            Garis waktu status transaksi
+        </h2>
+
+        <!-- Tampilan Mobile (Vertikal Linear) -->
+        <div class="sm:hidden space-y-4">
+            {% for step in timeline_steps %}
+                {% with step_index=forloop.counter0 %}
+                    <div class="flex items-start gap-3 relative">
+                        {% if not forloop.last %}
+                            <div class="absolute left-4 top-8 bottom-0 w-0.5 -ml-[1px] {% if step_index < active_step_index %}bg-pine{% else %}bg-line{% endif %}"></div>
+                        {% endif %}
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 z-10 select-none
+                            {% if step_index < active_step_index or rental.status == 'selesai' %}
+                                bg-pine-tint text-pine-dark border-2 border-pine
+                            {% elif step_index == active_step_index and not is_terminal_failed %}
+                                bg-brand text-white border-2 border-brand ring-4 ring-brand/20
+                            {% elif is_terminal_failed and step_index == active_step_index %}
+                                bg-brick text-white border-2 border-brick
+                            {% else %}
+                                bg-paper text-ink-muted border border-line
+                            {% endif %}">
+                            {% if step_index < active_step_index or rental.status == 'selesai' %}
+                                {% include 'partials/icon.html' with name='check' class='w-4 h-4 text-pine' %}
+                            {% elif is_terminal_failed and step_index == active_step_index %}
+                                {% include 'partials/icon.html' with name='x' class='w-4 h-4 text-white' %}
+                            {% else %}
+                                {{ forloop.counter }}
+                            {% endif %}
+                        </div>
+
+                        <div class="min-w-0 pt-0.5 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-ink">{{ step.label }}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold
+                                    {% if step_index < active_step_index or rental.status == 'selesai' %}
+                                        bg-pine-tint text-pine-dark
+                                    {% elif step_index == active_step_index and not is_terminal_failed %}
+                                        bg-brand-tint text-brand
+                                    {% elif is_terminal_failed and step_index == active_step_index %}
+                                        bg-brick-tint text-brick
+                                    {% else %}
+                                        bg-paper text-ink-muted border border-line
+                                    {% endif %}">
+                                    {% if step_index < active_step_index or rental.status == 'selesai' %}
+                                        Selesai
+                                    {% elif step_index == active_step_index and not is_terminal_failed %}
+                                        Sedang berlangsung
+                                    {% elif is_terminal_failed and step_index == active_step_index %}
+                                        {{ rental.get_status_display }}
+                                    {% else %}
+                                        Menunggu
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <span class="text-[10px] text-ink-muted block mt-0.5">
+                                {% if step.key == 'diajukan' and rental.requested_at %}
+                                    {{ rental.requested_at|date:"d M Y, H:i" }}
+                                {% elif step.key == 'disetujui' and rental.approved_at %}
+                                    {{ rental.approved_at|date:"d M Y, H:i" }}
+                                {% elif step.key == 'dibayar' and is_paid %}
+                                    {{ latest_payment.paid_at|default:rental.status_changed_at|date:"d M Y, H:i" }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+
+        <!-- Tampilan Desktop (Horizontal Linear 6 Kolom) -->
+        <div class="hidden sm:grid sm:grid-cols-6 gap-2">
+            {% for step in timeline_steps %}
+                {% with step_index=forloop.counter0 %}
+                    <div class="flex flex-col items-center text-center relative">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mb-2 transition-all select-none
+                            {% if step_index < active_step_index or rental.status == 'selesai' %}
+                                bg-pine-tint text-pine-dark border-2 border-pine
+                            {% elif step_index == active_step_index and not is_terminal_failed %}
+                                bg-brand text-white border-2 border-brand ring-4 ring-brand/20
+                            {% elif is_terminal_failed and step_index == active_step_index %}
+                                bg-brick text-white border-2 border-brick
+                            {% else %}
+                                bg-paper text-ink-muted border border-line
+                            {% endif %}">
+                            {% if step_index < active_step_index or rental.status == 'selesai' %}
+                                {% include 'partials/icon.html' with name='check' class='w-4 h-4 text-pine' %}
+                            {% elif is_terminal_failed and step_index == active_step_index %}
+                                {% include 'partials/icon.html' with name='x' class='w-4 h-4 text-white' %}
+                            {% else %}
+                                {{ forloop.counter }}
+                            {% endif %}
+                        </div>
+
+                        <span class="text-xs font-bold text-ink leading-tight block">
+                            {{ step.label }}
+                        </span>
+
+                        <span class="text-[10px] text-ink-muted mt-0.5 block">
+                            {% if step.key == 'diajukan' and rental.requested_at %}
+                                {{ rental.requested_at|date:"d M, H:i" }}
+                            {% elif step.key == 'disetujui' and rental.approved_at %}
+                                {{ rental.approved_at|date:"d M, H:i" }}
+                            {% elif step.key == 'dibayar' and is_paid %}
+                                {{ latest_payment.paid_at|default:rental.status_changed_at|date:"d M, H:i" }}
+                            {% elif step_index == active_step_index and not is_terminal_failed %}
+                                Sedang berlangsung
+                            {% elif step_index < active_step_index or rental.status == 'selesai' %}
+                                Selesai
+                            {% else %}
+                                Menunggu
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 2. KARTU AKSI (Action Card Sesuai Peran dan Status) -->
+    <div class="mt-6 bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm">
+        <h2 class="text-xs font-bold text-ink-muted mb-4">
+            Tindakan yang dapat dilakukan
+        </h2>
+
+        {% if can_approve %}
+            <!-- Aksi Pemilik Saat Menunggu Persetujuan -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-paper border border-line">
+                <div>
+                    <h3 class="text-sm font-bold text-ink">Permintaan masuk dari penyewa</h3>
+                    <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                        Periksa rentang tanggal dan identitas penyewa. Menyetujui permintaan ini akan mengunci tanggal dan otomatis menolak permintaan lain yang bertabrakan.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2.5 flex-shrink-0 w-full sm:w-auto">
+                    <form action="/sewa/{{ rental.code }}/setujui/" method="POST" class="w-full sm:w-auto">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+                            {% include 'partials/icon.html' with name='check' class='w-4 h-4' %}
+                            <span>Setujui Permintaan</span>
+                        </button>
+                    </form>
+
+                    <button type="button"
+                            @click="rejectModalOpen = true"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-paper hover:bg-paper-deep text-brick border border-line hover:border-brick/40 text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                        {% include 'partials/icon.html' with name='x' class='w-4 h-4' %}
+                        <span>Tolak</span>
+                    </button>
+                </div>
+            </div>
+
+        {% elif show_pay_button %}
+            <!-- Aksi Penyewa Saat Menunggu Pembayaran -->
+            <div class="p-4 sm:p-5 rounded-xl bg-brand-tint/30 border border-brand/40 space-y-3">
+                <div class="flex items-start gap-3">
+                    <div class="text-brand mt-0.5 flex-shrink-0">
+                        {% include 'partials/icon.html' with name='wallet' class='w-5 h-5' %}
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-ink">Permintaan disetujui pemilik</h3>
+                        <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                            Pemilik telah menyetujui permintaan sewa Anda. Silakan selesaikan pembayaran sebelum batas waktu berakhir (6 jam).
+                        </p>
+                        {% if not midtrans_is_production %}
+                        <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-tint/60 border border-amber-text/30 text-amber-text text-[11px] font-medium">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-text"></span>
+                            <span>Mode uji pembayaran: tidak ada uang sungguhan</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Penampung Snap Embed Mode -->
+                <div id="snap-container" class="w-full my-4 rounded-xl overflow-hidden min-h-[450px] border border-line bg-card hidden shadow-sm"></div>
+
+                <div class="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-brand/20">
+                    <div class="flex items-center gap-3">
+                        {% if midtrans_ready %}
+                            <!-- Tombol Bayar Midtrans Aktif -->
+                            <button type="button"
+                                    id="pay-button"
+                                    @click="payWithMidtrans(false)"
+                                    :disabled="paying"
+                                    class="bg-brand hover:bg-brand-hover text-white text-xs font-bold px-5 py-2.5 rounded-xl inline-flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-sm">
+                                <span x-show="!paying" class="flex items-center gap-1.5">
+                                    {% include 'partials/icon.html' with name='credit-card' class='w-4 h-4 text-white' %}
+                                    <span>Bayar Sekarang ({{ rental.grand_total|rupiah }})</span>
+                                </span>
+                                <span x-show="paying" class="flex items-center gap-1.5" x-cloak>
+                                    <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                    <span>Menghubungi Gateway...</span>
+                                </span>
+                            </button>
+
+                            <!-- Tombol Ganti Metode Pembayaran (Token Baru) -->
+                            <button type="button"
+                                    id="pay-change-method-button"
+                                    @click="payWithMidtrans(true)"
+                                    :disabled="paying"
+                                    class="bg-paper hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-3.5 py-2.5 rounded-xl inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                    title="Pilih metode pembayaran lain di Midtrans (Virtual Account, E-Wallet, QRIS)">
+                                {% include 'partials/icon.html' with name='sliders' class='w-3.5 h-3.5 text-brand' %}
+                                <span>Ganti metode pembayaran</span>
+                            </button>
+
+                            {% if latest_payment %}
+                            <!-- Tombol Cek Status Pembayaran -->
+                            <button type="button"
+                                    id="pay-check-status-button"
+                                    @click="syncPayment('{{ latest_payment.order_id }}', false, true)"
+                                    class="bg-paper hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-3.5 py-2.5 rounded-xl inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                                    title="Cek apakah pembayaran sudah masuk dari Midtrans">
+                                {% include 'partials/icon.html' with name='refresh-cw' class='w-3.5 h-3.5 text-ink-muted' %}
+                                <span>Cek status pembayaran</span>
+                            </button>
+                            {% endif %}
+                        {% else %}
+                            <!-- Kunci Midtrans Kosong -->
+                            <button type="button"
+                                    disabled
+                                    class="bg-paper-deep text-ink-muted border border-line text-xs font-semibold px-4 py-2.5 rounded-xl cursor-not-allowed inline-flex items-center gap-1.5"
+                                    title="Kunci Midtrans belum diisi pada pengaturan server">
+                                {% include 'partials/icon.html' with name='lock' class='w-4 h-4' %}
+                                <span>Kunci Midtrans belum diisi</span>
+                            </button>
+                        {% endif %}
+
+                        <button type="button"
+                                @click="cancelModalOpen = true"
+                                class="text-xs font-semibold text-brick hover:underline px-3 py-2.5 min-h-[44px] inline-flex items-center">
+                            Batalkan sewa
+                        </button>
+                    </div>
+
+                    <span class="text-[11px] text-ink-muted">
+                        Pembayaran dijamin aman via Escrow Midtrans Sandbox.
+                    </span>
+                </div>
+            </div>
+
+        {% elif rental.status == 'dibayar' %}
+            <!-- TAHAP SERAH TERIMA (DIBAYAR -> SEDANG_DISEWA) -->
+            <div class="space-y-4">
+                <div class="p-4 sm:p-5 rounded-xl bg-pine-tint/30 border border-pine/30 space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <div class="text-pine mt-0.5 flex-shrink-0">
+                                {% include 'partials/icon.html' with name='package' class='w-5 h-5 text-pine' %}
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-ink">Tahap serah terima barang</h3>
+                                <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                                    Dana telah aman di escrow. Selesaikan prasyarat berikut sebelum kedua belah pihak mengonfirmasi serah terima fisik barang.
+                                </p>
+                            </div>
+                        </div>
+                        {% if can_cancel %}
+                            <button type="button"
+                                    @click="cancelModalOpen = true"
+                                    class="text-xs font-semibold text-brick hover:underline flex-shrink-0 px-3 py-2.5 min-h-[44px] inline-flex items-center">
+                                Batalkan sewa
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Checklist Prasyarat Serah Terima -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-line text-xs">
+                        <!-- 1. Foto Sebelum (Min 2) -->
+                        <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold text-ink block">1. Foto kondisi sebelum</span>
+                                <span class="text-[11px] text-ink-muted">Wajib minimal 2 foto oleh pemilik</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold text-xs {% if photos_sebelum|length >= 2 %}text-pine{% else %}text-amber-text{% endif %}">
+                                    {{ photos_sebelum|length }}/2
+                                </span>
+                                {% if can_upload_sebelum %}
+                                    <button type="button"
+                                            @click="openPhotoModal('sebelum', 'Unggah Foto Sebelum Sewa')"
+                                            class="bg-brand text-white px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold hover:bg-brand-hover transition-colors inline-flex items-center justify-center">
+                                        + Unggah
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 2. Persetujuan Foto Penyewa -->
+                        <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold text-ink block">2. Persetujuan foto serah terima</span>
+                                <span class="text-[11px] text-ink-muted">Penyewa menyetujui dokumentasi</span>
+                            </div>
+                            <div>
+                                {% if rental.handover_photo_consent_at %}
+                                    <span class="inline-flex items-center gap-1 text-pine font-bold text-xs">
+                                        {% include 'partials/icon.html' with name='check' class='w-3.5 h-3.5 text-pine' %}
+                                        <span>Disetujui</span>
+                                    </span>
+                                {% elif can_consent_photo %}
+                                    <form action="/sewa/{{ rental.code }}/persetujuan-foto/" method="POST">
+                                        {% csrf_token %}
+                                        <button type="submit" class="bg-brand text-white px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold hover:bg-brand-hover transition-colors inline-flex items-center justify-center">
+                                            Setujui
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-amber-text text-[11px] font-semibold">Menunggu penyewa</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 3. Foto Serah Terima (Min 1) -->
+                        <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold text-ink block">3. Foto serah terima (kamera)</span>
+                                <span class="text-[11px] text-ink-muted">Diambil langsung saat bertemu</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-bold text-xs {% if photos_serah_terima|length >= 1 %}text-pine{% else %}text-amber-text{% endif %}">
+                                    {{ photos_serah_terima|length }}/1
+                                </span>
+                                {% if can_upload_serah_terima %}
+                                    <button type="button"
+                                            @click="openPhotoModal('serah_terima', 'Foto Serah Terima')"
+                                            class="bg-brand text-white px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold hover:bg-brand-hover transition-colors inline-flex items-center justify-center">
+                                        Ambil Foto
+                                    </button>
+                                {% elif not rental.handover_photo_consent_at %}
+                                    <span class="text-[10px] text-ink-muted italic">Terkunci (butuh izin)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 4. Penahanan KTM Fisik (Jika require_ktm_held) -->
+                        {% if rental.item.require_ktm_held %}
+                            <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between">
+                                <div>
+                                    <span class="font-semibold text-ink block">4. Penyerahan fisik KTM</span>
+                                    <span class="text-[11px] text-amber-text font-medium">Fisik KTM wajib diserahkan</span>
+                                </div>
+                                <div>
+                                    {% if rental.ktm_held_confirmed_at %}
+                                        <span class="inline-flex items-center gap-1 text-pine font-bold text-xs">
+                                            {% include 'partials/icon.html' with name='check' class='w-3.5 h-3.5 text-pine' %}
+                                            <span>Dikonfirmasi</span>
+                                        </span>
+                                    {% elif can_confirm_ktm %}
+                                        <form action="/sewa/{{ rental.code }}/konfirmasi-ktm/" method="POST">
+                                            {% csrf_token %}
+                                            <button type="submit" class="bg-brand text-white px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold hover:bg-brand-hover transition-colors inline-flex items-center justify-center">
+                                                Konfirmasi KTM
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tombol Eksekusi Serah Terima -->
+                    <div class="pt-3 border-t border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="text-xs text-ink-muted">
+                            {% if my_handover_confirmed %}
+                                <span class="text-pine font-semibold inline-flex items-center gap-1">
+                                    {% include 'partials/icon.html' with name='check' class='w-3.5 h-3.5 text-pine' %}
+                                    <span>Anda telah mengonfirmasi. Menunggu konfirmasi dari pihak lawan.</span>
+                                </span>
+                            {% elif other_handover_confirmed %}
+                                <span class="text-amber-text font-semibold inline-flex items-center gap-1">
+                                    {% include 'partials/icon.html' with name='clock' class='w-3.5 h-3.5 text-amber-text' %}
+                                    <span>Pihak lawan telah mengonfirmasi. Mohon konfirmasi dari pihak Anda.</span>
+                                </span>
+                            {% else %}
+                                <span>Kedua pihak wajib menekan tombol konfirmasi setelah menerima barang.</span>
+                            {% endif %}
+                        </div>
+
+                        {% if not my_handover_confirmed %}
+                            <form action="/sewa/{{ rental.code }}/serah-terima/" method="POST" class="w-full sm:w-auto">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="w-full sm:w-auto bg-pine hover:bg-pine-dark text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm inline-flex items-center justify-center gap-2">
+                                    {% include 'partials/icon.html' with name='check-check' class='w-4 h-4' %}
+                                    <span>Konfirmasi Serah Terima</span>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Bagian Jadwal Serah Terima -->
+                <div class="p-4 rounded-xl bg-card border border-line space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            {% include 'partials/icon.html' with name='calendar' class='w-4 h-4 text-brand' %}
+                            <h4 class="text-xs font-bold text-ink">Jadwal serah terima</h4>
+                        </div>
+                        {% if can_propose_schedule %}
+                            <button type="button"
+                                    @click="scheduleModalOpen = true"
+                                    class="text-xs font-semibold text-brand hover:underline px-3 py-2 min-h-[44px] inline-flex items-center">
+                                {% if latest_schedule %}Atur ulang jadwal{% else %}+ Usulkan jadwal temu{% endif %}
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    {% if latest_schedule %}
+                        <div class="p-3 bg-paper rounded-xl border border-line text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div>
+                                <div class="font-bold text-ink text-sm">
+                                    {{ latest_schedule.meet_at|date:"d M Y, H:i" }} WIB
+                                </div>
+                                <div class="text-ink-muted mt-0.5">
+                                    Titik temu: <strong class="text-ink">{{ latest_schedule.meeting_point.name|default:"Titik temu bebas" }}</strong>
+                                    {% if latest_schedule.note %}&bull; Catatan: {{ latest_schedule.note }}{% endif %}
+                                </div>
+                                <div class="text-[11px] text-ink-muted mt-0.5">
+                                    Diusulkan oleh {{ latest_schedule.proposed_by.username }} &bull; Status: 
+                                    <span class="font-semibold {% if latest_schedule.status == 'dikonfirmasi' %}text-pine{% else %}text-amber-text{% endif %}">
+                                        {{ latest_schedule.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {% if can_confirm_schedule %}
+                                <form action="/sewa/{{ rental.code }}/jadwal/konfirmasi/" method="POST" class="w-full sm:w-auto">
+                                    {% csrf_token %}
+                                    <button type="submit" class="w-full sm:w-auto bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors">
+                                        Setujui Jadwal Ini
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p class="text-xs text-ink-muted italic">
+                            Belum ada jadwal pertemuan yang disepakati. Silakan klik tombol usulkan jadwal temu.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+        {% elif rental.status == 'sedang_disewa' %}
+            <!-- TAHAP SEDANG DISEWA & PENGEMBALIAN -->
+            <div class="p-4 sm:p-5 rounded-xl bg-pine-tint/30 border border-pine/30 space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <div class="text-pine mt-0.5 flex-shrink-0">
+                            {% include 'partials/icon.html' with name='package' class='w-5 h-5 text-pine' %}
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-ink">Masa sewa sedang berlangsung</h3>
+                            <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                                Masa sewa: {{ rental.start_date|date:"d M Y" }} s/d {{ rental.end_date|date:"d M Y" }}.
+                                {% if current_late_days > 0 %}
+                                    <span class="text-brick font-bold block mt-1">
+                                        Terlambat {{ current_late_days }} hari. Estimasi denda keterlambatan: {{ current_late_fee|rupiah }}{% if rental.deposit_total > 0 %} (dipotong dari deposit){% else %} (diterbitkan sebagai tagihan tambahan){% endif %}.
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian Pengembalian oleh Penyewa -->
+                {% if is_renter %}
+                    <div class="pt-3 border-t border-line space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-xs font-bold text-ink">Pengembalian barang</h4>
+                                <p class="text-[11px] text-ink-muted">Wajib unggah minimal 2 foto kondisi sesudah sebelum mengembalikan barang.</p>
+                            </div>
+                            <span class="font-mono text-xs font-bold {% if photos_sesudah|length >= 2 %}text-pine{% else %}text-amber-text{% endif %}">
+                                {{ photos_sesudah|length }}/2 Foto
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button type="button"
+                                    @click="openPhotoModal('sesudah', 'Unggah Foto Sesudah Sewa')"
+                                    class="bg-paper hover:bg-paper-deep text-ink border border-line text-xs font-semibold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors">
+                                + Unggah Foto Sesudah
+                            </button>
+
+                            <form action="/sewa/{{ rental.code }}/kembalikan/" method="POST" class="inline">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        {% if photos_sesudah|length < 2 %}disabled title="Unggah minimal 2 foto sesudah terlebih dahulu"{% endif %}
+                                        class="bg-brand hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold px-5 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors shadow-sm">
+                                    Barang Dikembalikan
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="pt-3 border-t border-line text-xs text-ink-muted">
+                        Menunggu penyewa mengembalikan barang fisik dan mengunggah foto kondisi sesudah sewa.
+                    </div>
+                {% endif %}
+            </div>
+
+        {% elif rental.status == 'menunggu_konfirmasi_pengembalian' %}
+            <!-- TAHAP KONFIRMASI PENGEMBALIAN & PENYELESAIAN DANA -->
+            <div class="p-4 sm:p-5 rounded-xl bg-amber-tint/30 border border-amber-text/30 space-y-4">
+                <div class="flex items-start gap-3">
+                    <div class="text-amber-text mt-0.5 flex-shrink-0">
+                        {% include 'partials/icon.html' with name='clock' class='w-5 h-5 text-amber-text' %}
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-ink">Penyewa telah mengembalikan barang</h3>
+                        <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                            Dikembalikan pada {{ rental.returned_date|date:"d M Y" }}.
+                            {% if rental.late_days > 0 %}
+                                Terlambat: {{ rental.late_days }} hari (Denda: {{ rental.late_fee|rupiah }}).
+                            {% else %}
+                                Tepat waktu tanpa denda keterlambatan.
+                            {% endif %}
+                            {% if rental.deposit_total > 0 %}Sisa deposit: {{ sisa_deposit|rupiah }}.{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                {% if is_owner %}
+                    <!-- Formulir Pilihan Pemilik: Kondisi Baik vs Sengketa -->
+                    <div class="pt-3 border-t border-line space-y-3">
+                        <h4 class="text-xs font-bold text-ink">Pilihan pemeriksaan pemilik</h4>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Opsi 1: Konfirmasi Baik -->
+                            <div class="p-3.5 bg-paper rounded-xl border border-line space-y-3">
+                                <div>
+                                    <span class="font-bold text-xs text-pine block">Kondisi Baik & Lengkap</span>
+                                    <p class="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
+                                        Barang kembali dalam kondisi baik.{% if rental.deposit_total > 0 %} Sisa deposit akan dilepas ke penyewa dan dana{% else %} Dana{% endif %} sewa bersih dicairkan ke saldo Anda.
+                                    </p>
+                                </div>
+
+                                <form action="/sewa/{{ rental.code }}/konfirmasi-kembali/" method="POST" class="space-y-3">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action_type" value="baik">
+                                    
+                                    {% if rental.item.require_ktm_held %}
+                                        <label class="flex items-start gap-2 text-xs text-ink cursor-pointer">
+                                            <input type="checkbox" x-model="ktmReturnedCheck" required class="rounded border-line text-brand mt-0.5">
+                                            <span>Saya telah mengembalikan fisik KTM kepada penyewa.</span>
+                                        </label>
+                                    {% endif %}
+
+                                    <button type="submit"
+                                            {% if rental.item.require_ktm_held %}:disabled="!ktmReturnedCheck"{% endif %}
+                                            class="w-full bg-pine hover:bg-pine-dark disabled:opacity-50 text-white text-xs font-bold py-2.5 min-h-[44px] flex items-center justify-center rounded-xl transition-colors shadow-sm">
+                                        Konfirmasi kondisi baik
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Opsi 2: Laporkan Masalah (Sengketa) -->
+                            <div class="p-3.5 bg-paper rounded-xl border border-line space-y-3">
+                                <div>
+                                    <span class="font-bold text-xs text-brick block">Ada Kerusakan / Kehilangan</span>
+                                    <p class="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
+                                        Laporkan kendala fisik dan ajukan {% if rental.deposit_total > 0 %}potongan deposit (maksimal sisa deposit {{ sisa_deposit|rupiah }}){% else %}ganti rugi kerusakan (maksimal hingga nilai taksiran barang {{ rental.item.estimated_value|rupiah }}){% endif %}.
+                                    </p>
+                                </div>
+
+                                <button type="button"
+                                        @click="disputeModalOpen = true"
+                                        class="w-full bg-paper hover:bg-paper-deep text-brick border border-line hover:border-brick/40 text-xs font-bold py-2.5 min-h-[44px] flex items-center justify-center rounded-xl transition-colors">
+                                    Laporkan Masalah (Sengketa)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="pt-3 border-t border-line text-xs text-ink-muted leading-relaxed">
+                        Menunggu pemilik memeriksa kondisi barang. Jika tidak ada laporan dalam 48 jam, sewa akan selesai secara otomatis{% if rental.deposit_total > 0 %} dan sisa deposit Anda akan dikembalikan penuh{% endif %}.
+                    </div>
+                {% endif %}
+            </div>
+
+        {% elif rental.status == 'sengketa' %}
+            <!-- TAHAP SENGKETA AKTIF -->
+            <div class="p-4 sm:p-5 rounded-xl bg-brick-tint border border-brick/30 space-y-3">
+                <div class="flex items-start gap-3">
+                    <div class="text-brick mt-0.5 flex-shrink-0">
+                        {% include 'partials/icon.html' with name='alert-triangle' class='w-5 h-5 text-brick' %}
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-ink">Transaksi dalam status sengketa</h3>
+                        <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
+                            Pemilik melaporkan kendala pada pengembalian barang: 
+                            <strong class="text-ink font-semibold">"{{ dispute.reason|default:'Kerusakan atau kendala fisik barang.' }}"</strong>
+                        </p>
+                        {% if dispute %}
+                            <p class="text-xs text-brick font-semibold mt-1">
+                                {% if rental.deposit_total > 0 %}Potongan deposit{% else %}Ganti rugi kerusakan{% endif %} yang diajukan pemilik: {{ dispute.deduction_amount|rupiah }}
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if is_renter and dispute.status == 'terbuka' %}
+                    <!-- Aksi Penyewa Menyetujui Potongan Sengketa -->
+                    <div class="pt-3 border-t border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <span class="text-xs text-ink-muted">
+                            Anda dapat menyetujui potongan agar transaksi langsung selesai, atau menunggu keputusan staf admin platform.
+                        </span>
+
+                        <form action="/sewa/{{ rental.code }}/setujui-potongan/" method="POST" class="w-full sm:w-auto">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="w-full sm:w-auto bg-brand hover:bg-brand-hover text-white text-xs font-bold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors shadow-sm">
+                                Setujui Potongan ({{ dispute.deduction_amount|rupiah }})
+                            </button>
+                        </form>
+                    </div>
+                {% else %}
+                    <p class="text-xs text-ink-muted pt-2 border-t border-line">
+                        Administrator platform sedang meninjau dokumen transaksi, bukti foto, dan riwayat chat untuk memutuskan sengketa secara adil.
+                    </p>
+                {% endif %}
+            </div>
+
+        {% elif rental.status == 'selesai' %}
+            <!-- TAHAP SELESAI & FORMULIR ULASAN -->
+            <div class="space-y-4">
+                <div class="p-4 sm:p-5 rounded-xl bg-pine-tint/30 border border-pine/30 space-y-2">
+                    <div class="flex items-center gap-2 text-pine font-bold text-sm">
+                        {% include 'partials/icon.html' with name='check-check' class='w-5 h-5 text-pine' %}
+                        <span>Sewa resmi selesai</span>
+                    </div>
+                    <p class="text-xs text-ink-muted leading-relaxed">
+                        Transaksi telah selesai.{% if rental.deposit_total > 0 %} Sisa deposit jaminan telah dilepas dan dana{% else %} Dana{% endif %} sewa pemilik telah dicairkan ke saldo akun.
+                    </p>
+                </div>
+
+                <!-- Kartu Ulasan Transaksi -->
+                <div class="p-5 rounded-xl bg-card border border-line space-y-4">
+                    <h4 class="text-xs font-bold text-ink-muted">Ulasan transaksi</h4>
+
+                    {% if can_review %}
+                        <!-- Form Kirim Ulasan Baru (1-5 bintang, komentar maks 300 char) -->
+                        <form action="/sewa/{{ rental.code }}/ulasan/" method="POST" class="space-y-3" x-data="{ rating: 5, comment: '' }">
+                            {% csrf_token %}
+                            <div>
+                                <label class="block text-xs font-semibold text-ink mb-1.5">Rating Bintang (1 - 5)</label>
+                                <div class="flex items-center gap-3">
+                                    <template x-for="val in [1, 2, 3, 4, 5]" :key="val">
+                                        <button type="button"
+                                                @click="rating = val"
+                                                class="flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-xl border text-xs font-bold transition-colors"
+                                                :class="rating >= val ? 'bg-amber-tint text-amber-text border-amber-text/30' : 'bg-paper text-ink-muted border-line'">
+                                            <span x-text="val"></span>★
+                                        </button>
+                                    </template>
+                                </div>
+                                <input type="hidden" name="rating" :value="rating">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-ink mb-1">
+                                    Komentar Ulasan <span class="text-ink-muted font-normal">(Maks. 300 karakter)</span>
+                                </label>
+                                <textarea name="comment"
+                                          rows="2"
+                                          x-model="comment"
+                                          maxlength="300"
+                                          placeholder="Bagikan pengalaman transaksi Anda dengan jujur dan santun..."
+                                          class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                                <span class="text-[10px] text-ink-muted block text-right" x-text="comment.length + '/300 karakter'"></span>
+                            </div>
+
+                            <button type="submit"
+                                    class="bg-brand hover:bg-brand-hover text-white text-xs font-bold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors shadow-sm">
+                                Kirim Ulasan
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="space-y-3 text-xs">
+                            {% if my_review %}
+                                <div class="p-3 bg-paper rounded-xl border border-line">
+                                    <div class="flex items-center justify-between text-ink-muted mb-1">
+                                        <span class="font-bold text-ink">Ulasan Anda untuk {{ counterpart.username }}:</span>
+                                        <span class="text-amber-text font-bold">{{ my_review.rating }}★</span>
+                                    </div>
+                                    <p class="text-ink">{{ my_review.comment|default:"(Tanpa komentar)" }}</p>
+                                </div>
+                            {% endif %}
+
+                            {% if counterpart_review %}
+                                <div class="p-3 bg-paper rounded-xl border border-line">
+                                    <div class="flex items-center justify-between text-ink-muted mb-1">
+                                        <span class="font-bold text-ink">Ulasan dari {{ counterpart.username }}:</span>
+                                        <span class="text-amber-text font-bold">{{ counterpart_review.rating }}★</span>
+                                    </div>
+                                    <p class="text-ink">{{ counterpart_review.comment|default:"(Tanpa komentar)" }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        {% elif can_cancel %}
+            <!-- Pembatalan Umum Sebelum Bayar -->
+            <div class="flex items-center justify-between gap-4 p-4 rounded-xl bg-paper border border-line">
+                <div>
+                    <h3 class="text-xs font-bold text-ink">Batalkan Transaksi Ini?</h3>
+                    <p class="text-[11px] text-ink-muted mt-0.5">
+                        Sebelum pembayaran dilakukan, transaksi dapat dibatalkan secara gratis tanpa denda atau potongan.
+                    </p>
+                </div>
+                <button type="button"
+                        @click="cancelModalOpen = true"
+                        class="bg-paper hover:bg-paper-deep text-brick border border-line hover:border-brick/40 text-xs font-semibold px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors flex-shrink-0">
+                    Batalkan Sewa
+                </button>
+            </div>
+
+        {% else %}
+            <!-- Tidak ada aksi tertunda untuk status saat ini -->
+            <div class="p-4 rounded-xl bg-paper border border-line text-xs text-ink-muted flex items-center gap-2">
+                {% include 'partials/icon.html' with name='info' class='w-4 h-4 text-brand flex-shrink-0' %}
+                <span>
+                    {% if is_terminal_failed %}
+                        Transaksi ini telah berakhir dan tidak memerlukan tindakan lanjutan.
+                    {% else %}
+                        Tidak ada tindakan tertunda untuk Anda saat ini.
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- 2. GALERI FOTO KONDISI BERDAMPINGAN (Side-by-side comparison: Sebelum, Serah Terima, Sesudah) -->
+    <div class="mt-6 bg-card border border-line rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-3">
+            <div>
+                <h2 class="font-heading text-base font-bold text-ink">Dokumentasi foto kondisi barang</h2>
+                <p class="text-xs text-ink-muted mt-0.5">Perbandingan fisik barang sebelum sewa, saat serah terima, dan setelah dikembalikan</p>
+            </div>
+            <span class="text-[11px] font-semibold text-ink-muted bg-paper px-2.5 py-1 rounded-lg border border-line">
+                Privat &bull; Anti-IDOR
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Kolom 1: Foto Sebelum Sewa -->
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-xs text-ink">Sebelum Sewa</span>
+                    <span class="font-mono text-[11px] font-semibold text-ink-muted">{{ photos_sebelum|length }} foto</span>
+                </div>
+                {% if photos_sebelum %}
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for p in photos_sebelum %}
+                            <a href="{% url 'rentals:rental_photo_serve' code=rental.code photo_id=p.id %}" target="_blank"
+                               class="block aspect-square rounded-lg overflow-hidden border border-line hover:opacity-90 transition-opacity bg-paper-deep">
+                                <img src="{% url 'rentals:rental_photo_serve' code=rental.code photo_id=p.id %}" alt="Sebelum Sewa" class="w-full h-full object-cover">
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-xs text-ink-muted italic py-6 text-center">Belum ada foto sebelum sewa</p>
+                {% endif %}
+            </div>
+
+            <!-- Kolom 2: Foto Serah Terima -->
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-xs text-ink">Saat Serah Terima</span>
+                    <span class="font-mono text-[11px] font-semibold text-ink-muted">{{ photos_serah_terima|length }} foto</span>
+                </div>
+                {% if photos_serah_terima %}
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for p in photos_serah_terima %}
+                            <a href="{% url 'rentals:rental_photo_serve' code=rental.code photo_id=p.id %}" target="_blank"
+                               class="block aspect-square rounded-lg overflow-hidden border border-line hover:opacity-90 transition-opacity bg-paper-deep">
+                                <img src="{% url 'rentals:rental_photo_serve' code=rental.code photo_id=p.id %}" alt="Serah Terima" class="w-full h-full object-cover">
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-xs text-ink-muted italic py-6 text-center">Belum ada foto serah terima</p>
+                {% endif %}
+            </div>
+
+            <!-- Kolom 3: Foto Sesudah Sewa -->
+            <div class="p-4 rounded-xl bg-paper border border-line space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-xs text-ink">Setelah Sewa</span>
+                    <span class="font-mono text-[11px] font-semibold text-ink-muted">{{ photos_sesudah|length }} foto</span>
+                </div>
+                {% if photos_sesudah %}
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for p in photos_sesudah %}
+                            <a href="{% url 'rentals:rental_photo_serve' code=rental.code photo_id=p.id %}" target="_blank"
+                               class="block aspect-square rounded-lg overflow-hidden border border-line hover:opacity-90 transition-opacity bg-paper-deep">
+                                <img src="{% url 'rentals:rental_photo_serve' code=rental.code photo_id=p.id %}" alt="Setelah Sewa" class="w-full h-full object-cover">
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-xs text-ink-muted italic py-6 text-center">Belum ada foto setelah sewa</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Grid Dua Kolom: Kuitansi Biaya (Kiri) & Rincian Perjanjian (Kanan) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-start">
+
+        <!-- SISI KIRI: Kuitansi Biaya, Escrow, dan Buku Besar (lg:col-span-7) -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <!-- 1. Ringkasan Biaya Bergaya Kuitansi (design.md 5.10 & AGENT.md 4.2) -->
+            <div class="bg-card border border-line rounded-2xl shadow-sm overflow-hidden">
+                <!-- Tepi Kartu Kuitansi: Pola Tapis Geometris -->
+                <div class="h-2 w-full opacity-25" style="background: url('/static/patterns/tapis_geom.svg') repeat-x center / auto 100%;"></div>
+                <div class="p-6 sm:p-7 space-y-4">
+                <div class="flex items-center justify-between border-b border-line pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="font-heading text-base font-bold text-ink">Kuitansi Pembayaran</span>
+                        <span class="bg-paper text-ink-muted text-[10px] font-mono px-2 py-0.5 rounded border border-line">
+                            {{ rental.code }}
+                        </span>
+                    </div>
+                    <span class="text-xs text-ink-muted">{{ rental.days }} hari sewa</span>
+                </div>
+
+                <!-- Rincian Barang yang Disewa -->
+                <div class="flex items-center gap-3.5 pb-4 border-b border-line">
+                    <div class="w-16 h-16 rounded-xl bg-paper-deep border border-line overflow-hidden flex-shrink-0">
+                        {% if item.photos.exists %}
+                            <img src="{{ item.photos.first.image.url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <img src="{{ item.fallback_illustration_url }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-bold text-ink truncate">{{ item.title }}</h3>
+                        <p class="text-xs text-ink-muted mt-0.5">
+                            {{ rental.start_date|date:"d M Y" }} s/d {{ rental.end_date|date:"d M Y" }}
+                        </p>
+                        <p class="text-[11px] text-ink-muted">
+                            Area: <strong class="text-ink">{{ item.pickup_area }}</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tabel Baris Biaya Struk (Garis Putus-putus Kuitansi) -->
+                <div class="space-y-2.5 text-xs text-ink pt-1 font-mono">
+                    <div class="flex justify-between items-center">
+                        <span class="text-ink-muted font-sans">Biaya Sewa ({{ rental.price_per_day_snapshot|rupiah }} &times; {{ rental.days }} hari):</span>
+                        <span class="font-bold tabular-nums">{{ rental.rent_total|rupiah }}</span>
+                    </div>
+
+                    {% if rental.deposit_total > 0 %}
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-1.5 font-sans">
+                            <span class="text-ink-muted">Deposit Jaminan:</span>
+                            <span class="bg-amber-tint text-amber-text text-[10px] font-bold px-1.5 py-0.5 rounded font-sans">Ditahan</span>
+                        </div>
+                        <span class="font-bold tabular-nums">{{ rental.deposit_total|rupiah }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-ink-muted font-sans">Iuran Dana Gotong Royong:</span>
+                        <span class="font-bold tabular-nums">
+                            {% if rental.protection_fee > 0 %}
+                                {{ rental.protection_fee|rupiah }}
+                            {% else %}
+                                <span class="font-sans text-ink-muted">Tidak dipilih</span>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <!-- Garis Perforasi Putus-putus Struk -->
+                    <div class="border-b-2 border-dashed border-line my-3"></div>
+
+                    <div class="flex justify-between items-center text-sm sm:text-base font-bold font-sans">
+                        <span class="text-ink">Total Pembayaran:</span>
+                        <span class="text-brand tabular-nums text-lg sm:text-xl">{{ rental.grand_total|rupiah }}</span>
+                    </div>
+                </div>
+
+                <!-- Catatan Jaminan Kuitansi & Dana Gotong Royong -->
+                <div class="space-y-2 pt-1">
+                    <div class="p-3 bg-paper rounded-xl border border-line text-[11px] text-ink-muted leading-relaxed">
+                        <p>
+                            {% if rental.deposit_total > 0 %}
+                            <strong>Jaminan escrow:</strong> Deposit sebesar {{ rental.deposit_total|rupiah }} akan ditahan secara aman oleh platform {{ SITE_NAME }} dan dikembalikan setelah barang kembali dengan aman, dikurangi denda atau ganti rugi bila ada.
+                            {% else %}
+                            <strong>Perjanjian S&amp;K:</strong> Penyewaan dilindungi Syarat &amp; Ketentuan digital resmi platform dan surat perjanjian yang disepakati kedua belah pihak.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if rental.protection_fee > 0 %}
+                    <div class="p-3 bg-paper rounded-xl border border-line text-[11px] text-ink-muted leading-relaxed">
+                        <p>
+                            <strong>Dana Gotong Royong:</strong> Iuran bersama ({{ rental.protection_fee|rupiah }}) menanggung risiko kerusakan ringan wajar saat pemakaian normal, sehingga penyewa dan pemilik merasa lebih tenang.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+                </div>
+            </div>
+
+            {% if is_paid or deposit_hold %}
+                <!-- 2. Kartu Status Escrow & Penahanan Deposit -->
+                <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <div class="flex items-center gap-2">
+                            {% include 'partials/icon.html' with name='shield-check' class='w-5 h-5 text-pine' %}
+                            <h2 class="font-heading text-sm font-bold text-ink">
+                                Dana ditahan platform (escrow)
+                            </h2>
+                        </div>
+                        <span class="bg-pine-tint text-pine-dark text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            {% include 'partials/icon.html' with name='check' class='w-3 h-3 text-pine' %}
+                            <span>Aman di escrow</span>
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 {% if rental.deposit_total > 0 %}sm:grid-cols-2{% endif %} gap-3 text-xs">
+                        <div class="p-3 bg-paper rounded-xl border border-line space-y-1">
+                            <span class="text-[10px] text-ink-muted font-semibold">Total dana ditahan</span>
+                            <div class="font-bold text-ink text-base font-mono tabular-nums">{{ rental.grand_total|rupiah }}</div>
+                            <span class="text-[10px] text-ink-muted block">Sewa{% if rental.deposit_total > 0 %} + Deposit{% endif %}{% if rental.protection_fee > 0 %} + Dana Gotong Royong{% endif %}</span>
+                        </div>
+                        {% if rental.deposit_total > 0 %}
+                        <div class="p-3 bg-paper rounded-xl border border-line space-y-1">
+                            <span class="text-[10px] text-ink-muted font-semibold">Status deposit jaminan</span>
+                            <div class="font-bold text-amber-text text-base font-mono tabular-nums">{{ rental.deposit_total|rupiah }}</div>
+                            <span class="text-[10px] text-ink-muted block">Status: {{ deposit_hold.get_status_display|default:"Ditahan" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="text-[11px] text-ink-muted leading-relaxed p-3 bg-paper-deep rounded-xl flex items-start gap-2">
+                        {% include 'partials/icon.html' with name='info' class='w-4 h-4 text-brand flex-shrink-0 mt-0.5' %}
+                        <p>
+                            Dana sewa{% if rental.deposit_total > 0 %} dan deposit{% endif %} ditahan oleh platform {{ SITE_NAME }} dan tidak diteruskan langsung ke pemilik sampai seluruh proses serah terima dan pengembalian barang dinyatakan selesai tanpa sengketa.
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if ledger_entries %}
+                <!-- 3. Buku Besar Bergaya Kuitansi (LedgerEntry) -->
+                <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <div class="flex items-center gap-2">
+                            {% include 'partials/icon.html' with name='file-text' class='w-5 h-5 text-brand' %}
+                            <h2 class="font-heading text-sm font-bold text-ink">
+                                Buku besar transaksi escrow
+                            </h2>
+                        </div>
+                        <span class="text-[11px] font-mono text-ink-muted">Ref: {{ rental.code }}</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        {% for entry in ledger_entries %}
+                            <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between gap-3 text-xs">
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {% if 'masuk_' in entry.kind %}bg-pine-tint text-pine-dark{% else %}bg-brand-tint text-brand{% endif %}">
+                                            {{ entry.get_kind_display }}
+                                        </span>
+                                        <span class="text-[10px] text-ink-muted font-mono">{{ entry.created_at|date:"d M Y H:i" }}</span>
+                                    </div>
+                                    {% if entry.note %}
+                                        <p class="text-[11px] text-ink-muted">{{ entry.note }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <span class="font-mono font-bold text-sm tabular-nums {% if 'masuk_' in entry.kind %}text-pine{% else %}text-ink{% endif %}">
+                                        {% if 'masuk_' in entry.kind %}+{% else %}-{% endif %}{{ entry.amount|rupiah }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Perforasi Garis Putus-putus Struk -->
+                    <div class="border-b-2 border-dashed border-line my-2"></div>
+
+                    <div class="flex justify-between items-center text-xs text-ink-muted">
+                        <span>Audit Status Invarian:</span>
+                        <span class="font-semibold text-pine-dark inline-flex items-center gap-1">
+                            {% include 'partials/icon.html' with name='check-circle' class='w-3.5 h-3.5 text-pine' %}
+                            <span>Pencatatan Ganda Seimbang</span>
+                        </span>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- SISI KANAN: Data Pihak & Perjanjian Sewa Digital (lg:col-span-5) -->
+        <div class="lg:col-span-5 space-y-6">
+
+            <!-- Data Pihak Transaksi -->
+            <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-4">
+                <h2 class="text-xs font-bold text-ink-muted">
+                    Pihak terkait
+                </h2>
+
+                <div class="space-y-3 text-xs">
+                    <!-- Pemilik -->
+                    <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] text-ink-muted block font-semibold">Pemilik barang</span>
+                            <span class="font-bold text-ink text-sm">{{ rental.owner.full_name|default:rental.owner.username }}</span>
+                            <span class="text-[11px] text-ink-muted block mt-0.5">
+                                {{ rental.owner.student_profile.campus.name|default:"Mahasiswa" }}
+                            </span>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-brand-tint text-brand font-bold flex items-center justify-center">
+                            {{ rental.owner.full_name|default:rental.owner.username|initial }}
+                        </div>
+                    </div>
+
+                    <!-- Penyewa -->
+                    <div class="p-3 bg-paper rounded-xl border border-line flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] text-ink-muted block font-semibold">Penyewa</span>
+                            <span class="font-bold text-ink text-sm">{{ rental.renter.full_name|default:rental.renter.username }}</span>
+                            <span class="text-[11px] text-ink-muted block mt-0.5">
+                                {{ rental.renter.student_profile.campus.name|default:"Mahasiswa" }}
+                            </span>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-brand-tint text-brand font-bold flex items-center justify-center">
+                            {{ rental.renter.full_name|default:rental.renter.username|initial }}
+                        </div>
+                    </div>
+
+                    <!-- Jalur Utama: Tombol Buka Percakapan Chat Internal -->
+                    {% if conversation %}
+                        <div class="pt-2">
+                            <a href="{% url 'chat:conversation' conversation_id=conversation.id %}"
+                               class="w-full py-2.5 px-3 bg-brand hover:bg-brand-hover text-white text-xs font-semibold rounded-xl inline-flex items-center justify-center gap-2 transition-colors shadow-sm">
+                                {% include 'partials/icon.html' with name='message-square' class='w-4 h-4 text-white' %}
+                                <span>Buka percakapan</span>
+                            </a>
+                            <p class="text-[10px] text-ink-muted text-center mt-1.5">
+                                Jalur komunikasi resmi sistem. Seluruh percakapan di sini tersimpan aman sebagai bukti transaksi.
+                            </p>
+                        </div>
+                    {% endif %}
+
+                    {% if show_whatsapp %}
+                        <!-- Kontak WhatsApp Serah Terima (Hanya Lawan Bicara dalam Jendela Waktu) -->
+                        <div class="p-3.5 bg-paper rounded-xl border border-line text-xs space-y-2 mt-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-ink flex items-center gap-1.5">
+                                    {% include 'partials/icon.html' with name='shield-check' class='w-4 h-4 text-pine' %}
+                                    <span>Kontak WhatsApp serah terima</span>
+                                </span>
+                                <span class="text-[10px] bg-pine-tint text-pine-dark px-2 py-0.5 rounded-full font-semibold">Aktif</span>
+                            </div>
+
+                            <div class="flex items-center justify-between text-[11px] pt-1">
+                                <span class="text-ink-muted">{{ counterpart_role }} ({{ counterpart.first_name|default:counterpart.username }}):</span>
+                                <strong class="font-mono text-ink">{{ counterpart.phone_whatsapp|default:"-" }}</strong>
+                            </div>
+
+                            {% if counterpart.phone_whatsapp %}
+                                <div class="pt-1">
+                                    <a href="https://wa.me/{{ counterpart.phone_whatsapp }}?text=Halo%20{{ counterpart.first_name|default:counterpart.username }},%20saya%20{% if is_renter %}penyewa{% else %}pemilik{% endif %}%20{{ rental.item.title }}%20(Kode%20Sewa:%20{{ rental.code }})"
+                                       target="_blank" rel="noopener noreferrer"
+                                       class="w-full py-2 px-3 bg-paper hover:bg-paper-deep text-pine-dark border border-line hover:border-pine/40 text-xs font-semibold rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors">
+                                        {% include 'partials/icon.html' with name='message-square' class='w-3.5 h-3.5 text-pine' %}
+                                        <span>Chat {{ counterpart_role }} via WhatsApp</span>
+                                    </a>
+                                </div>
+                            {% endif %}
+
+                            <p class="text-[10px] text-amber-text leading-relaxed pt-1 border-t border-line">
+                                * Percakapan di WhatsApp tidak tercatat sebagai bukti sengketa.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Perjanjian Sewa Digital (RentalAgreement) -->
+            <div class="bg-card border border-line rounded-2xl p-6 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-ink-muted">
+                        Perjanjian sewa digital
+                    </h2>
+                    <span class="text-pine font-bold text-[11px] inline-flex items-center gap-1">
+                        {% include 'partials/icon.html' with name='check' class='w-3 h-3 text-pine' %}
+                        <span>Disetujui</span>
+                    </span>
+                </div>
+
+                <div class="p-3 bg-paper rounded-xl border border-line text-xs space-y-2 text-ink-muted">
+                    <div class="flex justify-between">
+                        <span>Penyewa yang menyetujui:</span>
+                        <strong class="text-ink">{{ terms_snapshot.accepted_by|default:rental.renter.username }}</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Ganti rugi kehilangan maksimal:</span>
+                        <strong class="text-ink">{{ max_loss_compensation|rupiah }}</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Denda keterlambatan per hari:</span>
+                        <strong class="text-ink">50% tarif sewa / hari</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Syarat KTM fisik ditahan:</span>
+                        <strong class="{% if terms_snapshot.require_ktm_held %}text-amber-text{% else %}text-ink{% endif %}">
+                            {% if terms_snapshot.require_ktm_held %}Wajib ditahan{% else %}Tidak mensyaratkan{% endif %}
+                        </strong>
+                    </div>
+
+                    {% if terms_snapshot.require_ktm_held %}
+                        <div class="mt-2 pt-2 border-t border-line text-[11px] text-amber-text leading-relaxed">
+                            <strong>Penting:</strong> Pemilik berhak memegang fisik KTM Anda selama masa sewa, namun dilarang keras menduplikasi atau memfoto KTM Anda.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- MODAL 1: Konfirmasi Tolak Permintaan (Pemilik) -->
+    <div x-show="rejectModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60"
+         @keydown.escape.window="rejectModalOpen = false">
+        
+        <div class="bg-card rounded-t-2xl sm:rounded-2xl max-w-md w-full p-6 sm:p-7 border border-line shadow-xl space-y-4 max-h-[85vh] overflow-y-auto safe-bottom"
+             @click.away="rejectModalOpen = false">
+            
+            <div class="w-12 h-12 rounded-xl bg-brick-tint text-brick flex items-center justify-center">
+                {% include 'partials/icon.html' with name='x' class='w-6 h-6' %}
+            </div>
+
+            <div>
+                <h3 class="font-heading text-lg font-bold text-ink">
+                    Tolak Permintaan Sewa
+                </h3>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                    Berikan alasan penolakan agar penyewa memahami kendala ketersediaan barang Anda.
+                </p>
+            </div>
+
+            <form action="/sewa/{{ rental.code }}/tolak/" method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Alasan Penolakan</label>
+                    <textarea name="reason"
+                              rows="3"
+                              required
+                              placeholder="Misal: Barang sedang dipakai untuk praktikum pada tanggal tersebut..."
+                              class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button"
+                            @click="rejectModalOpen = false"
+                            class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border border-line transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="bg-brick hover:bg-brick/90 text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                        Tolak Permintaan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Konfirmasi Batalkan Sewa (Penyewa atau Pemilik) -->
+    <div x-show="cancelModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60"
+         @keydown.escape.window="cancelModalOpen = false">
+        
+        <div class="bg-card rounded-t-2xl sm:rounded-2xl max-w-md w-full p-6 sm:p-7 border border-line shadow-xl space-y-4 max-h-[85vh] overflow-y-auto safe-bottom"
+             @click.away="cancelModalOpen = false">
+            
+            <div class="w-12 h-12 rounded-xl bg-brick-tint text-brick flex items-center justify-center">
+                {% include 'partials/icon.html' with name='alert-triangle' class='w-6 h-6' %}
+            </div>
+
+            <div>
+                <h3 class="font-heading text-lg font-bold text-ink">
+                    Batalkan Transaksi Sewa
+                </h3>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                    {% if is_paid %}
+                        <strong>Ketentuan Refund:</strong> Jika dibatalkan oleh pemilik atau oleh penyewa lebih dari 24 jam sebelum sewa dimulai, dana dikembalikan penuh (100%). Jika dibatalkan oleh penyewa 24 jam atau kurang sebelum sewa dimulai, 20% biaya sewa pokok diberikan ke pemilik sebagai kompensasi pembatalan dan sisanya dikembalikan ke penyewa.
+                    {% else %}
+                        Pembatalan sebelum pembayaran tidak dikenakan biaya. Anda wajib mencantumkan alasan pembatalan.
+                    {% endif %}
+                </p>
+            </div>
+
+            <form action="/sewa/{{ rental.code }}/batal/" method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Alasan Pembatalan <span class="text-brick">*</span></label>
+                    <textarea name="reason"
+                              rows="3"
+                              required
+                              placeholder="Tuliskan alasan pembatalan transaksi..."
+                              class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button"
+                            @click="cancelModalOpen = false"
+                            class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border border-line transition-colors">
+                        Tutup
+                    </button>
+                    <button type="submit"
+                            class="bg-brick hover:bg-brick/90 text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                        Konfirmasi Pembatalan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Usulkan Jadwal Serah Terima -->
+    <div x-show="scheduleModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60"
+         @keydown.escape.window="scheduleModalOpen = false">
+        
+        <div class="bg-card rounded-t-2xl sm:rounded-2xl max-w-md w-full p-6 sm:p-7 border border-line shadow-xl space-y-4 max-h-[85vh] overflow-y-auto safe-bottom"
+             @click.away="scheduleModalOpen = false">
+            
+            <div class="w-12 h-12 rounded-xl bg-brand-tint text-brand flex items-center justify-center">
+                {% include 'partials/icon.html' with name='calendar' class='w-6 h-6' %}
+            </div>
+
+            <div>
+                <h3 class="font-heading text-lg font-bold text-ink">
+                    Usulkan Jadwal Serah Terima
+                </h3>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                    Tentukan waktu dan titik temu pertemuan untuk serah terima fisik barang.
+                </p>
+            </div>
+
+            <form action="{% url 'rentals:handover_schedule_propose' code=rental.code %}" method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Waktu Pertemuan <span class="text-brick">*</span></label>
+                    <input type="datetime-local"
+                           name="meet_at"
+                           required
+                           class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Titik Temu Kampus</label>
+                    <select name="meeting_point_id"
+                            class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                        <option value="">-- Bebas / Sepakati di Chat --</option>
+                        {% for mp in meeting_points %}
+                            <option value="{{ mp.id }}">
+                                {{ mp.name }} ({{ mp.campus.short_name|default:mp.campus.name }}){% if mp.is_public %} - Titik Publik{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if is_cross_campus %}
+                        <span class="text-[10px] text-amber-text block mt-1">
+                            * Transaksi lintas kampus: Hanya titik temu publik yang ramai yang dapat dipilih demi keamanan.
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Catatan Tambahan</label>
+                    <input type="text"
+                           name="note"
+                           placeholder="Misal: Bertemu di depan pintu barat perpustakaan..."
+                           class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button"
+                            @click="scheduleModalOpen = false"
+                            class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border border-line transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                        Kirim Usulan Jadwal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Unggah Foto Kondisi (Kamera in-app getUserMedia + Cadangan File) -->
+    <div x-show="photoModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60"
+         @keydown.escape.window="closePhotoModal()">
+        
+        <div class="bg-card rounded-t-2xl sm:rounded-2xl max-w-lg w-full p-6 sm:p-7 border border-line shadow-xl space-y-4 max-h-[85vh] overflow-y-auto safe-bottom"
+             @click.away="closePhotoModal()">
+            
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-heading text-lg font-bold text-ink" x-text="photoPhaseLabel"></h3>
+                    <p class="text-xs text-ink-muted mt-0.5">Ambil foto via kamera perangkat atau unggah berkas gambar.</p>
+                </div>
+                <button type="button" @click="closePhotoModal()" class="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted hover:text-ink hover:bg-paper text-lg">&times;</button>
+            </div>
+
+            <!-- Kamera In-App (Live Feed & Canvas) -->
+            <div class="p-3 bg-paper rounded-xl border border-line space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-ink">Kamera Perangkat (In-App)</span>
+                    <button type="button"
+                            x-show="!cameraActive && !capturedBase64"
+                            @click="startCamera()"
+                            class="bg-brand text-white px-3 py-1.5 min-h-[44px] rounded-lg text-xs font-semibold hover:bg-brand-hover transition-colors inline-flex items-center gap-1.5">
+                        {% include 'partials/icon.html' with name='camera' class='w-3.5 h-3.5' %}
+                        <span>Buka Kamera</span>
+                    </button>
+                </div>
+
+                <!-- Video Feed Saat Kamera Aktif -->
+                <div x-show="cameraActive" class="space-y-2" x-cloak>
+                    <video id="camera-feed" autoplay playsinline class="w-full h-56 bg-ink rounded-xl object-cover"></video>
+                    <canvas id="camera-canvas" class="hidden"></canvas>
+                    <div class="flex items-center justify-between">
+                        <button type="button"
+                                @click="captureFrame()"
+                                class="bg-pine hover:bg-pine-dark text-white px-4 py-2 min-h-[44px] rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5">
+                            {% include 'partials/icon.html' with name='camera' class='w-4 h-4' %}
+                            <span>Jepret Foto Ini</span>
+                        </button>
+                        <button type="button"
+                                @click="stopCamera()"
+                                class="text-xs text-brick hover:underline min-h-[44px] inline-flex items-center">
+                            Tutup Kamera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pratinjau Foto Hasil Jepretan Kamera -->
+                <div x-show="capturedBase64" class="space-y-2" x-cloak>
+                    <img :src="capturedBase64" alt="Hasil Jepretan" class="w-full h-56 rounded-xl object-cover border border-line">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-pine font-semibold inline-flex items-center gap-1">
+                            {% include 'partials/icon.html' with name='check' class='w-3.5 h-3.5 text-pine' %}
+                            <span>Foto berhasil dijepret dari kamera</span>
+                        </span>
+                        <button type="button"
+                                @click="startCamera()"
+                                class="text-xs text-brand hover:underline min-h-[44px] inline-flex items-center">
+                            Ambil Ulang
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pesan Kesalahan Akses Kamera -->
+                <div x-show="cameraError" class="p-2.5 rounded-lg bg-amber-tint border border-amber-text/30 text-xs text-amber-text" x-cloak>
+                    <span x-text="cameraError"></span>
+                </div>
+            </div>
+
+            <!-- Formulir Kirim Foto (Mendukung base64 jepretan kamera atau file upload) -->
+            <form :action="'/sewa/{{ rental.code }}/foto/unggah/' + photoPhase + '/'"
+                  method="POST"
+                  enctype="multipart/form-data"
+                  class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="photo_base64" :value="capturedBase64">
+
+                <!-- Cadangan Unggah Berkas Foto (Desktop / Galeri Ponsel) -->
+                <div x-show="!capturedBase64">
+                    <label class="block text-xs font-bold text-ink mb-1">
+                        Cadangan Unggah Berkas Foto (Desktop / Galeri)
+                    </label>
+                    <input type="file"
+                           name="photo_file"
+                           accept="image/*"
+                           capture="environment"
+                           class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs text-ink focus:outline-none">
+                    <span class="text-[10px] text-ink-muted block mt-1">
+                        Format JPG/PNG/WebP, otomatis dikompresi maksimal 1280 px JPEG 80.
+                    </span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Catatan Kondisi (Opsional)</label>
+                    <input type="text"
+                           name="note"
+                           placeholder="Misal: Kondisi mulus, kelengkapan kabel charger lengkap..."
+                           class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button"
+                            @click="closePhotoModal()"
+                            class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border border-line transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-5 py-2.5 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                        Simpan Foto Kondisi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 5: Laporkan Masalah & Buka Sengketa (Pemilik) -->
+    <div x-show="disputeModalOpen"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60"
+         @keydown.escape.window="disputeModalOpen = false">
+        
+        <div class="bg-card rounded-t-2xl sm:rounded-2xl max-w-md w-full p-6 sm:p-7 border border-line shadow-xl space-y-4 max-h-[85vh] overflow-y-auto safe-bottom"
+             @click.away="disputeModalOpen = false">
+            
+            <div class="w-12 h-12 rounded-xl bg-brick-tint text-brick flex items-center justify-center">
+                {% include 'partials/icon.html' with name='alert-triangle' class='w-6 h-6' %}
+            </div>
+
+            <div>
+                <h3 class="font-heading text-lg font-bold text-ink">
+                    Laporkan masalah sewa
+                </h3>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                    {% if rental.deposit_total > 0 %}
+                    Sengketa akan menahan sisa deposit jaminan. Jelaskan kerusakan atau kendala fisik yang ditemukan secara objektif.
+                    {% else %}
+                    Jelaskan kerusakan atau kendala fisik yang ditemukan secara objektif untuk penagihan ganti rugi.
+                    {% endif %}
+                </p>
+            </div>
+
+            <form action="/sewa/{{ rental.code }}/konfirmasi-kembali/" method="POST" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action_type" value="sengketa">
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Penjelasan kerusakan / masalah <span class="text-brick">*</span></label>
+                    <textarea name="reason"
+                              rows="3"
+                              required
+                              placeholder="Jelaskan secara rinci kondisi fisik barang yang rusak, tidak lengkap, atau kendala lainnya..."
+                              class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">
+                        {% if rental.deposit_total > 0 %}
+                        Nominal potongan deposit yang diminta (Rp)
+                        {% else %}
+                        Nominal ganti rugi kerusakan yang diminta (Rp)
+                        {% endif %}
+                    </label>
+                    <input type="number"
+                           name="deduction_amount"
+                           min="0"
+                           {% if rental.deposit_total > 0 %}
+                           max="{{ sisa_deposit }}"
+                           {% else %}
+                           max="{{ rental.item.estimated_value }}"
+                           {% endif %}
+                           value="0"
+                           class="w-full bg-paper px-3 py-2 rounded-xl border border-line text-xs sm:text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand">
+                    <span class="text-[11px] text-ink-muted block mt-1">
+                        {% if rental.deposit_total > 0 %}
+                        Maksimal potongan yang dapat diajukan: <strong class="text-ink">{{ sisa_deposit|rupiah }}</strong> (sisa deposit jaminan).
+                        {% else %}
+                        Maksimal tagihan yang dapat diajukan: <strong class="text-ink">{{ rental.item.estimated_value|rupiah }}</strong> (nilai taksiran barang).
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button"
+                            @click="disputeModalOpen = false"
+                            class="bg-paper hover:bg-paper-deep text-ink text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border border-line transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="bg-brick hover:bg-brick/90 text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors">
+                        Buka Sengketa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bilah Aksi Lengket di Mobile (< lg) — FASE 7H -->
+    <div class="lg:hidden fixed bottom-0 inset-x-0 bg-card/95 backdrop-blur-md border-t border-line px-4 py-3 z-40 safe-bottom shadow-lg">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <span class="text-[11px] text-ink-muted block font-medium">Status sewa</span>
+                <span class="text-xs font-bold text-ink">{{ rental.get_status_display }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if show_pay_button and midtrans_ready %}
+                    <button type="button"
+                            @click="payWithMidtrans(false)"
+                            :disabled="paying"
+                            class="inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-bold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                        {% include 'partials/icon.html' with name='credit-card' class='w-4 h-4' %}
+                        <span>Bayar Sekarang</span>
+                    </button>
+                {% elif is_owner and rental.status == 'menunggu_persetujuan' %}
+                    <form action="/sewa/{{ rental.code }}/setujui/" method="POST" class="inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                            {% include 'partials/icon.html' with name='check' class='w-4 h-4' %}
+                            <span>Setujui</span>
+                        </button>
+                    </form>
+                {% elif conversation %}
+                    <a href="/pesan/{{ conversation.id }}/"
+                       class="inline-flex items-center justify-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl transition-colors shadow-sm">
+                        {% include 'partials/icon.html' with name='message-square' class='w-4 h-4' %}
+                        <span>Chat</span>
+                    </a>
+                {% else %}
+                    <span class="text-xs font-medium text-ink-muted font-mono">{{ rental.code }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+{% if midtrans_client_key %}
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ midtrans_client_key }}"></script>
+{% endif %}
+<script>
+function payWithMidtrans(forceNew = false) {
+    const payBtn = document.getElementById('pay-button');
+    const changeBtn = document.getElementById('pay-change-method-button');
+    if (window._isPaying) return;
+    window._isPaying = true;
+    if (payBtn) payBtn.disabled = true;
+    if (changeBtn) changeBtn.disabled = true;
+
+    fetch("{% url 'rentals:rental_pay' code=rental.code %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ force_new: forceNew ? true : false })
+    })
+    .then(response => {
+        return response.json().then(data => ({ status: response.status, body: data }));
+    })
+    .then(({ status, body }) => {
+        if (status === 200 && body.status === 'success' && body.snap_token) {
+            if (typeof window.snap === 'undefined') {
+                alert('Midtrans Snap SDK gagal dimuat. Periksa koneksi internet Anda.');
+                window._isPaying = false;
+                if (payBtn) payBtn.disabled = false;
+                if (changeBtn) changeBtn.disabled = false;
+                return;
+            }
+            const snapMode = body.snap_mode || "{{ midtrans_snap_mode|default:'popup' }}";
+            const embedContainer = document.getElementById('snap-container');
+
+            const snapCallbacks = {
+                onSuccess: function(result) {
+                    window._isPaying = false;
+                    if (payBtn) payBtn.disabled = false;
+                    if (changeBtn) changeBtn.disabled = false;
+                    const tid = (result && (result.transaction_id || result.id)) ? (result.transaction_id || result.id) : null;
+                    const oid = (result && result.order_id) ? result.order_id : body.order_id;
+                    syncPayment(oid, true, false, tid);
+                },
+                onPending: function(result) {
+                    window._isPaying = false;
+                    if (payBtn) payBtn.disabled = false;
+                    if (changeBtn) changeBtn.disabled = false;
+                    const tid = (result && (result.transaction_id || result.id)) ? (result.transaction_id || result.id) : null;
+                    const oid = (result && result.order_id) ? result.order_id : body.order_id;
+                    syncPayment(oid, false, false, tid);
+                },
+                onError: function(result) {
+                    window._isPaying = false;
+                    if (payBtn) payBtn.disabled = false;
+                    if (changeBtn) changeBtn.disabled = false;
+                    syncPayment(body.order_id, false);
+                },
+                onClose: function() {
+                    window._isPaying = false;
+                    if (payBtn) payBtn.disabled = false;
+                    if (changeBtn) changeBtn.disabled = false;
+                    syncPayment(body.order_id, false);
+                }
+            };
+
+            if (snapMode === 'embed' && embedContainer) {
+                embedContainer.classList.remove('hidden');
+                embedContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                try {
+                    window.snap.embed(body.snap_token, {
+                        embedId: 'snap-container',
+                        onSuccess: snapCallbacks.onSuccess,
+                        onPending: snapCallbacks.onPending,
+                        onError: snapCallbacks.onError,
+                        onClose: snapCallbacks.onClose
+                    });
+                } catch (embedErr) {
+                    console.warn('Snap embed mode failed, fallback to popup:', embedErr);
+                    embedContainer.classList.add('hidden');
+                    window.snap.pay(body.snap_token, snapCallbacks);
+                }
+            } else {
+                window.snap.pay(body.snap_token, snapCallbacks);
+            }
+        } else {
+            alert(body.message || 'Gagal memproses transaksi pembayaran.');
+            window._isPaying = false;
+            if (payBtn) payBtn.disabled = false;
+            if (changeBtn) changeBtn.disabled = false;
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Terjadi kesalahan jaringan saat memproses pembayaran.');
+        window._isPaying = false;
+        if (payBtn) payBtn.disabled = false;
+        if (changeBtn) changeBtn.disabled = false;
+    });
+}
+
+function syncPayment(orderId, redirectFinish = false, isManual = false, transactionId = null) {
+    const formData = new URLSearchParams();
+    if (orderId) {
+        formData.append('order_id', orderId);
+    }
+    if (transactionId) {
+        formData.append('transaction_id', transactionId);
+    }
+
+    const finishUrl = "{% url 'rentals:rental_payment_finish' code=rental.code %}" + 
+        (orderId ? ("?order_id=" + encodeURIComponent(orderId)) : "") + 
+        (transactionId ? ((orderId ? "&" : "?") + "transaction_id=" + encodeURIComponent(transactionId)) : "");
+
+    fetch("{% url 'rentals:rental_sync_payment' code=rental.code %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then((data) => {
+        if (redirectFinish || (data && data.is_paid)) {
+            window.location.href = finishUrl;
+        } else if (isManual) {
+            if (data && data.status === 'error') {
+                alert(data.message || 'Status transaksi belum berubah di Midtrans.');
+            } else if (data && data.payment_status === 'pending') {
+                alert('Status di Midtrans masih PENDING. Jika menggunakan Sandbox (VA/Bank Transfer), pastikan nomor pembayaran telah dibayar di simulator: https://simulator.sandbox.midtrans.com/');
+            } else {
+                window.location.reload();
+            }
+        } else {
+            window.location.reload();
+        }
+    })
+    .catch(() => {
+        if (redirectFinish) {
+            window.location.href = finishUrl;
+        } else if (isManual) {
+            alert('Tidak dapat menghubungi server untuk mengecek status pembayaran.');
+        } else {
+            window.location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

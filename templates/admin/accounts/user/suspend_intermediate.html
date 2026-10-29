@@ -1,0 +1,58 @@
+{% extends "admin/base_site.html" %}
+{% load i18n l10n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='accounts' %}">Akun</a>
+&rsaquo; <a href="{% url 'admin:accounts_user_changelist' %}">Pengguna</a>
+&rsaquo; Konfirmasi pembekuan pengguna
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 20px 0; background: #ffffff; border: 1px solid #E4DECF; border-radius: 8px; padding: 24px;">
+    <h2 style="margin-top: 0; color: #C73E1D; font-size: 1.25rem; font-weight: 700;">
+        Konfirmasi pembekuan pengguna terpilih
+    </h2>
+    <p style="color: #4B5563; font-size: 14px; margin-bottom: 20px;">
+        Akun pengguna terpilih akan ditandai sebagai <strong>Dibekukan</strong> (<code>is_suspended = True</code>) dan dicatat dalam riwayat pembekuan (<code>SuspensionRecord</code>). Pengguna akan menerima notifikasi resmi.
+    </p>
+
+    <form action="" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bekukan_pengguna" />
+        <input type="hidden" name="confirm" value="yes" />
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-weight: 600; color: #141B34; margin-bottom: 8px; font-size: 13px;">
+                Daftar Pengguna Terpilih ({{ users|length }}):
+            </label>
+            <ul style="background: #F8F5EE; border: 1px solid #E4DECF; border-radius: 6px; padding: 12px 24px; margin: 0; max-height: 200px; overflow-y: auto;">
+                {% for u in users %}
+                    <li style="margin-bottom: 6px; font-size: 13px; color: #141B34;">
+                        <strong>{{ u.username }}</strong> &bull; {{ u.full_name|default:"Tanpa nama" }} ({{ u.email }})
+                        <input type="hidden" name="_selected_action" value="{{ u.pk }}" />
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label for="id_reason" style="display: block; font-weight: 600; color: #141B34; margin-bottom: 8px; font-size: 13px;">
+                Alasan Pembekuan Akun <span style="color: #C73E1D;">* (Wajib Diisi)</span>:
+            </label>
+            <textarea id="id_reason" name="reason" rows="4" required placeholder="Contoh: Terindikasi penipuan / Barang tidak dikembalikan / Pelanggaran berulang syarat dan ketentuan platform..." style="width: 100%; border: 1px solid #CBD5E1; border-radius: 6px; padding: 10px; font-family: inherit; font-size: 14px; box-sizing: border-box;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button type="submit" style="background: #C73E1D; color: #ffffff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                Ya, Bekukan Akun & Catat Riwayat
+            </button>
+            <a href="{% url 'admin:accounts_user_changelist' %}" style="display: inline-block; padding: 10px 18px; background: #E4DECF; color: #141B34; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Batalkan
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hubungi Kami | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}Hubungi tim pengelola {{ SITE_NAME }} untuk bantuan akun, kendala sewa atau jual beli, laporan keamanan, atau pertanyaan kerja sama kemahasiswaan.{% endblock %}
+
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 sm:px-8 pt-6 pb-16">
+    <!-- Breadcrumb & Badge -->
+    <div class="flex items-center gap-2 text-xs text-ink-muted mb-6">
+        <a href="{% url 'home' %}" class="hover:text-brand transition-colors">Beranda</a>
+        <span>/</span>
+        <span class="text-ink font-medium">Kontak</span>
+    </div>
+
+    <div class="max-w-2xl mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-ink tracking-tight mb-3">
+            Ada kendala atau pertanyaan? Kami siap membantu.
+        </h1>
+        <p class="text-base text-ink-muted leading-relaxed">
+            Tim operasional {{ SITE_NAME }} berdedikasi menjaga kelancaran dan keamanan transaksi sewa dan jual beli antarmahasiswa. Sampaikan pertanyaan, kendala verifikasi, atau laporan transaksi Anda.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <!-- Saluran Email Utama -->
+        <div class="bg-card border border-line rounded-2xl p-6 shadow-sm hover:border-brand/40 transition-all flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand flex items-center justify-center mb-4">
+                    {% include 'partials/icon.html' with name='mail' class='w-5 h-5' %}
+                </div>
+                <h2 class="text-base font-bold text-ink mb-1">Email Dukungan</h2>
+                <p class="text-xs text-ink-muted leading-relaxed mb-4">
+                    Pertanyaan akun, bukti sewa, sengketa, dan permohonan klaim perlindungan.
+                </p>
+            </div>
+            <div>
+                <a href="mailto:{{ support_email }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+                    <span>{{ support_email }}</span>
+                    {% include 'partials/icon.html' with name='external-link' class='w-3.5 h-3.5' %}
+                </a>
+                <p class="text-[11px] text-ink-muted mt-1">Respon maksimal 1x24 jam kerja</p>
+            </div>
+        </div>
+
+        <!-- Pusat Bantuan Cepat -->
+        <div class="bg-card border border-line rounded-2xl p-6 shadow-sm hover:border-brand/40 transition-all flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-xl bg-pine-tint text-pine-dark flex items-center justify-center mb-4">
+                    {% include 'partials/icon.html' with name='help-circle' class='w-5 h-5' %}
+                </div>
+                <h2 class="text-base font-bold text-ink mb-1">Pusat Bantuan &amp; FAQ</h2>
+                <p class="text-xs text-ink-muted leading-relaxed mb-4">
+                    Panduan mandiri untuk cara sewa, aturan denda, verifikasi KTM, dan tangga kepercayaan.
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'core:bantuan' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+                    <span>Buka Pusat Bantuan</span>
+                    {% include 'partials/icon.html' with name='arrow-right' class='w-3.5 h-3.5' %}
+                </a>
+                <p class="text-[11px] text-ink-muted mt-1">Solusi instan 24/7</p>
+            </div>
+        </div>
+
+        <!-- Keamanan & Privasi Data -->
+        <div class="bg-card border border-line rounded-2xl p-6 shadow-sm hover:border-brand/40 transition-all flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-xl bg-amber-tint text-amber-text flex items-center justify-center mb-4">
+                    {% include 'partials/icon.html' with name='shield' class='w-5 h-5' %}
+                </div>
+                <h2 class="text-base font-bold text-ink mb-1">Keamanan &amp; Data Pribadi</h2>
+                <p class="text-xs text-ink-muted leading-relaxed mb-4">
+                    Hak subjek data PDP (UU No. 27/2022), penarikan persetujuan, atau laporan penyalahgunaan akun.
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'core:kebijakan_privasi' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+                    <span>Kebijakan Privasi</span>
+                    {% include 'partials/icon.html' with name='arrow-right' class='w-3.5 h-3.5' %}
+                </a>
+                <p class="text-[11px] text-ink-muted mt-1">Dikelola sesuai regulasi UU PDP</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catatan Jam Operasional & Etika Layanan -->
+    <div class="bg-paper border border-line rounded-2xl p-6 text-ink-muted text-xs leading-relaxed space-y-2">
+        <div class="flex items-center gap-2 font-semibold text-ink text-sm">
+            {% include 'partials/icon.html' with name='clock' class='w-4 h-4 text-brand' %}
+            <span>Jam Kerja Layanan Bantuan</span>
+        </div>
+        <p>
+            Operasional peninjauan verifikasi KTM dan mediasi sengketa berjalan pada hari <strong>Senin s.d. Jumat pukul 08.30 – 17.30 WIB</strong>. Seluruh proses sewa, sistem pembayaran Midtrans otomatis, dan perlindungan escrow berjalan 24 jam setiap hari secara otomatis melalui platform.
+        </p>
+        <p>
+            Untuk mempercepat penanganan kendala sewa, mohon sertakan <strong>Kode Transaksi Sewa (misal: RENT-XXXX)</strong> atau alamat email akun terdaftar Anda.
+        </p>
+    </div>
+</div>
+{% endblock %}

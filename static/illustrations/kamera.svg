@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#6C8EF5"/>
+  <!-- Kamera: lebar ~270px (70% lebar ubin), garis ink 2.5px, lensa ink -->
+  <path d="M 140 160 L 160 130 L 240 130 L 260 160 Z" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5" stroke-linejoin="round"/>
+  <rect x="65" y="160" width="270" height="190" rx="20" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Flash & tombol -->
+  <circle cx="105" cy="195" r="8" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <rect x="260" y="185" width="40" height="18" rx="4" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Outer lens -->
+  <circle cx="200" cy="255" r="65" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <circle cx="200" cy="255" r="48" fill="#FFFFFF" stroke="#141B34" stroke-width="2.5"/>
+  <!-- Detail isi ink: elemen lensa inti -->
+  <circle cx="200" cy="255" r="28" fill="#141B34" stroke="none"/>
+</svg>
